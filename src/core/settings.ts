@@ -59,7 +59,7 @@ export interface Settings {
 	/** Where the note templates are kept, and seeded to when they are missing. */
 	templateFolder: string;
 	/**
-	 * The heading a literature note is finished under. A paper leaves Write up
+	 * The heading a literature note is finished under. A paper leaves Reading
 	 * once this has anything below it, so renaming it in the paper template
 	 * without changing it here would keep every read paper on the list forever.
 	 */

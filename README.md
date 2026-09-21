@@ -24,9 +24,9 @@ creates the literature note itself, and keeps one list of what is outstanding.
     Reframing heat pump transitions
     Strategic Reading and Ontologies
     How to Read a Paper
-▾ Reading                                1
+▾ Reading                                3
     Scholars Before Researchers
-▾ Claim                                  2
+    So Much to Read, So Little Time
 ▾ Assessment                             1
 ```
 
@@ -56,12 +56,15 @@ extracted. It also reads the bibliography and tells you how many of those papers
 you already have, with the ones you **dropped** listed first. Then: drop it and
 say why, queue it, or mark it already read.
 
-**Reading** holds what triage kept. Opening a row opens the paper in Zotero,
-where your highlights belong. When you are done, **Finished** asks what came of
-it: enough, worth assessing closely, come back later, or not worth finishing.
-The first two move it to **Claim**, where you write what the paper argues in
-your own words. Your
-highlights are already in the note by then.
+**Reading** holds what triage kept, and holds it until the second pass is
+actually over. Opening a row opens the paper in Zotero, where your highlights
+belong. When you are done, **Finished** asks what came of it: enough, worth
+assessing closely, come back later, or not worth finishing.
+
+The paper stays in the section after that, because Keshav's test for the second
+pass is that you can summarise the paper to someone else and you have not yet.
+The row now offers the note instead of Zotero: write what the paper argues, in
+your own words, and it leaves. Your highlights are already there.
 
 **Assessment** is for the few papers you promote, and ends when it is written.
 It is Keshav's third pass: arguing with a paper you can already summarise.

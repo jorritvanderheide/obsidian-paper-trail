@@ -9,7 +9,7 @@ import type { CachedMetadata } from 'obsidian';
 import { isPaper } from './paper-note';
 import type { Pending } from './pending';
 
-export type Stage = 'triage' | 'read' | 'write-up' | 'assess';
+export type Stage = 'triage' | 'reading' | 'assessment';
 
 /** Everything the rules need, read from Obsidian's metadata cache. */
 export interface NoteState {
@@ -35,59 +35,74 @@ export interface NoteState {
 	created: number;
 }
 
-export interface StageAction {
-	stage: Stage;
-	label: string;
-	/**
-	 * The stage itself, as an icon, for the head of its section in the queue.
-	 *
-	 * Always present, unlike the action icon below: every stage is drawn as a
-	 * folder and a folder beside a tag explorer's iconned ones with nothing in
-	 * that slot reads as broken rather than as plain.
-	 */
-	stageIcon: string;
-	/** The button that takes you to the work. */
+/**
+ * What a paper owes, which is not the same as which section it sits under.
+ *
+ * Keshav's second pass ends when "you should be able to summarize the main
+ * thrust of the paper, with supporting evidence, to someone else", so reading a
+ * paper and writing its claim are two halves of one pass rather than two
+ * passes. They share a section. They are still different work, and a row says
+ * which by the button it offers.
+ */
+export type Task = 'triage' | 'read' | 'claim' | 'assessment';
+
+/** Which section a task is drawn under. Four things to do, three passes. */
+const SECTION: Record<Task, Stage> = { triage: 'triage', read: 'reading', claim: 'reading', assessment: 'assessment' };
+
+export interface TaskAction {
+	/** The button that takes you to the work, and the tooltip on its icon. */
 	action: string;
 	/**
 	 * The same action as an icon, for a queue row.
 	 *
 	 * A row in a sidebar has no width to spare: "Open in Zotero" is a hundred
-	 * points of label that cannot shrink, and two of those leave a paper's title
-	 * about sixteen characters. The label survives as the tooltip and as what a
-	 * screen reader reads, which is where a menu still uses it.
+	 * points of label that cannot shrink. The label survives as the tooltip and
+	 * as what a screen reader reads.
 	 *
 	 * Absent where the action is opening the row's own note, because clicking
 	 * the row already does that. A button that repeats the thing next to it
 	 * teaches you that the buttons are worth ignoring.
 	 */
 	icon?: string;
-	hint: string;
 	/**
-	 * A second button that ends the stage, for the one stage whose end the
-	 * plugin cannot see.
+	 * A second button, for the one task whose end the plugin cannot see.
 	 *
-	 * Every other stage finishes by doing the thing: a decision is written, a
-	 * claim or an assessment is typed, a domain is chosen, and the row leaves of
-	 * its own accord. Reading happens in Zotero over days, so nothing in the
-	 * vault changes when it is over. Without this the row sits there forever and
-	 * `next` offers the same paper every time it is pressed.
+	 * Every other task ends by doing the thing: a decision is written, a claim
+	 * or an assessment is typed, and the row leaves of its own accord. Reading
+	 * happens in Zotero over days, so nothing in the vault changes when it is
+	 * over. Without this the row would sit there forever.
 	 *
 	 * What it opens is a question rather than a single outcome, because the end
 	 * of a second pass has four answers and picking one for the reader would be
 	 * the same mistake in a smaller place.
 	 */
 	done?: string;
-	/** `done` as an icon, for the same reason `action` has one. */
+	/** The `done` button as an icon, for the same reason the action has one. */
 	doneIcon?: string;
 	/**
 	 * Whether the action is worth offering from inside the note it concerns.
 	 *
-	 * Write up and Assess are finished by typing into the note, so their
-	 * action is "open this note", which from inside that note is an offer to do
-	 * nothing. The others go somewhere or ask something, and are exactly what you
-	 * want to hand when you are looking at the paper.
+	 * A claim or an assessment is written by typing into the note, so the action
+	 * is "open this note", which from inside that note is an offer to do
+	 * nothing. The others go somewhere or ask something.
 	 */
 	inNote: boolean;
+}
+
+export const TASKS: Record<Task, TaskAction> = {
+	triage: { action: 'Triage', icon: 'scan-eye', inNote: true },
+	read: { action: 'Open in Zotero', icon: 'external-link', done: 'Finished', doneIcon: 'check', inNote: true },
+	claim: { action: 'Open note', inNote: false },
+	assessment: { action: 'Open note', inNote: false },
+};
+
+/** One section of the queue: a heading, a count, and the rows under it. */
+export interface StageAction {
+	stage: Stage;
+	label: string;
+	/** The stage as an icon, at the head of its section. */
+	stageIcon: string;
+	hint: string;
 }
 
 export const STAGES: StageAction[] = [
@@ -95,30 +110,19 @@ export const STAGES: StageAction[] = [
 		stage: 'triage',
 		stageIcon: 'scan-eye',
 		label: 'Triage',
-		action: 'Triage',
-		icon: 'scan-eye',
 		hint: 'Added, not yet assessed. Twenty seconds on the abstract, or eight minutes if it earns them.',
-		inNote: true,
 	},
 	{
-		stage: 'read',
+		stage: 'reading',
 		stageIcon: 'book-open',
 		label: 'Reading',
-		action: 'Open in Zotero',
-		icon: 'external-link',
-		done: 'Finished',
-		doneIcon: 'check',
-		hint: 'Triage said these are worth an hour.',
-		inNote: true,
+		hint: 'Worth an hour, and not finished until you can say what it argues.',
 	},
-	{ stage: 'write-up', label: 'Claim', stageIcon: 'square-pen', action: 'Open note', hint: 'Read, but the claim is still empty.', inNote: false },
 	{
-		stage: 'assess',
+		stage: 'assessment',
 		stageIcon: 'book-open-check',
 		label: 'Assessment',
-		action: 'Open note',
 		hint: 'You said this one earns four hours. The assessment is still empty.',
-		inNote: false,
 	},
 ];
 
@@ -135,23 +139,34 @@ export function stageActionOf(stage: Stage | null): StageAction | null {
  * Only papers can be outstanding. A note you wrote yourself is finished when
  * you stop typing, and the plugin has no business having an opinion about it.
  */
-export function stageOf(note: NoteState): Stage | null {
+export function taskOf(note: NoteState): Task | null {
 	if (!note.isPaper) return null;
 
 	if (note.reading === null || note.reading === 'untriaged') return 'triage';
+
+	// Queued keeps the paper here even once a claim exists, because the outcome
+	// of the reading is still unrecorded. Letting it leave on the claim alone
+	// would file a paper whose `reading` says it was never finished, and that
+	// field is the record the exclusions report is built from.
 	if (note.reading === 'queued') return 'read';
 
 	// `pass-three` and `finished` both mean the second pass happened, so both owe
 	// a claim, and the claim comes first either way: assessing a paper is an
 	// argument with one you can already summarise.
 	const finished = note.reading === 'finished' || note.reading === 'pass-three';
-	if (finished && !note.hasClaim) return 'write-up';
-	if (note.reading === 'pass-three' && !note.hasAssessment) return 'assess';
+	if (finished && !note.hasClaim) return 'claim';
+	if (note.reading === 'pass-three' && !note.hasAssessment) return 'assessment';
 
 	// `dropped` and `deferred` are both off the list. The difference is on
 	// the note, where the record needs it, and not in the machine, where a
 	// parked paper that kept appearing would not be parked.
 	return null;
+}
+
+/** Which section the note sits under, which is its task's section. */
+export function stageOf(note: NoteState): Stage | null {
+	const task = taskOf(note);
+	return task === null ? null : SECTION[task];
 }
 
 /** Oldest first within each stage, so the pile drains in the order it arrived. */
@@ -225,6 +240,16 @@ export type Row = { kind: 'note'; note: NoteState } | { kind: 'pending'; item: P
 /** What a row is called, wherever it came from. */
 export function rowTitle(row: Row): string {
 	return row.kind === 'note' ? row.note.title : row.item.title;
+}
+
+/**
+ * What a row is asking for.
+ *
+ * A pending paper has no note and so can only be triaged: deciding is the thing
+ * that gives it one.
+ */
+export function rowTask(row: Row): Task | null {
+	return row.kind === 'pending' ? 'triage' : taskOf(row.note);
 }
 
 /** The Zotero item a row is about, which is the one name both kinds share. */

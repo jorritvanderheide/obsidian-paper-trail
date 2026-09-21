@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CachedMetadata } from 'obsidian';
-import { byStage, hasContentUnder, noteState, rowsByStage, rowTitle, stageActionOf, stageOf, STAGES, type NoteState } from '../src/core/stages';
+import { byStage, hasContentUnder, noteState, rowsByStage, rowTitle, stageActionOf, stageOf, STAGES, taskOf, TASKS, type NoteState } from '../src/core/stages';
 
 const paper = (over: Partial<NoteState> = {}): NoteState => ({
 	path: 'Literature/a.md',
@@ -36,11 +36,11 @@ describe('stageOf, papers', () => {
 	});
 
 	it('puts a queued paper in read', () => {
-		expect(stageOf(paper({ reading: 'queued' }))).toBe('read');
+		expect(stageOf(paper({ reading: 'queued' }))).toBe('reading');
 	});
 
 	it('puts a read paper with no claim in write up', () => {
-		expect(stageOf(paper({ reading: 'finished', hasClaim: false }))).toBe('write-up');
+		expect(stageOf(paper({ reading: 'finished', hasClaim: false }))).toBe('reading');
 	});
 
 	it('is done with a read paper that has a claim', () => {
@@ -58,11 +58,11 @@ describe('stageOf, papers', () => {
 	});
 
 	it('asks a promoted paper for the claim before the third pass', () => {
-		expect(stageOf(paper({ reading: 'pass-three', hasClaim: false }))).toBe('write-up');
+		expect(stageOf(paper({ reading: 'pass-three', hasClaim: false }))).toBe('reading');
 	});
 
 	it('sends a promoted paper with a claim and no assessment to Assess', () => {
-		expect(stageOf(paper({ reading: 'pass-three', hasClaim: true, hasAssessment: false }))).toBe('assess');
+		expect(stageOf(paper({ reading: 'pass-three', hasClaim: true, hasAssessment: false }))).toBe('assessment');
 	});
 
 	it('is done with a promoted paper once the assessment is written', () => {
@@ -87,7 +87,7 @@ describe('stageOf, own notes', () => {
 
 describe('byStage', () => {
 	it('keeps every stage present, even empty', () => {
-		expect([...byStage([]).keys()]).toEqual(['triage', 'read', 'write-up', 'assess']);
+		expect([...byStage([]).keys()]).toEqual(['triage', 'reading', 'assessment']);
 		expect([...byStage([]).values()].every((list) => list.length === 0)).toBe(true);
 	});
 
@@ -95,8 +95,7 @@ describe('byStage', () => {
 		const notes = [paper(), paper({ reading: 'queued' }), note()];
 		const result = byStage(notes);
 		expect(result.get('triage')).toHaveLength(1);
-		expect(result.get('read')).toHaveLength(1);
-		expect(result.get('write-up')).toHaveLength(0);
+		expect(result.get('reading')).toHaveLength(1);
 	});
 });
 
@@ -172,13 +171,13 @@ describe('hasContentUnder', () => {
 
 describe('STAGES', () => {
 	it('offers from inside a note only the actions that go somewhere else', () => {
-		expect(STAGES.filter((entry) => entry.inNote).map((entry) => entry.stage)).toEqual(['triage', 'read']);
+		expect(Object.entries(TASKS).filter(([, t]) => t.inNote).map(([name]) => name)).toEqual(['triage', 'read']);
 	});
 
 	it('withholds the two whose action is opening the note you are already in', () => {
-		for (const stage of ['write-up', 'assess'] as const) {
-			expect(stageActionOf(stage)?.inNote).toBe(false);
-			expect(stageActionOf(stage)?.action).toBe('Open note');
+		for (const task of ['claim', 'assessment'] as const) {
+			expect(TASKS[task].inNote).toBe(false);
+			expect(TASKS[task].action).toBe('Open note');
 		}
 	});
 
@@ -190,30 +189,28 @@ describe('STAGES', () => {
 		expect(stageActionOf(null)).toBeNull();
 	});
 
-	it('gives Read a way to end, because nothing in the vault records that reading happened', () => {
-		expect(STAGES.find((entry) => entry.stage === 'read')?.done).toBe('Finished');
+	it('gives reading a way to end, because nothing in the vault records that it happened', () => {
+		expect(TASKS.read.done).toBe('Finished');
 	});
 
-	it('gives no other stage one: acting on those rows is what ends them', () => {
-		expect(STAGES.filter((entry) => entry.done).map((entry) => entry.stage)).toEqual(['read']);
+	it('gives no other task one: doing the thing is what ends them', () => {
+		expect(Object.entries(TASKS).filter(([, t]) => t.done).map(([name]) => name)).toEqual(['read']);
 	});
 
-	it('gives every button an icon, because a queue row draws it as one', () => {
-		for (const entry of STAGES) {
-			// A row draws the end-of-stage button only when both are there, so a
-			// `done` without its icon would lose the button and say nothing.
-			if (entry.done) expect(entry.doneIcon, `${entry.stage} has done but no doneIcon`).toBeTruthy();
+	it('gives every end-button an icon, or a row would lose it and say nothing', () => {
+		for (const [name, task] of Object.entries(TASKS)) {
+			if (task.done) expect(task.doneIcon, name).toBeTruthy();
 		}
 	});
 
 	it('gives no icon to the two whose action the row title already is', () => {
-		const withButton = STAGES.filter((entry) => entry.icon).map((entry) => entry.stage);
-		expect(withButton).toEqual(['triage', 'read']);
+		expect(Object.entries(TASKS).filter(([, t]) => t.icon).map(([name]) => name)).toEqual(['triage', 'read']);
 	});
 
-	it('keeps the words, which the tooltip and the note menu still use', () => {
-		for (const entry of STAGES) expect(entry.action).toBeTruthy();
+	it('keeps the words, which every tooltip still uses', () => {
+		for (const task of Object.values(TASKS)) expect(task.action).toBeTruthy();
 	});
+
 });
 
 describe('noteState', () => {
@@ -262,7 +259,7 @@ describe('rowsByStage', () => {
 
 	it('leaves every other stage to the vault alone', () => {
 		const rows = rowsByStage([paper({ reading: 'queued' })], [item('AAAA1111', 'pending')]);
-		expect(rows.get('read')?.map(rowTitle)).toEqual(['A paper']);
+		expect(rows.get('reading')?.map(rowTitle)).toEqual(['A paper']);
 		expect(rows.get('triage')?.map(rowTitle)).toEqual(['pending']);
 	});
 
@@ -284,5 +281,39 @@ describe('stage icons', () => {
 
 	it('gives each stage its own, or two sections look like the same section', () => {
 		expect(new Set(STAGES.map((entry) => entry.stageIcon)).size).toBe(STAGES.length);
+	});
+});
+
+describe('the second pass is one section', () => {
+	// Keshav's second pass ends when you can summarise the paper to someone
+	// else, so reading it and writing its claim are halves of one pass. They
+	// share a section and differ only in what the row offers.
+	it('holds an unread paper and an unwritten one together', () => {
+		expect(stageOf(paper({ reading: 'queued' }))).toBe('reading');
+		expect(stageOf(paper({ reading: 'finished', hasClaim: false }))).toBe('reading');
+	});
+
+	it('still tells them apart by the task, which is what the row draws', () => {
+		expect(taskOf(paper({ reading: 'queued' }))).toBe('read');
+		expect(taskOf(paper({ reading: 'finished', hasClaim: false }))).toBe('claim');
+	});
+
+	// The row that owes a claim has no button: its action is opening the note,
+	// which clicking the row already does.
+	it('offers Zotero on one and nothing extra on the other', () => {
+		expect(TASKS.read.icon).toBeTruthy();
+		expect(TASKS.claim.icon).toBeUndefined();
+	});
+
+	// Letting a claim alone release the paper would file one whose `reading`
+	// still says queued, and that field is what the exclusions report is built
+	// from. The outcome decision is owed whatever else has been written.
+	it('keeps a queued paper even once its claim is written', () => {
+		expect(stageOf(paper({ reading: 'queued', hasClaim: true }))).toBe('reading');
+		expect(taskOf(paper({ reading: 'queued', hasClaim: true }))).toBe('read');
+	});
+
+	it('lets a decided paper go once the claim is there', () => {
+		expect(stageOf(paper({ reading: 'finished', hasClaim: true }))).toBeNull();
 	});
 });

@@ -14,7 +14,7 @@
 // every write goes through the same commands the palette uses. If this and a
 // note disagree, the note is right.
 import { ItemView, debounce, setIcon, type App, type WorkspaceLeaf } from 'obsidian';
-import { rowTitle, STAGES, type Row, type Stage, type StageAction } from '../core/stages';
+import { rowTask, rowTitle, STAGES, TASKS, type Row, type Stage, type StageAction } from '../core/stages';
 import { act, finish, next, openNote } from '../commands/workflow';
 import { queue } from '../outstanding';
 import { lastContact } from '../source';
@@ -189,7 +189,7 @@ function treeRow(parent: HTMLElement, label: string, onClick: () => void): HTMLE
 function section(
 	root: HTMLElement,
 	context: Context,
-	{ stage, stageIcon, label, action, icon, hint, done, doneIcon }: StageAction,
+	{ stage, stageIcon, label, hint }: StageAction,
 	rows: Row[],
 ): void {
 	const shown = expanded.has(stage) ? rows.length : ROWS;
@@ -244,23 +244,30 @@ function section(
 	});
 
 	for (const entry of rows.slice(0, shown)) {
+		// The task is the row's, not the section's. Reading holds both halves of
+		// Keshav's second pass, so one row offers Zotero and the next offers the
+		// note, and the icons are how you tell which half a paper is in.
+		const task = rowTask(entry);
+		if (!task) continue;
+		const { action, icon, done, doneIcon } = TASKS[task];
+
 		const row = treeRow(children, rowTitle(entry), () => {
 			// A pending paper has no note to open, so its row does the one thing
 			// there is to do with it rather than nothing at all.
 			if (entry.kind === 'note') void openNote(context.app, entry.note);
-			else void act(context, stage, entry);
+			else void act(context, task, entry);
 		});
 
-		// At the trailing edge, on the same line as the title. A stage with no
+		// At the trailing edge, on the same line as the title. A task with no
 		// icon has no button here: its action is opening the note, which the
 		// row it sits on already does.
 		const actions = row.createDiv({ cls: 'paper-trail-workflow-actions' });
-		// The stage's own end first, where it is reachable: a row you are
+		// The task's own end first, where it is reachable: a row you are
 		// coming back to is more often finished than started again.
 		if (done && doneIcon && entry.kind === 'note') {
-			iconButton(actions, doneIcon, done, () => void finish(context, stage, entry));
+			iconButton(actions, doneIcon, done, () => void finish(context, task, entry));
 		}
-		if (icon) iconButton(actions, icon, action, () => void act(context, stage, entry));
+		if (icon) iconButton(actions, icon, action, () => void act(context, task, entry));
 	}
 
 	// The count is honest even when the list is not, because a backlog you

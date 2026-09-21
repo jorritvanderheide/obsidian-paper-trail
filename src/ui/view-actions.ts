@@ -8,13 +8,7 @@
 // Wiring only. Which stage a note is at, and what that stage offers, are core's
 // to say; this asks and draws the answer.
 import { MarkdownView, setIcon, type App } from 'obsidian';
-import {
-	byStage,
-	noteState,
-	stageActionOf,
-	type NoteState,
-	type Stage,
-} from '../core/stages';
+import { noteState, taskOf, TASKS, type NoteState, type Task } from '../core/stages';
 import { act, finish } from '../commands/workflow';
 import { refreshPaper } from '../commands/papers';
 import type { Context } from '../context';
@@ -71,15 +65,14 @@ export function decorate(context: Context): void {
 		// in it, and `ensure` hands back a button it has already made without
 		// rebinding: a handler that captured a note would still be holding the
 		// first paper ever opened in that tab, and would act on it.
-		const outstanding = note
-			? stageActionOf(byStageOf(context, note))
-			: null;
+		const task = note ? taskOf(note) : null;
+		const outstanding = task ? TASKS[task] : null;
 
 		// Made in the reverse of the order they appear. `addAction` puts each new
 		// one at the front, so the last one made is the leftmost: this reads
 		// backwards and has to, or the pair comes out mirrored.
 		//
-		// Write up and Assess are absent by design. Their action is
+		// Claim and Assessment are absent by design. Their action is
 		// "open this note", and you are in it.
 		const action = ensure(view, ACT, 'scan-eye', 'Triage', () =>
 			withCurrent(context, view, act),
@@ -123,15 +116,11 @@ function show(
 function withCurrent(
 	context: Context,
 	view: MarkdownView,
-	what: (
-		context: Context,
-		stage: Stage,
-		row: { kind: 'note'; note: NoteState },
-	) => Promise<void>,
+	what: (context: Context, task: Task, row: { kind: 'note'; note: NoteState }) => Promise<void>,
 ): void {
 	const note = stateOf(context, view);
-	const stage = note ? byStageOf(context, note) : null;
-	if (note && stage) void what(context, stage, { kind: 'note', note });
+	const task = note ? taskOf(note) : null;
+	if (note && task) void what(context, task, { kind: 'note', note });
 }
 
 /** The note in this view, as the rules see it, or null when the view holds none. */
@@ -146,14 +135,6 @@ function stateOf(context: Context, view: MarkdownView): NoteState | null {
 		context.settings.claimHeading,
 		context.settings.assessmentHeading,
 	);
-}
-
-/** The one stage this note is waiting at, if any. */
-function byStageOf(context: Context, note: NoteState): Stage | null {
-	for (const [stage, rows] of byStage([note])) {
-		if (rows.length > 0) return stage;
-	}
-	return null;
 }
 
 /** The action, made if this view has not got one yet. */

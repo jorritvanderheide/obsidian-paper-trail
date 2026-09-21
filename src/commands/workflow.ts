@@ -5,7 +5,7 @@
 // What is outstanding in the first place is worked out in `outstanding.ts`,
 // which triage needs as well and which must not depend on this.
 import { Notice, type App, type TFile } from 'obsidian';
-import { rowTitle, STAGES, type NoteState, type Row, type Stage } from '../core/stages';
+import { rowTask, rowTitle, STAGES, type NoteState, type Row, type Task } from '../core/stages';
 import { formatItemRef, parseItemRef, readerUrl } from '../core/zotero';
 import { loadFulltext } from '../source';
 import { decide, openTriage } from './reading';
@@ -59,7 +59,7 @@ async function readingUrl(context: Context, file: TFile): Promise<string | null>
 	return readerUrl(ref, key);
 }
 
-export async function act(context: Context, stage: Stage, row: Row): Promise<void> {
+export async function act(context: Context, task: Task, row: Row): Promise<void> {
 	const app = context.app;
 
 	// A pending paper has no note, so triage is the only thing that can be done
@@ -73,7 +73,7 @@ export async function act(context: Context, stage: Stage, row: Row): Promise<voi
 	const file = fileOf(app, note);
 	if (!file) return;
 
-	switch (stage) {
+	switch (task) {
 		case 'triage':
 			await openTriage(context, { kind: 'note', file });
 			return;
@@ -83,24 +83,24 @@ export async function act(context: Context, stage: Stage, row: Row): Promise<voi
 			else await openNote(app, note);
 			return;
 		}
-		case 'write-up':
-		case 'assess':
+		case 'claim':
+		case 'assessment':
 			await openNote(app, note);
 			return;
 	}
 }
 
 /**
- * End a stage the plugin cannot see the end of. Only Read has one: opening the
- * PDF changes nothing in the vault, so the row has to ask.
+ * End the one task the plugin cannot see the end of. Opening the PDF changes
+ * nothing in the vault, so the row has to ask.
  *
  * The question is Keshav's, and it has four answers rather than one, so this
  * offers them rather than assuming the commonest. Through `writeTriage` like
  * every other decision, so a paper finished from the homepage lands in exactly
  * the state the triage pane would have left it in.
  */
-export async function finish(context: Context, stage: Stage, row: Row): Promise<void> {
-	if (stage !== 'read' || row.kind !== 'note') return;
+export async function finish(context: Context, task: Task, row: Row): Promise<void> {
+	if (task !== 'read' || row.kind !== 'note') return;
 	const app = context.app;
 	const note = row.note;
 	const file = fileOf(app, note);
@@ -131,9 +131,10 @@ export async function next(context: Context): Promise<void> {
 
 	for (const { stage, label } of STAGES) {
 		const first = buckets.get(stage)?.[0];
-		if (!first) continue;
+		const task = first ? rowTask(first) : null;
+		if (!first || !task) continue;
 		new Notice(`${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} outstanding` : ''}`);
-		await act(context, stage, first);
+		await act(context, task, first);
 		return;
 	}
 
