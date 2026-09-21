@@ -13,8 +13,20 @@
 // Derived, never authoritative: everything is read from the metadata cache and
 // every write goes through the same commands the palette uses. If this and a
 // note disagree, the note is right.
-import { ItemView, debounce, setIcon, type App, type WorkspaceLeaf } from 'obsidian';
-import { rowTitle, STAGES, type Row, type Stage, type StageAction } from '../core/stages';
+import {
+	ItemView,
+	debounce,
+	setIcon,
+	type App,
+	type WorkspaceLeaf,
+} from 'obsidian';
+import {
+	rowTitle,
+	STAGES,
+	type Row,
+	type Stage,
+	type StageAction,
+} from '../core/stages';
 import { act, finish, next, openNote } from '../commands/workflow';
 import { queue } from '../outstanding';
 import { lastContact } from '../source';
@@ -51,17 +63,29 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 		const started = notes.some((note) => note.isPaper);
 		const empty = root.createDiv({ cls: 'paper-trail-workflow-clear' });
 
-		empty.setText(started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here to triage.');
+		empty.setText(
+			started
+				? 'Nothing outstanding.'
+				: 'No papers yet. Add them to Zotero and they turn up here to triage.',
+		);
 		return;
 	}
 
 	// One button for the whole list, above it. `next` takes the top row of the
 	// topmost non-empty stage, and the palette is a poor home for the thing you
 	// reach for most.
-	const outstanding = [...buckets.values()].reduce((sum, list) => sum + list.length, 0);
+	const outstanding = [...buckets.values()].reduce(
+		(sum, list) => sum + list.length,
+		0,
+	);
 	const header = root.createDiv({ cls: 'paper-trail-queue-header' });
-	header.createSpan({ cls: 'paper-trail-workflow-more', text: `${outstanding} outstanding` });
-	header.createEl('button', { cls: 'mod-cta', text: 'Next' }).addEventListener('click', () => void next(context));
+	header.createSpan({
+		cls: 'paper-trail-workflow-more',
+		text: `${outstanding} outstanding`,
+	});
+	header
+		.createEl('button', { cls: 'mod-cta', text: 'Next' })
+		.addEventListener('click', () => void next(context));
 
 	for (const definition of STAGES) {
 		const rows = buckets.get(definition.stage) ?? [];
@@ -85,9 +109,14 @@ function offline(root: HTMLElement, context: Context): void {
 
 	const box = root.createDiv({ cls: 'paper-trail-offline' });
 	box.createDiv({ cls: 'paper-trail-offline-reason', text: contact.reason });
-	box.createEl('button', { text: 'Try again' }).addEventListener('click', () => {
-		void refreshLibrary(context.settings.apiPort).then(() => renderQueue(root, context));
-	});
+	box.createEl('button', { text: 'Try again' }).addEventListener(
+		'click',
+		() => {
+			void refreshLibrary(context.settings.apiPort).then(() =>
+				renderQueue(root, context),
+			);
+		},
+	);
 }
 
 /**
@@ -106,23 +135,43 @@ const expanded = new Set<Stage>();
  * picks up the hover, focus and theme treatment every other icon button in the
  * app has rather than an approximation of it made here.
  */
-function iconButton(parent: HTMLElement, icon: string, label: string, onClick: () => void): void {
-	const button = parent.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': label } });
+function iconButton(
+	parent: HTMLElement,
+	icon: string,
+	label: string,
+	onClick: () => void,
+): void {
+	const button = parent.createEl('button', {
+		cls: 'clickable-icon',
+		attr: { 'aria-label': label },
+	});
 	setIcon(button, icon);
 	button.addEventListener('click', onClick);
 }
 
-function section(root: HTMLElement, context: Context, { stage, label, action, icon, hint, done, doneIcon }: StageAction, rows: Row[]): void {
+function section(
+	root: HTMLElement,
+	context: Context,
+	{ stage, label, action, icon, hint, done, doneIcon }: StageAction,
+	rows: Row[],
+): void {
 	const shown = expanded.has(stage) ? rows.length : ROWS;
 	const el = root.createDiv({ cls: 'paper-trail-workflow-section' });
 	const header = el.createDiv({ cls: 'paper-trail-workflow-header' });
 	header.createSpan({ cls: 'paper-trail-workflow-label', text: label });
-	header.createSpan({ cls: 'paper-trail-workflow-count', text: String(rows.length) });
+	header.createSpan({
+		cls: 'paper-trail-workflow-count',
+		text: String(rows.length),
+	});
 	header.setAttr('aria-label', hint);
 
 	for (const entry of rows.slice(0, shown)) {
 		const row = el.createDiv({ cls: 'paper-trail-workflow-row' });
-		const title = row.createEl('a', { cls: 'paper-trail-workflow-title', text: rowTitle(entry), href: '#' });
+		const title = row.createEl('a', {
+			cls: 'paper-trail-workflow-title',
+			text: rowTitle(entry),
+			href: '#',
+		});
 		title.addEventListener('click', (event) => {
 			event.preventDefault();
 			// A pending paper has no note to open, so its title does the one
@@ -138,9 +187,20 @@ function section(root: HTMLElement, context: Context, { stage, label, action, ic
 		// The stage's own end first, where it is reachable: a row you are
 		// coming back to is more often finished than started again.
 		if (done && doneIcon && entry.kind === 'note') {
-			iconButton(actions, doneIcon, done, () => void finish(context, stage, entry));
+			iconButton(
+				actions,
+				doneIcon,
+				done,
+				() => void finish(context, stage, entry),
+			);
 		}
-		if (icon) iconButton(actions, icon, action, () => void act(context, stage, entry));
+		if (icon)
+			iconButton(
+				actions,
+				icon,
+				action,
+				() => void act(context, stage, entry),
+			);
 	}
 
 	// The count is honest even when the list is not, because a backlog you
@@ -149,7 +209,11 @@ function section(root: HTMLElement, context: Context, { stage, label, action, ic
 	// cap you cannot lift means a paper outside the top three is reachable only
 	// by whatever `next` happens to offer.
 	if (rows.length > shown) {
-		const more = el.createEl('a', { cls: 'paper-trail-workflow-more', text: `and ${rows.length - shown} more`, href: '#' });
+		const more = el.createEl('a', {
+			cls: 'paper-trail-workflow-more',
+			text: `and ${rows.length - shown} more`,
+			href: '#',
+		});
 		more.addEventListener('click', (event) => {
 			event.preventDefault();
 			expanded.add(stage);
@@ -178,8 +242,18 @@ export class QueueView extends ItemView {
 		return 'Reading queue';
 	}
 
+	/**
+	 * The plugin's own mark, shared with the ribbon so the tab and the button
+	 * that opens it are recognisably the same thing.
+	 *
+	 * Not a checklist, which is what it used to be. The queue shows what is
+	 * outstanding and offers an order, but it never refuses an action because an
+	 * earlier one is unfinished, and a row of ticked boxes promises exactly the
+	 * pipeline this is not. A stamp is the thing it actually does: a judgement,
+	 * pressed onto the record.
+	 */
 	getIcon(): string {
-		return 'list-checks';
+		return 'stamp';
 	}
 
 	/**
@@ -188,7 +262,11 @@ export class QueueView extends ItemView {
 	 * fires one per file, and coalescing those is the difference between a
 	 * redraw and a freeze.
 	 */
-	private readonly redraw = debounce(() => renderQueue(this.contentEl, this.context), 200, true);
+	private readonly redraw = debounce(
+		() => renderQueue(this.contentEl, this.context),
+		200,
+		true,
+	);
 
 	/**
 	 * Ask Zotero what has changed, and redraw if anything has.
@@ -197,17 +275,21 @@ export class QueueView extends ItemView {
 	 * when nothing moved: the usual answer is that nothing has, and redrawing
 	 * the queue reads every note in the vault.
 	 */
-	private readonly catchUp = debounce(() => {
-		const before = lastContact()?.reachable;
-		void refreshLibrary(this.context.settings.apiPort).then((moved) => {
-			// Redrawn when the library moved, and also when Zotero itself came or
-			// went. Skipping on "nothing moved" alone meant quitting Zotero with
-			// this pane open changed nothing on screen: the failure was recorded
-			// and never drawn, so the one surface that explains an unreachable
-			// Zotero stayed silent about it until something else forced a redraw.
-			if (moved || before !== lastContact()?.reachable) this.redraw();
-		});
-	}, 300, true);
+	private readonly catchUp = debounce(
+		() => {
+			const before = lastContact()?.reachable;
+			void refreshLibrary(this.context.settings.apiPort).then((moved) => {
+				// Redrawn when the library moved, and also when Zotero itself came or
+				// went. Skipping on "nothing moved" alone meant quitting Zotero with
+				// this pane open changed nothing on screen: the failure was recorded
+				// and never drawn, so the one surface that explains an unreachable
+				// Zotero stayed silent about it until something else forced a redraw.
+				if (moved || before !== lastContact()?.reachable) this.redraw();
+			});
+		},
+		300,
+		true,
+	);
 
 	async onOpen(): Promise<void> {
 		expanded.clear();
@@ -216,7 +298,9 @@ export class QueueView extends ItemView {
 		// Draw first from what is already known, then ask Zotero and draw again.
 		// Triage comes entirely from Zotero, so waiting for the request before
 		// showing anything would mean an empty pane every time this opens.
-		void refreshLibrary(this.context.settings.apiPort).then(() => this.redraw());
+		void refreshLibrary(this.context.settings.apiPort).then(() =>
+			this.redraw(),
+		);
 
 		this.registerEvent(this.app.metadataCache.on('changed', this.redraw));
 		this.registerEvent(this.app.vault.on('delete', this.redraw));
