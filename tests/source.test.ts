@@ -91,7 +91,7 @@ describe('loadFulltext', () => {
 
 	it('explains an unreachable Zotero', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(loadFulltext(settings(), parent)).rejects.toThrow(/Could not reach Zotero/);
+		await expect(loadFulltext(settings(), parent)).rejects.toThrow(/not answering/);
 	});
 
 	it('explains a disabled local API', async () => {
@@ -214,9 +214,11 @@ describe('lastContact', () => {
 		expect(lastContact()).toMatchObject({ reachable: false });
 	});
 
-	it('says which setting to turn on when Zotero refuses the request', async () => {
+	// Short enough to read in a sidebar banner, and pointing at where the switch
+	// is rather than quoting its sixty-character label.
+	it('says where to turn the API on when Zotero refuses the request', async () => {
 		getJson.mockResolvedValue({ status: 403, json: null, headers: { version: 0, total: 0 } });
-		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow(/Allow other applications/);
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow(/Settings > Advanced/);
 		const contact = lastContact();
 		expect(contact).toMatchObject({ reachable: false });
 	});
@@ -291,5 +293,23 @@ describe('changedSince', () => {
 	it('reports an unreachable Zotero rather than an empty library', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
 		await expect(changedSince(0)).rejects.toBeInstanceOf(SourceError);
+	});
+});
+
+describe('the connectivity messages', () => {
+	// They are read in a sidebar banner about as wide as a sentence. The old
+	// pair quoted a sixty-character checkbox label and wrapped to five lines.
+	it('fit on one line', async () => {
+		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow();
+		const offline = lastContact();
+		expect(offline).toMatchObject({ reachable: false });
+		if (offline?.reachable === false) expect(offline.reason.length).toBeLessThan(70);
+
+		getJson.mockReset();
+		getJson.mockResolvedValue({ status: 403, json: null, headers: { version: 0, total: 0 } });
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow();
+		const refused = lastContact();
+		if (refused?.reachable === false) expect(refused.reason.length).toBeLessThan(70);
 	});
 });

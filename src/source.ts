@@ -71,7 +71,21 @@ function readCache(dataDir: string, attachmentKey: string): string | null {
 	}
 }
 
-const API_SETTING = '"Allow other applications on this computer to communicate with Zotero" in Zotero\'s Settings > Advanced';
+/**
+ * These are read in a sidebar banner about as wide as a sentence, so they are
+ * one line each.
+ *
+ * They also say different things, which the old wording did not: a Zotero that
+ * is not answering is almost always one that is not running, and naming a
+ * checkbox does not help you when nothing is there to have it. A refusal is the
+ * opposite case, and the only one where the setting is the answer.
+ *
+ * Neither quotes the checkbox in full. It is sixty characters, and Settings >
+ * Advanced has one thing in it about other applications. The exact wording is
+ * in the README, which is where you read sentences.
+ */
+const UNREACHABLE = 'Zotero is not answering. Is it running?';
+const REFUSED = 'Zotero refused. Turn on its local API in Settings > Advanced.';
 
 /**
  * Whether Zotero answered the last time anything asked it something, and what
@@ -106,15 +120,13 @@ async function answered<T>(path: string): Promise<{ body: T; headers: Headers }>
 		response = await getJson(`/api/${path}`);
 	} catch (error) {
 		console.error('paper-trail: local API request failed', error);
-		const reason = `Could not reach Zotero. Is it running, with ${API_SETTING} on?`;
-		contact = { reachable: false, reason };
-		throw new SourceError(reason);
+		contact = { reachable: false, reason: UNREACHABLE };
+		throw new SourceError(UNREACHABLE);
 	}
 
 	if (response.status === 403) {
-		const reason = `Zotero refused the request. Turn on ${API_SETTING}.`;
-		contact = { reachable: false, reason };
-		throw new SourceError(reason);
+		contact = { reachable: false, reason: REFUSED };
+		throw new SourceError(REFUSED);
 	}
 
 	// Anything else means Zotero is there and talking, including a 404, which
