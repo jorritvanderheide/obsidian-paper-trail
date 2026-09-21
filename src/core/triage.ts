@@ -86,7 +86,7 @@ export function landing(reading: Reading): string {
 		case 'finished':
 			return 'Finished. It moves to Write up, for the claim.';
 		case 'pass-three':
-			return 'Worth a third pass. Write the claim first.';
+			return 'Worth assessing. Write the claim first.';
 	}
 }
 
@@ -101,7 +101,7 @@ export function landing(reading: Reading): string {
  */
 export const PASS_TWO: { reading: Reading; label: string }[] = [
 	{ reading: 'finished', label: 'Enough: I have what I need' },
-	{ reading: 'pass-three', label: 'Worth a third pass' },
+	{ reading: 'pass-three', label: 'Worth assessing closely' },
 	{ reading: 'deferred', label: 'Come back to it later' },
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];

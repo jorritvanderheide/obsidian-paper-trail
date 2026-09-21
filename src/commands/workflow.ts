@@ -84,7 +84,7 @@ export async function act(context: Context, stage: Stage, row: Row): Promise<voi
 			return;
 		}
 		case 'write-up':
-		case 'pass-three':
+		case 'assess':
 			await openNote(app, note);
 			return;
 	}

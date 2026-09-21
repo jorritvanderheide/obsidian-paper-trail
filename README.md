@@ -18,13 +18,20 @@ Your library stays in Zotero. Paper Trail talks to it over the local API,
 creates the literature note itself, and keeps one list of what is outstanding.
 
 ```
-7 outstanding                     [ Next ]
+7 outstanding                            →
 ───────────────────────────────────────────
-Triage       3   Assess
-Read         1   Finished · Open in Zotero
-Write up     2   Open note
-Third pass   1   Open note
+▾ Triage                                 3
+    Reframing heat pump transitions
+    Strategic Reading and Ontologies
+    How to Read a Paper
+▾ Read                                   1
+    Scholars Before Researchers
+▾ Write up                               2
+▾ Assess                                 1
 ```
+
+A row opens the paper; what else that stage offers appears as icons when you
+hover it, and stages fold away when you are not working them.
 
 It lives in the sidebar (ribbon icon, or **Open queue**), and **Insert queue
 block** will put the same list in any note. **Next** takes the top row and does
@@ -50,12 +57,13 @@ you already have, with the ones you **dropped** listed first. Then: drop it and
 say why, queue it, or mark it already read.
 
 **Read** opens the paper in Zotero, where your highlights belong. When you are
-done, **Finished** asks what came of it: enough, worth a third pass, come back
+done, **Finished** asks what came of it: enough, worth assessing closely, come back
 later, or not worth finishing. The first two move it to **Write up** for the
 claim, in your own words. Your highlights are already in the note by then.
 
-**Third pass** is for the few papers you promote, and ends when the assessment
-is written.
+**Assess** is for the few papers you promote, and ends when the assessment is
+written. It is Keshav's third pass: arguing with a paper you can already
+summarise.
 
 ## The record
 
@@ -120,8 +128,8 @@ literature note itself.
 ## Settings
 
 Addresses, not opinions: which folders hold your notes, papers and templates,
-which frontmatter property names the Zotero item, and which headings the second
-and third passes end under. Point the item key property at whatever your
+which frontmatter property names the Zotero item, and which headings Write up
+and Assess end under. Point the item key property at whatever your
 existing literature notes use and they are recognised without being rewritten.
 
 The stages and the `reading` vocabulary are not configurable. They are the

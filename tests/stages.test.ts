@@ -61,8 +61,8 @@ describe('stageOf, papers', () => {
 		expect(stageOf(paper({ reading: 'pass-three', hasClaim: false }))).toBe('write-up');
 	});
 
-	it('puts a promoted paper with a claim and no assessment in the third pass', () => {
-		expect(stageOf(paper({ reading: 'pass-three', hasClaim: true, hasAssessment: false }))).toBe('pass-three');
+	it('sends a promoted paper with a claim and no assessment to Assess', () => {
+		expect(stageOf(paper({ reading: 'pass-three', hasClaim: true, hasAssessment: false }))).toBe('assess');
 	});
 
 	it('is done with a promoted paper once the assessment is written', () => {
@@ -87,7 +87,7 @@ describe('stageOf, own notes', () => {
 
 describe('byStage', () => {
 	it('keeps every stage present, even empty', () => {
-		expect([...byStage([]).keys()]).toEqual(['triage', 'read', 'write-up', 'pass-three']);
+		expect([...byStage([]).keys()]).toEqual(['triage', 'read', 'write-up', 'assess']);
 		expect([...byStage([]).values()].every((list) => list.length === 0)).toBe(true);
 	});
 
@@ -176,7 +176,7 @@ describe('STAGES', () => {
 	});
 
 	it('withholds the two whose action is opening the note you are already in', () => {
-		for (const stage of ['write-up', 'pass-three'] as const) {
+		for (const stage of ['write-up', 'assess'] as const) {
 			expect(stageActionOf(stage)?.inNote).toBe(false);
 			expect(stageActionOf(stage)?.action).toBe('Open note');
 		}

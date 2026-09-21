@@ -137,7 +137,7 @@ export class SettingsTab extends PluginSettingTab {
 					},
 					{
 						name: 'Assessment heading',
-						desc: `The third pass ends here, and only papers you promote to one are asked for it.${this.headingStatus(this.plugin.settings.assessmentHeading, 'Third pass')}`,
+						desc: `Assess ends here, and only papers you promote to it are asked for one.${this.headingStatus(this.plugin.settings.assessmentHeading, 'Assess')}`,
 						control: { type: 'text', key: 'assessmentHeading' },
 					},
 				],

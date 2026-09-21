@@ -68,7 +68,7 @@ export async function decide(context: Context, file: TFile, reading: Reading): P
 
 const CHOICES: { reading: Reading; label: string }[] = [
 	{ reading: 'finished', label: 'Finished, and that was enough' },
-	{ reading: 'pass-three', label: 'Read, and worth a third pass' },
+	{ reading: 'pass-three', label: 'Read, and worth assessing closely' },
 	{ reading: 'queued', label: 'Queued, worth an hour' },
 	{ reading: 'deferred', label: 'Deferred, come back to it later' },
 	{ reading: 'dropped', label: 'Dropped, not worth reading' },

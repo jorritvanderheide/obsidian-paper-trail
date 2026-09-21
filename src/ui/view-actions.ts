@@ -79,9 +79,9 @@ export function decorate(context: Context): void {
 		// one at the front, so the last one made is the leftmost: this reads
 		// backwards and has to, or the pair comes out mirrored.
 		//
-		// Write up and the third pass are absent by design. Their action is
+		// Write up and Assess are absent by design. Their action is
 		// "open this note", and you are in it.
-		const action = ensure(view, ACT, 'scan-eye', 'Assess', () =>
+		const action = ensure(view, ACT, 'scan-eye', 'Triage', () =>
 			withCurrent(context, view, act),
 		);
 		show(
@@ -103,7 +103,7 @@ export function decorate(context: Context): void {
  * Point a title-bar button at the stage in front of it, or take it away.
  *
  * The icon and the label are set on every pass rather than at creation,
- * because one button serves every stage: the same element is Assess on an
+ * because one button serves every stage: the same element is Triage on an
  * untriaged paper and Open in Zotero once it is queued.
  */
 function show(
