@@ -1,43 +1,20 @@
-// Reading the vault's state, and acting on one row of it. Shared by the
-// `paper-trail` block, the sidebar and `next`, so a row does the same thing
-// wherever it was reached from.
+// Acting on one row of the queue. Shared by the `paper-trail` block, the
+// sidebar and `next`, so a row does the same thing wherever it was reached
+// from.
 //
-// A paper is a note that names a Zotero item, not a note in a particular
-// folder: keying off the frontmatter rather than the path keeps the rules
-// independent of the vault's folder layout.
-import { Notice, TFile, type App } from 'obsidian';
-import { noteState, rowsByStage, rowTitle, STAGES, type NoteState, type Row, type Stage } from '../core/stages';
+// What is outstanding in the first place is worked out in `outstanding.ts`,
+// which triage needs as well and which must not depend on this.
+import { Notice, type App, type TFile } from 'obsidian';
+import { rowTitle, STAGES, type NoteState, type Row, type Stage } from '../core/stages';
 import { formatItemRef, parseItemRef, readerUrl } from '../core/zotero';
 import { loadFulltext } from '../source';
-import { library } from '../library';
-import { pendingOf } from '../core/pending';
 import { decide, openTriage } from './reading';
+import { fileOf, queue } from '../outstanding';
 import { fileNote } from './tags';
 import { landing, PASS_TWO } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { reveal } from '../ui/reveal';
 import type { Context } from '../context';
-
-/** Every note in the vault, as the rules see it. Templates are not notes. */
-export function collect(context: Context): NoteState[] {
-	return context.app.vault
-		.getMarkdownFiles()
-		.filter((file) => !file.path.startsWith(`${context.settings.templateFolder}/`))
-		.map((file) =>
-			noteState(
-				context.app.metadataCache.getFileCache(file),
-				{ path: file.path, basename: file.basename, created: file.stat.ctime },
-				context.settings.keyField,
-				context.settings.claimHeading,
-				context.settings.assessmentHeading,
-			),
-		);
-}
-
-export function fileOf(app: App, note: NoteState): TFile | null {
-	const file = app.vault.getFileByPath(note.path);
-	return file instanceof TFile ? file : null;
-}
 
 /**
  * Show a row's note, reusing the tab it is already in.
@@ -151,12 +128,6 @@ export async function finish(context: Context, stage: Stage, row: Row): Promise<
  * One key, no choice to make: the whole point is that working through the pile
  * should not require deciding which pile first.
  */
-export function queue(context: Context): { notes: NoteState[]; rows: Map<Stage, Row[]> } {
-	const notes = collect(context);
-	const keys = notes.flatMap((note) => (note.key === null ? [] : [note.key]));
-	return { notes, rows: rowsByStage(notes, pendingOf(library(), keys), context.settings.types) };
-}
-
 export async function next(context: Context): Promise<void> {
 	const buckets = queue(context).rows;
 	const outstanding = [...buckets.values()].reduce((sum, list) => sum + list.length, 0);

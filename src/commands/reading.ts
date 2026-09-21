@@ -7,7 +7,7 @@
 //
 // Every route goes through applyTriage, so the frontmatter a decision leaves
 // behind cannot drift between them.
-import { MarkdownView, Notice, type App, type TFile, type WorkspaceLeaf } from 'obsidian';
+import { Notice, type App, type TFile, type WorkspaceLeaf } from 'obsidian';
 import { backMatter, cleanFulltext } from '../core/clean';
 import { passOne } from '../core/passOne';
 import { glance, referenceLines, type KnownPaper } from '../core/references';
@@ -19,7 +19,8 @@ import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
 import { prompt, suggest } from '../ui/prompt';
-import { leafShowing, reveal } from '../ui/reveal';
+import { fileOf, nextTriage } from '../outstanding';
+import type { Row } from '../core/stages';
 import type { Context } from '../context';
 
 /** ISO date, which is what the Linter and every Dataview query want. */
@@ -159,118 +160,36 @@ async function fullPass(context: Context, ref: ItemRef, body: string, selfPath: 
 }
 
 /**
- * Bring a note into view, reusing the pane it is already in. Returns the leaf
- * only when it had to open one, so the caller can put the workspace back the way
- * it found it: closing a note the user opened themselves would be rude.
- */
-async function showNote(app: App, file: TFile): Promise<WorkspaceLeaf | null> {
-	// A new tab lands in whichever group is active, and after a previous run that
-	// is the triage pane itself. Move to a text group first, or the note opens
-	// on top of the pane it is supposed to sit beside. Only when it is not
-	// already showing somewhere, because then no tab is about to be made.
-	if (!leafShowing(app, file) && app.workspace.getMostRecentLeaf()?.view.getViewType() === PASS_ONE_VIEW) {
-		const markdown = app.workspace.getLeavesOfType('markdown')[0];
-		if (markdown) app.workspace.setActiveLeaf(markdown, { focus: false });
-	}
-
-	return reveal(app, file);
-}
-
-
-/**
- * Wait until Obsidian has read a file, or give up.
+ * The triage pane. One of them, reused: opening triage twice without deciding
+ * in between would otherwise leave two up, both waiting for an answer.
  *
- * A note written a moment ago is on disk before the metadata cache knows
- * anything about it, so asking for its headings straight away gets nothing.
- * The timeout is the point: a note that never arrives should cost a second of
- * no cursor, not a promise that never settles.
+ * A tab rather than a split. The pane stays for as long as you are working
+ * through the pile, so taking half the editor for the duration would be taking
+ * it from whatever you were actually writing.
  */
-function indexed(app: App, file: TFile, wait = 1000): Promise<void> {
-	if (app.metadataCache.getFileCache(file)) return Promise.resolve();
-
-	return new Promise((resolve) => {
-		const done = () => {
-			app.metadataCache.offref(ref);
-			window.clearTimeout(timer);
-			resolve();
-		};
-		const ref = app.metadataCache.on('changed', (changed) => {
-			if (changed.path === file.path) done();
-		});
-		const timer = window.setTimeout(done, wait);
-	});
-}
-
-/**
- * Put the workspace back, or leave it where the work is.
- *
- * A dropped or queued paper is finished with for now, so a tab this command
- * opened is closed again and you end up where you started. A paper marked read
- * goes straight to Write up in that same note, so it stays open with the cursor
- * under the claim, ready to type into.
- */
-function afterDecision(app: App, file: TFile, opened: WorkspaceLeaf | null, reading: Reading, claimHeading: string): void {
-	// A tick later, because the pane closes itself once this callback returns.
-	// Focusing the note before that happens lets the detach take the focus back.
-	window.setTimeout(() => void rearrange(app, file, opened, reading, claimHeading), 0);
-}
-
-async function rearrange(app: App, file: TFile, opened: WorkspaceLeaf | null, reading: Reading, claimHeading: string): Promise<void> {
-	// Both land in Write up, so both leave you in the note with somewhere to type.
-	if (reading === 'finished' || reading === 'pass-three') {
-		// Opened rather than only focused. A paper triaged straight out of the
-		// queue has no note until the decision makes one, so there is nothing on
-		// screen to focus and the paper would move to Write up invisibly.
-		await reveal(app, file);
-		const leaf = leafShowing(app, file);
-		if (!leaf) return;
-
-		// A note this new may not be in the metadata cache yet, and its headings
-		// are what the cursor is aimed at.
-		await indexed(app, file);
-
-		const view = leaf.view;
-		const heading = (app.metadataCache.getFileCache(file)?.headings ?? []).find(
-			(entry) => entry.heading.trim().toLowerCase() === claimHeading.trim().toLowerCase(),
-		);
-		if (view instanceof MarkdownView && heading) {
-			const at = { line: heading.position.end.line + 1, ch: 0 };
-			view.editor.setCursor(at);
-			view.editor.scrollIntoView({ from: at, to: at }, true);
-		}
-		return;
-	}
-
-	// Only close a tab this command opened, and only while it still holds the
-	// note: the pane was open for a while and may have been navigated away from.
-	if (opened && opened.view instanceof MarkdownView && opened.view.file === file) opened.detach();
-}
-
-/**
- * The triage pane, split beside whatever is active. One pane, reused: opening
- * triage twice without deciding in between would otherwise leave two of them
- * up, both claiming to be waiting for an answer.
- */
-async function passOneLeaf(app: App): Promise<WorkspaceLeaf> {
-	const leaf = app.workspace.getLeavesOfType(PASS_ONE_VIEW)[0] ?? app.workspace.getLeaf('split', 'vertical');
+async function triageLeaf(app: App): Promise<WorkspaceLeaf> {
+	const leaf = app.workspace.getLeavesOfType(PASS_ONE_VIEW)[0] ?? app.workspace.getLeaf('tab');
 	await leaf.setViewState({ type: PASS_ONE_VIEW, active: true });
 	await app.workspace.revealLeaf(leaf);
 	return leaf;
 }
 
 /**
- * Open the triage pane on a paper.
- *
- * Takes the paper rather than finding one, because everything that reaches
-/**
  * What triage can be pointed at: a paper's note, or a paper in Zotero that has
  * none yet.
  *
- * The second is the ordinary case now. Triage is computed from what Zotero
- * holds and the vault does not, so most of what you assess has never been
- * written down, and deciding is what writes it.
+ * The second is the ordinary case. Triage is computed from what Zotero holds
+ * and the vault does not, so most of what you assess has never been written
+ * down, and deciding is what writes it.
  */
 export type TriageTarget = { kind: 'note'; file: TFile } | { kind: 'pending'; item: Pending };
+
+/** The paper a queue row is about, as triage needs to be handed it. */
+function targetOf(app: App, row: Row): TriageTarget | null {
+	if (row.kind === 'pending') return { kind: 'pending', item: row.item };
+	const file = fileOf(app, row.note);
+	return file ? { kind: 'note', file } : null;
+}
 
 /** Make the note a decision needs, for a paper that did not have one. */
 async function noteFor(context: Context, item: Pending): Promise<TFile> {
@@ -302,22 +221,72 @@ async function decideOn(context: Context, target: TriageTarget, reading: Reading
 }
 
 /**
- * Open the triage pane on a paper.
+ * Move on to the next paper waiting, or close the pane.
+ *
+ * Triage is a sitting, not a series of interruptions: assessing a pile of forty
+ * should be decide, decide, decide, and the pane closing after each one made it
+ * forty rounds of opening and shutting the same window.
+ *
+ * It waits for Obsidian to read the note the decision just wrote, because until
+ * it has, a paper that had no note still looks like one that has none and would
+ * be handed straight back.
+ */
+async function advance(context: Context, decided: TFile, key: string | null): Promise<void> {
+	const app = context.app;
+	await indexed(app, decided);
+
+	const next = nextTriage(context, key);
+	const target = next ? targetOf(app, next) : null;
+
+	if (target) {
+		await openTriage(context, target);
+		return;
+	}
+
+	app.workspace.getLeavesOfType(PASS_ONE_VIEW).forEach((leaf) => leaf.detach());
+	new Notice('Nothing left to triage.');
+}
+
+/**
+ * Wait until Obsidian has read a file, or give up.
+ *
+ * A note written a moment ago is on disk before the metadata cache knows
+ * anything about it. The timeout is the point: a note that never arrives should
+ * cost a second, not a promise that never settles.
+ */
+function indexed(app: App, file: TFile, wait = 1000): Promise<void> {
+	if (app.metadataCache.getFileCache(file)) return Promise.resolve();
+
+	return new Promise((resolve) => {
+		const done = () => {
+			app.metadataCache.offref(ref);
+			window.clearTimeout(timer);
+			resolve();
+		};
+		const ref = app.metadataCache.on('changed', (changed) => {
+			if (changed.path === file.path) done();
+		});
+		const timer = window.setTimeout(done, wait);
+	});
+}
+
+/**
+ * Show a paper in the triage pane.
  *
  * A pending paper costs no requests at all: the queue already fetched its
- * title, venue, year and abstract when it worked out what was outstanding, and
- * that is everything the cheap depth shows. A paper that already has a note
- * costs one, because its abstract is not written down anywhere here.
+ * title, venue, year and abstract when it worked out what was outstanding. A
+ * paper that already has a note costs one, because its abstract is not written
+ * down anywhere here.
  *
- * The deeper pass is handed over as a function the pane calls if you press for
- * it, so nothing touches the PDF, the cleaner or the vault scan for a paper the
- * abstract is about to settle.
+ * Nothing else is opened. The note is not worth showing beside a decision made
+ * from the abstract, and most papers reaching triage have no note to show.
  */
 export async function openTriage(context: Context, target: TriageTarget): Promise<void> {
 	const app = context.app;
 	const settings = context.settings;
 
 	let title: string;
+	let key: string | null = null;
 	let ref: ItemRef | null;
 	let brief: Brief = { abstract: null, venue: null, year: null };
 	let problem: string | null = null;
@@ -325,6 +294,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 	if (target.kind === 'pending') {
 		const item = target.item;
 		title = item.title;
+		key = item.key;
 		ref = { key: item.key, groupID: null };
 		brief = { abstract: item.abstract, venue: item.venue, year: item.year };
 	} else {
@@ -339,7 +309,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 		}
 
 		title = typeof frontmatter.title === 'string' ? frontmatter.title : file.basename;
-		const key = String(frontmatter[settings.keyField]);
+		key = String(frontmatter[settings.keyField]);
 		ref = parseItemRef(key);
 
 		// The pane opens whether or not any of this could be found, and that is
@@ -361,14 +331,9 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 		}
 	}
 
-	// The note first, so the pane has the right thing to sit beside: reached
-	// from the queue the note is usually not open at all, and splitting off
-	// whatever was in front leaves the pane hanging next to something it has
-	// nothing to do with. A pending paper has no note to sit beside yet.
-	const opened = target.kind === 'note' ? await showNote(app, target.file) : null;
 	const selfPath = target.kind === 'note' ? target.file.path : null;
 
-	const leaf = await passOneLeaf(app);
+	const leaf = await triageLeaf(app);
 	if (!(leaf.view instanceof PassOneView)) return;
 
 	leaf.view.show(
@@ -377,7 +342,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 			decide: async (reading) => {
 				const file = await decideOn(context, target, reading);
 				if (!file) return false;
-				afterDecision(app, file, opened, reading, settings.claimHeading);
+				await advance(context, file, key);
 				return true;
 			},
 			full: async () => {

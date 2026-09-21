@@ -6,16 +6,17 @@
 // when you were looking at your homepage and nowhere else. That is the wrong
 // half of the day. The sidebar is the same list, always to hand.
 //
-// Rendering only. Reading the vault's state and acting on a row live in
-// commands/workflow.ts, so a row does the same thing whether it was clicked
-// here, clicked in a note, or reached by `next`.
+// Rendering only. What is outstanding comes from outstanding.ts and acting on
+// a row lives in commands/workflow.ts, so a row does the same thing whether it
+// was clicked here, clicked in a note, or reached by `next`.
 //
 // Derived, never authoritative: everything is read from the metadata cache and
 // every write goes through the same commands the palette uses. If this and a
 // note disagree, the note is right.
 import { ItemView, debounce, type App, type WorkspaceLeaf } from 'obsidian';
 import { rowTitle, STAGES, type Row, type Stage, type StageAction } from '../core/stages';
-import { act, finish, next, openNote, queue } from '../commands/workflow';
+import { act, finish, next, openNote } from '../commands/workflow';
+import { queue } from '../outstanding';
 import { addPaper } from '../commands/papers';
 import { lastContact } from '../source';
 import { refreshLibrary } from '../library';

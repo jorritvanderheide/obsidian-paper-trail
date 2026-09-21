@@ -198,6 +198,11 @@ export function rowTitle(row: Row): string {
 	return row.kind === 'note' ? row.note.title : row.item.title;
 }
 
+/** The Zotero item a row is about, which is the one name both kinds share. */
+export function rowKey(row: Row): string | null {
+	return row.kind === 'note' ? row.note.key : row.item.key;
+}
+
 /**
  * Every row, by stage: the vault's, plus the pending papers at the front of
  * Triage.

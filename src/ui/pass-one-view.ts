@@ -283,7 +283,8 @@ export class PassOneView extends ItemView {
 		// written and the pane stays open on the paper.
 		if (!(await handlers.decide(decision.reading))) return;
 
+		// The pane stays. What happens next is the command's to decide: another
+		// paper to assess, or nothing left and it closes itself.
 		new Notice(`${loaded.title}\n${landing(decision.reading)}`);
-		this.leaf.detach();
 	}
 }
