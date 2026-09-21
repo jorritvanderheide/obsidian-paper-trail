@@ -25,10 +25,6 @@ export const PAPER = `# {{TITLE}}
      Where does it strain? What is it assuming? What is the evidence actually
      doing, as opposed to what it is said to be doing? -->
 
-## What this changes
-
-<!-- What does this change for your own work? -->
-
 %%paper-trail%%
 %%/paper-trail%%
 `;

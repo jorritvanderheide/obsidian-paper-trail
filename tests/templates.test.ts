@@ -56,3 +56,14 @@ describe('the paper template', () => {
 		expect(PAPER.endsWith('\n')).toBe(true);
 	});
 });
+
+describe('what the template does not carry', () => {
+	// Every heading here is one the plugin watches: Claim and Assessment each
+	// end a stage and each has a setting naming it. "What this changes" had
+	// neither, so it was a prompt in every note, including every dropped one,
+	// for work nothing would ever ask about.
+	it('has only the two headings a stage ends at', () => {
+		const headings = PAPER.split('\n').filter((line) => line.startsWith('## '));
+		expect(headings).toEqual(['## {{CLAIM}}', '## {{ASSESSMENT}}']);
+	});
+});
