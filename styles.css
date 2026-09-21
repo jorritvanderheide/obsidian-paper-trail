@@ -149,6 +149,14 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	color: var(--text-normal);
+	/* An anchor for the focus and keyboard behaviour, not for the look: these
+	   are list rows, and a theme's link underline makes a list of papers read
+	   as a page of hyperlinks. Hover too, which is where most themes put it. */
+	text-decoration: none;
+}
+
+.paper-trail-workflow-title:hover {
+	text-decoration: none;
 }
 
 .paper-trail-workflow-actions {
