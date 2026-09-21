@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	abstractOf,
 	venueOf,
 	attachmentKeys,
 	dataDirFromPrefs,
@@ -300,5 +301,38 @@ describe('venueOf', () => {
 
 	it('is null when the item says nothing about where it appeared', () => {
 		expect(venueOf(of({}))).toBeNull();
+	});
+});
+
+describe('abstractOf', () => {
+	const of = (abstractNote?: string): ApiItem => ({ key: 'ABCD2345', data: { abstractNote } });
+
+	it('reads the abstract Zotero holds', () => {
+		expect(abstractOf(of('We report a field study of twelve households.'))).toBe('We report a field study of twelve households.');
+	});
+
+	it('trims it, because a saved abstract often arrives padded', () => {
+		expect(abstractOf(of('  We report a field study.  '))).toBe('We report a field study.');
+	});
+
+	it('has none when Zotero has none', () => {
+		expect(abstractOf(of())).toBeNull();
+		expect(abstractOf(of('   '))).toBeNull();
+	});
+
+	// The connector saves whatever the page it was on describes itself as, and an
+	// indexing site describes its own page. Left alone this shows in the triage
+	// pane as the abstract, where it is the title handed back and settles nothing.
+	it('refuses Semantic Scholar\'s page description, which is not an abstract', () => {
+		expect(abstractOf(of('Semantic Scholar extracted view of "Reframing heat pump transitions: a care perspective" by Jeltje van der Haer et al.'))).toBeNull();
+	});
+
+	it('refuses it whatever case the page used', () => {
+		expect(abstractOf(of('SEMANTIC SCHOLAR EXTRACTED VIEW OF "A paper" by Someone'))).toBeNull();
+	});
+
+	it('keeps a real abstract that merely mentions Semantic Scholar', () => {
+		const real = 'We mined Semantic Scholar for citation graphs across four disciplines.';
+		expect(abstractOf(of(real))).toBe(real);
 	});
 });

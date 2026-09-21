@@ -11,7 +11,7 @@ import { Notice, type App, type TFile, type WorkspaceLeaf } from 'obsidian';
 import { backMatter, cleanFulltext } from '../core/clean';
 import { passOne } from '../core/passOne';
 import { glance, referenceLines, type KnownPaper } from '../core/references';
-import { itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
+import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, loadFulltext, SourceError } from '../source';
 import { PASS_ONE_VIEW, PassOneView, type Brief, type Full } from '../ui/pass-one-view';
 import { applyTriage, asks, landing, type Reading, type Triage } from '../core/triage';
@@ -323,7 +323,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 		} else {
 			try {
 				const item = await itemMetadata(settings.apiPort, ref);
-				brief = { abstract: item.data.abstractNote?.trim() || null, venue: venueOf(item), year: itemYear(item) };
+				brief = { abstract: abstractOf(item), venue: venueOf(item), year: itemYear(item) };
 			} catch (error) {
 				if (!(error instanceof SourceError)) console.error(error);
 				problem = error instanceof Error ? error.message : String(error);

@@ -175,6 +175,35 @@ export function itemYear(item: ApiItem): number | null {
  */
 const VENUE = ['publicationTitle', 'proceedingsTitle', 'bookTitle', 'repository', 'university', 'institution', 'publisher'] as const;
 
+/**
+ * Page descriptions that a browser connector saves as an abstract, and which
+ * are not one.
+ *
+ * Zotero fills `abstractNote` from whatever the page it saved offers, and an
+ * indexing site offers a description of its own page. Save a paper from
+ * Semantic Scholar and every item comes back with `Semantic Scholar extracted
+ * view of "<title>" by <authors>`, which is the title handed back.
+ *
+ * Only patterns actually seen in the wild belong here. A rule that guessed
+ * would eventually throw away a real abstract, which is worse than showing a
+ * bad one.
+ */
+const NOT_AN_ABSTRACT = [/^semantic scholar extracted view of\b/i];
+
+/**
+ * The abstract, or null when what Zotero holds is not one.
+ *
+ * Null rather than the string, because null has somewhere to go: the triage
+ * pane falls back to the abstract it can find in the paper's own extracted
+ * text. A paper with no abstract is still assessable. A paper with a fake one
+ * shows a sentence that answers nothing and looks like it answered.
+ */
+export function abstractOf(item: ApiItem): string | null {
+	const abstract = item.data.abstractNote?.trim();
+	if (!abstract) return null;
+	return NOT_AN_ABSTRACT.some((pattern) => pattern.test(abstract)) ? null : abstract;
+}
+
 export function venueOf(item: ApiItem): string | null {
 	for (const field of VENUE) {
 		const value = item.data[field]?.trim();

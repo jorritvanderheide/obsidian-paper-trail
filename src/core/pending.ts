@@ -11,7 +11,7 @@
 //
 // Pure: the caller hands over what Zotero said and what the vault holds.
 import type { ApiItem } from './zotero';
-import { itemYear, venueOf } from './zotero';
+import { abstractOf, itemYear, venueOf } from './zotero';
 
 /** A paper in Zotero with no note here yet, as the queue needs to show it. */
 export interface Pending {
@@ -37,7 +37,7 @@ export function pendingOf(items: ApiItem[], known: Iterable<string>, ignored: It
 		.map((item) => ({
 			key: item.key,
 			title: item.data.shortTitle?.trim() || item.data.title?.trim() || item.key,
-			abstract: item.data.abstractNote?.trim() || null,
+			abstract: abstractOf(item),
 			venue: venueOf(item),
 			year: itemYear(item),
 			added: item.data.dateAdded ?? '',
