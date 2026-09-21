@@ -7,7 +7,7 @@ import { findOrphans } from './commands/orphans';
 import { writeReport } from './commands/record';
 import { setReading } from './commands/reading';
 import { insertBlock, welcome } from './commands/setup';
-import { fileNote, retag } from './commands/tags';
+import { retag } from './commands/tags';
 import { loadSettings, type Settings } from './core/settings';
 import { PASS_ONE_VIEW, PassOneView } from './ui/pass-one-view';
 import { SettingsTab } from './ui/settings-tab';
@@ -60,7 +60,6 @@ export default class PaperTrail extends Plugin {
 		this.command('next', 'Next', () => next(this));
 		this.command('refresh-paper', 'Refresh paper from Zotero', () => refreshPaper(this));
 		this.command('add-note', 'Add note', () => createFromTemplate(this));
-		this.command('file-note', 'File note', () => fileNote(this));
 		this.command('retag', 'Retag note', () => retag(this));
 		this.command('excluded', 'Export excluded papers', () => writeReport(this));
 		this.command('find-orphans', 'Find tags nothing recognises', () => Promise.resolve(findOrphans(this)));

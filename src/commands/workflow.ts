@@ -10,7 +10,6 @@ import { formatItemRef, parseItemRef, readerUrl } from '../core/zotero';
 import { loadFulltext } from '../source';
 import { decide, openTriage } from './reading';
 import { fileOf, queue } from '../outstanding';
-import { fileNote } from './tags';
 import { iconOf, landing, PASS_TWO } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { reveal } from '../ui/reveal';
@@ -87,9 +86,6 @@ export async function act(context: Context, stage: Stage, row: Row): Promise<voi
 		case 'write-up':
 		case 'pass-three':
 			await openNote(app, note);
-			return;
-		case 'file':
-			await fileNote(context, file);
 			return;
 	}
 }

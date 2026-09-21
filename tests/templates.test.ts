@@ -27,8 +27,6 @@ function filled(template: Template, vocabulary: Vocabulary): Template {
 		...template,
 		content: fill(template.content, {
 			TITLE: 'A note',
-			TYPE_INBOX: vocabulary.types.inbox,
-			TYPE_LIVING: vocabulary.types.living,
 		}),
 	};
 }
@@ -45,8 +43,8 @@ describe.each(all)('$label', (template) => {
 	it('carries only values the vocabulary knows, once filled', () => {
 		for (const tag of tagsOf(filled(template, DEFAULT_VOCABULARY))) {
 			const [axis, value] = tag.split('/');
-			expect(axis === 'domain' || axis === 'type').toBe(true);
-			expect(isValid(axis as 'domain' | 'type', value ?? '')).toBe(true);
+			expect(axis).toBe('domain');
+			expect(isValid('domain', value ?? '')).toBe(true);
 		}
 	});
 
@@ -64,18 +62,12 @@ describe.each(all)('$label', (template) => {
 });
 
 describe('the one list', () => {
-	/** Which loop a template joins is its own business, written in its frontmatter. */
-	const typesOf = (template: Template) =>
-		tagsOf(filled(template, DEFAULT_VOCABULARY)).filter((tag) => tag.startsWith('type/'));
-
-	it('says for itself which loop it joins, so no command has to', () => {
-		for (const template of TEMPLATES) expect(typesOf(template)).toHaveLength(1);
-	});
-
-	it('offers both kinds, or the single command has nothing to ask about', () => {
-		const types = TEMPLATES.flatMap(typesOf);
-		expect(types).toContain(`type/${DEFAULT_VOCABULARY.types.inbox}`);
-		expect(types).toContain(`type/${DEFAULT_VOCABULARY.types.living}`);
+	// The filing loop is gone, so a template stamps no type tag and no note
+	// joins a loop it then has to be let out of.
+	it('puts no type tag on anything it makes', () => {
+		for (const template of TEMPLATES) {
+			expect(tagsOf(filled(template, DEFAULT_VOCABULARY)).filter((tag) => tag.startsWith('type/'))).toHaveLength(0);
+		}
 	});
 
 	it('has no two templates writing the same file', () => {

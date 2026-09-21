@@ -4,11 +4,8 @@ import { DEFAULT_VOCABULARY, type Vocabulary } from '../src/core/vocabulary';
 
 const note = (path: string, tags: string[]): TaggedNote => ({ path, title: path, tags });
 
-/** A vault that has renamed its inbox and dropped a domain. */
-const renamed: Vocabulary = {
-	domains: ['research'],
-	types: { inbox: 'new', filed: 'sorted', living: 'evergreen' },
-};
+/** A vault that has dropped a domain. */
+const renamed: Vocabulary = { domains: ['research'] };
 
 describe('orphans', () => {
 	it('finds nothing when every value is known', () => {
@@ -21,18 +18,17 @@ describe('orphans', () => {
 		expect(orphans(notes, renamed)).toMatchObject([{ path: 'a.md', axis: 'domain', value: 'teaching' }]);
 	});
 
-	it('finds a type value left behind by a rename', () => {
-		const notes = [note('a.md', ['type/inbox'])];
-		expect(orphans(notes, renamed)).toMatchObject([{ axis: 'type', value: 'inbox' }]);
+	it('finds a domain left behind by a rename', () => {
+		expect(orphans([note('a.md', ['domain/teaching'])], renamed)).toMatchObject([{ axis: 'domain', value: 'teaching' }]);
 	});
 
-	it('accepts the renamed value', () => {
-		expect(orphans([note('a.md', ['type/new'])], renamed)).toEqual([]);
+	it('accepts a value the vocabulary still knows', () => {
+		expect(orphans([note('a.md', ['domain/research'])], renamed)).toEqual([]);
 	});
 
-	it('reports a note once per broken axis, because each is its own fix', () => {
-		const notes = [note('a.md', ['domain/teaching', 'type/inbox'])];
-		expect(orphans(notes, renamed)).toHaveLength(2);
+	// A type tag is now just a tag someone put there, on no axis the plugin owns.
+	it('leaves a leftover type tag alone, because that axis is gone', () => {
+		expect(orphans([note('a.md', ['type/inbox'])], renamed)).toEqual([]);
 	});
 
 	it('ignores tags that are not on one of the axes', () => {
@@ -53,10 +49,10 @@ describe('byValue', () => {
 		const notes = [
 			note('a.md', ['domain/teaching']),
 			note('b.md', ['domain/teaching']),
-			note('c.md', ['type/inbox']),
+			note('c.md', ['domain/admin']),
 		];
 		const groups = byValue(orphans(notes, renamed));
-		expect(groups.map((group) => group.tag)).toEqual(['domain/teaching', 'type/inbox']);
+		expect(groups.map((group) => group.tag)).toEqual(['domain/teaching', 'domain/admin']);
 		expect(groups[0]?.notes).toHaveLength(2);
 	});
 

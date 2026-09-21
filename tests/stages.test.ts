@@ -8,7 +8,6 @@ const paper = (over: Partial<NoteState> = {}): NoteState => ({
 	isPaper: true,
 	key: 'ABCD2345',
 	reading: null,
-	type: 'inbox',
 	hasClaim: false,
 	hasAssessment: false,
 	created: 0,
@@ -21,7 +20,6 @@ const note = (over: Partial<NoteState> = {}): NoteState => ({
 	isPaper: false,
 	key: null,
 	reading: null,
-	type: 'inbox',
 	hasClaim: false,
 	hasAssessment: false,
 	created: 0,
@@ -75,46 +73,30 @@ describe('stageOf, papers', () => {
 		expect(stageOf(paper({ reading: 'finished', hasClaim: true, hasAssessment: false }))).toBeNull();
 	});
 
-	it('never asks to file a paper, because triage does that', () => {
-		expect(stageOf(paper({ reading: 'queued', type: 'inbox' }))).toBe('read');
-	});
 });
 
 describe('stageOf, own notes', () => {
-	it('puts an inbox note in file', () => {
-		expect(stageOf(note())).toBe('file');
-	});
-
-	it('is done with a filed note', () => {
-		expect(stageOf(note({ type: 'filed' }))).toBeNull();
-	});
-
-	it('leaves a living note alone', () => {
-		expect(stageOf(note({ type: 'living' }))).toBeNull();
-	});
-
-	it('is done with a note carrying no type at all', () => {
-		expect(stageOf(note({ type: null }))).toBeNull();
-	});
-
-	it('ignores a reading field on a note that names no Zotero item', () => {
-		expect(stageOf(note({ type: 'filed', reading: 'queued' }))).toBeNull();
+	// The filing loop is gone, so a note you wrote is never outstanding. It was
+	// the only stage that was not about a paper, and the only thing that read
+	// the type axis.
+	it('never asks anything of a note that names no Zotero item', () => {
+		expect(stageOf(note())).toBeNull();
+		expect(stageOf(note({ reading: 'queued' }))).toBeNull();
 	});
 });
 
 describe('byStage', () => {
 	it('keeps every stage present, even empty', () => {
-		expect([...byStage([]).keys()]).toEqual(['triage', 'read', 'write-up', 'pass-three', 'file']);
+		expect([...byStage([]).keys()]).toEqual(['triage', 'read', 'write-up', 'pass-three']);
 		expect([...byStage([]).values()].every((list) => list.length === 0)).toBe(true);
 	});
 
 	it('buckets each note once', () => {
-		const notes = [paper(), paper({ reading: 'queued' }), note(), note({ type: 'filed' })];
+		const notes = [paper(), paper({ reading: 'queued' }), note()];
 		const result = byStage(notes);
 		expect(result.get('triage')).toHaveLength(1);
 		expect(result.get('read')).toHaveLength(1);
 		expect(result.get('write-up')).toHaveLength(0);
-		expect(result.get('file')).toHaveLength(1);
 	});
 });
 
@@ -190,7 +172,7 @@ describe('hasContentUnder', () => {
 
 describe('STAGES', () => {
 	it('offers from inside a note only the actions that go somewhere else', () => {
-		expect(STAGES.filter((entry) => entry.inNote).map((entry) => entry.stage)).toEqual(['triage', 'read', 'file']);
+		expect(STAGES.filter((entry) => entry.inNote).map((entry) => entry.stage)).toEqual(['triage', 'read']);
 	});
 
 	it('withholds the two whose action is opening the note you are already in', () => {
@@ -226,7 +208,7 @@ describe('STAGES', () => {
 
 	it('gives no icon to the two whose action the row title already is', () => {
 		const withButton = STAGES.filter((entry) => entry.icon).map((entry) => entry.stage);
-		expect(withButton).toEqual(['triage', 'read', 'file']);
+		expect(withButton).toEqual(['triage', 'read']);
 	});
 
 	it('keeps the words, which the tooltip and the note menu still use', () => {
@@ -249,17 +231,13 @@ describe('noteState', () => {
 		expect(noteState(cache({}), file, 'zotero-key', 'Claim', 'Assessment').title).toBe('a');
 	});
 
-	it('takes the type off the tag axis', () => {
-		expect(noteState(cache({ tags: ['domain/phd', 'type/filed'] }), file, 'zotero-key', 'Claim', 'Assessment').type).toBe('filed');
-	});
-
 	it('reports a missing reading field as null, not as a string', () => {
 		expect(noteState(cache({}), file, 'zotero-key', 'Claim', 'Assessment').reading).toBeNull();
 		expect(noteState(cache({ reading: 42 }), file, 'zotero-key', 'Claim', 'Assessment').reading).toBeNull();
 	});
 
 	it('survives a note with no frontmatter and no cache', () => {
-		expect(noteState(null, file, 'zotero-key', 'Claim', 'Assessment')).toMatchObject({ isPaper: false, reading: null, type: null });
+		expect(noteState(null, file, 'zotero-key', 'Claim', 'Assessment')).toMatchObject({ isPaper: false, reading: null });
 	});
 });
 

@@ -18,13 +18,12 @@ Your library stays in Zotero. Paper Trail talks to it over the local API,
 creates the literature note itself, and keeps one list of what is outstanding.
 
 ```
-12 outstanding                    [ Next ]
+7 outstanding                     [ Next ]
 ───────────────────────────────────────────
 Triage       3   Assess
 Read         1   Finished · Open in Zotero
 Write up     2   Open note
 Third pass   1   Open note
-File         5   File it
 ```
 
 It lives in the sidebar (ribbon icon, or **Open queue**), and **Insert queue
@@ -76,10 +75,10 @@ paper, ready for an appendix.
 ## Your own notes
 
 **Add note** offers any template in your template folder; two ship with it, a
-plain note and a map. A note goes round a short loop: it lands as `type/inbox`,
-appears under **File**, and **File it** asks which `domain/` it belongs to.
-Those are the only two tag axes, because Paper Trail claims one only where the
-workflow reads it.
+plain note and a map. Nothing is stamped on what you write and nothing asks you
+about it afterwards: the queue is for papers, and a note you wrote is finished
+when you stop typing. **Retag note** sets a `domain/`, which is the one tag axis
+Paper Trail knows, because it claims one only where the workflow reads it.
 
 A literature note also carries two buttons in its own title bar: refresh from
 Zotero, and whatever that note is waiting for.

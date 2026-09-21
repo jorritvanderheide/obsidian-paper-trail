@@ -4,12 +4,12 @@
 // folder, a heading, a frontmatter property. Getting one of those wrong breaks
 // something silently, so each is worth a field.
 //
-// What deliberately does not live here: the three tag axes, the workflow
-// stages, the `reading` vocabulary. Those are the product. Making them
+// What deliberately does not live here: the tag axis, the workflow stages,
+// the `reading` vocabulary. Those are the product. Making them
 // configurable would turn an opinionated workflow into a rules engine that asks
 // the user to invent one, which is what Dataview already is.
 
-import { DOMAIN, TYPE, parseValues, type Role, type Types, type Vocabulary } from './vocabulary';
+import { DOMAIN, parseValues, type Vocabulary } from './vocabulary';
 
 /**
  * Bumped when a saved key is renamed or its meaning changes, never for adding
@@ -60,8 +60,6 @@ export interface Settings {
 	statusTag: string;
 	/** Values on the `domain/` axis. Per-person by definition, so not in code. */
 	domains: string[];
-	/** What to call the three parts a `type` value can play. */
-	types: Types;
 	/** Where the note templates are kept, and seeded to when they are missing. */
 	templateFolder: string;
 	/**
@@ -90,7 +88,6 @@ export const DEFAULT_SETTINGS: Settings = {
 	papersFolder: 'Literature',
 	statusTag: '',
 	domains: [...DOMAIN],
-	types: { ...TYPE },
 	templateFolder: 'Templates/Notes',
 	claimHeading: 'Claim',
 	assessmentHeading: 'Assessment',
@@ -125,7 +122,6 @@ export function loadSettings(raw: unknown): Settings {
 		// The one other field where empty is meaningful: it means "write no tags".
 		statusTag: typeof data.statusTag === 'string' ? data.statusTag.trim() : DEFAULT_SETTINGS.statusTag,
 		domains: parseValues(data.domains, DOMAIN),
-		types: parseTypes(data.types),
 		templateFolder: text(data.templateFolder, DEFAULT_SETTINGS.templateFolder),
 		claimHeading: text(data.claimHeading, DEFAULT_SETTINGS.claimHeading),
 		assessmentHeading: text(data.assessmentHeading, DEFAULT_SETTINGS.assessmentHeading),
@@ -154,18 +150,7 @@ export function migrate(data: Record<string, unknown>): Record<string, unknown> 
 	return out;
 }
 
-/**
- * The three role names, each falling back on its own. Naming one badly should
- * not cost you the other two, and an empty name is how a tag axis quietly
- * stops matching anything.
- */
-function parseTypes(value: unknown): Types {
-	const saved = (typeof value === 'object' && value !== null ? value : {}) as Record<string, unknown>;
-	const one = (role: Role) => parseValues(saved[role], [TYPE[role]])[0] ?? TYPE[role];
-	return { inbox: one('inbox'), filed: one('filed'), living: one('living') };
-}
-
 /** The vocabulary these settings describe, for validation and for pickers. */
 export function vocabularyOf(settings: Settings): Vocabulary {
-	return { domains: settings.domains, types: settings.types };
+	return { domains: settings.domains };
 }

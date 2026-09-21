@@ -7,8 +7,6 @@ import { Notice, type TFile } from 'obsidian';
 import { ensureFolder, noteTemplates, templateBody } from './templates';
 import { prompt, suggest } from '../ui/prompt';
 import { fill } from '../core/paper-note';
-import { readTags, setAxis, typeForNewNote } from '../core/vocabulary';
-import { sortKeys } from '../core/frontmatter';
 import type { Context } from '../context';
 
 /**
@@ -50,8 +48,6 @@ export async function createFromTemplate(context: Context): Promise<void> {
 
 	const content = fill(await templateBody(app, template, context.settings.templateFolder), {
 		TITLE: title,
-		TYPE_INBOX: context.settings.types.inbox,
-		TYPE_LIVING: context.settings.types.living,
 	});
 
 	// A template of your own need not have frontmatter, and `processFrontMatter`
@@ -59,14 +55,7 @@ export async function createFromTemplate(context: Context): Promise<void> {
 	// block to edit, it edits that.
 	const file: TFile = await app.vault.create(path, content.startsWith('---\n') ? content : `---\n---\n${content}`);
 
-	// Filing is the ordering principle, so a new note joins the loop unless its
-	// template said otherwise. Without this, a template you wrote yourself and
-	// forgot to tag would make notes nothing ever asks about again.
-	await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-		const tags = readTags(frontmatter.tags);
-		frontmatter.tags = setAxis(tags, 'type', typeForNewNote(tags, context.settings.types));
-		sortKeys(frontmatter);
-	});
-
+	// Nothing is stamped on it. A note you wrote is yours from the first
+	// keystroke, and the plugin has no loop left to enrol it in.
 	await app.workspace.getLeaf('tab').openFile(file);
 }

@@ -6,11 +6,10 @@
 // that pretends otherwise just produces false states.
 
 import type { CachedMetadata } from 'obsidian';
-import { TYPE, axisValue, readTags, roleOf, type Types } from './vocabulary';
 import { isPaper } from './paper-note';
 import type { Pending } from './pending';
 
-export type Stage = 'triage' | 'read' | 'write-up' | 'pass-three' | 'file';
+export type Stage = 'triage' | 'read' | 'write-up' | 'pass-three';
 
 /** Everything the rules need, read from Obsidian's metadata cache. */
 export interface NoteState {
@@ -28,8 +27,6 @@ export interface NoteState {
 	key: string | null;
 	/** The `reading` property, or null when the note has none. */
 	reading: string | null;
-	/** The value on the `type/` axis, or null. */
-	type: string | null;
 	/** Whether anything has been written under the claim heading. */
 	hasClaim: boolean;
 	/** Whether anything has been written under the assessment heading. */
@@ -123,7 +120,6 @@ export const STAGES: StageAction[] = [
 		hint: 'You said this one earns four hours. The assessment is still empty.',
 		inNote: false,
 	},
-	{ stage: 'file', label: 'File', stageIcon: 'folder-input', action: 'File it', icon: 'folder-input', hint: 'In the inbox, waiting for a domain.', inNote: true },
 ];
 
 /** The stage a note is at, as the thing that draws its title bar needs it. */
@@ -135,36 +131,34 @@ export function stageActionOf(stage: Stage | null): StageAction | null {
  * A missing `reading` counts as untriaged rather than as nothing at all. A note
  * brought in from somewhere else, or written before the field existed, has no
  * opinion recorded on it, and an unrecorded opinion is one not yet formed.
+ *
+ * Only papers can be outstanding. A note you wrote yourself is finished when
+ * you stop typing, and the plugin has no business having an opinion about it.
  */
-export function stageOf(note: NoteState, types: Types = TYPE): Stage | null {
-	if (note.isPaper) {
-		if (note.reading === null || note.reading === 'untriaged') return 'triage';
-		if (note.reading === 'queued') return 'read';
+export function stageOf(note: NoteState): Stage | null {
+	if (!note.isPaper) return null;
 
-		// `pass-three` and `read` both mean the second pass happened, so both owe a
-		// claim, and the claim comes first either way: Keshav's third pass is
-		// an argument with a paper you can already summarise.
-		const finished = note.reading === 'finished' || note.reading === 'pass-three';
-		if (finished && !note.hasClaim) return 'write-up';
-		if (note.reading === 'pass-three' && !note.hasAssessment) return 'pass-three';
+	if (note.reading === null || note.reading === 'untriaged') return 'triage';
+	if (note.reading === 'queued') return 'read';
 
-		// `dropped` and `deferred` are both off the list. The difference is on
-		// the note, where the record needs it, and not in the machine, where a
-		// parked paper that kept appearing would not be parked.
-		return null;
-	}
-	// Only notes you wrote reach this line. The return above is what guarantees
-	// it, rather than the tags on a paper: papers are not put on the type axis,
-	// but one adopted from another vault may arrive carrying `type/inbox`, and
-	// it should not be asked to join a loop its reading status already answers.
-	return roleOf(types, note.type) === 'inbox' ? 'file' : null;
+	// `pass-three` and `read` both mean the second pass happened, so both owe a
+	// claim, and the claim comes first either way: Keshav's third pass is
+	// an argument with a paper you can already summarise.
+	const finished = note.reading === 'finished' || note.reading === 'pass-three';
+	if (finished && !note.hasClaim) return 'write-up';
+	if (note.reading === 'pass-three' && !note.hasAssessment) return 'pass-three';
+
+	// `dropped` and `deferred` are both off the list. The difference is on
+	// the note, where the record needs it, and not in the machine, where a
+	// parked paper that kept appearing would not be parked.
+	return null;
 }
 
 /** Oldest first within each stage, so the pile drains in the order it arrived. */
-export function byStage(notes: NoteState[], types: Types = TYPE): Map<Stage, NoteState[]> {
+export function byStage(notes: NoteState[]): Map<Stage, NoteState[]> {
 	const out = new Map<Stage, NoteState[]>(STAGES.map(({ stage }) => [stage, []]));
 	for (const note of notes) {
-		const stage = stageOf(note, types);
+		const stage = stageOf(note);
 		if (stage) out.get(stage)?.push(note);
 	}
 	for (const list of out.values()) list.sort((a, b) => a.created - b.created);
@@ -210,7 +204,6 @@ export function noteState(
 		isPaper: isPaper(frontmatter, keyField),
 		key: isPaper(frontmatter, keyField) ? String(frontmatter[keyField]) : null,
 		reading: typeof frontmatter?.reading === 'string' ? frontmatter.reading : null,
-		type: axisValue(readTags(frontmatter?.tags), 'type'),
 		hasClaim: hasContentUnder(cache, claimHeading),
 		hasAssessment: hasContentUnder(cache, assessmentHeading),
 		created: file.created,
@@ -248,9 +241,9 @@ export function rowKey(row: Row): string | null {
  * keeping, usually by resetting it to look at again, and it has waited longer
  * than anything the queue has just noticed.
  */
-export function rowsByStage(notes: NoteState[], pending: Pending[], types: Types = TYPE): Map<Stage, Row[]> {
+export function rowsByStage(notes: NoteState[], pending: Pending[]): Map<Stage, Row[]> {
 	const out = new Map<Stage, Row[]>();
-	for (const [stage, list] of byStage(notes, types)) {
+	for (const [stage, list] of byStage(notes)) {
 		out.set(
 			stage,
 			list.map((note) => ({ kind: 'note' as const, note })),

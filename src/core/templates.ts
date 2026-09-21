@@ -11,16 +11,12 @@
 export const WORKFLOW_BLOCK = 'paper-trail';
 
 const CAPTURE = `---
-tags:
-  - type/{{TYPE_INBOX}}
 ---
 # {{TITLE}}
 `;
 
 
 const MOC = `---
-tags:
-  - type/{{TYPE_LIVING}}
 ---
 # {{TITLE}}
 

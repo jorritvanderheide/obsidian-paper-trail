@@ -38,7 +38,7 @@ export function fileOf(app: App, note: NoteState): TFile | null {
 export function queue(context: Context): { notes: NoteState[]; rows: Map<Stage, Row[]> } {
 	const notes = collect(context);
 	const keys = notes.flatMap((note) => (note.key === null ? [] : [note.key]));
-	return { notes, rows: rowsByStage(notes, pendingOf(library(), keys), context.settings.types) };
+	return { notes, rows: rowsByStage(notes, pendingOf(library(), keys)) };
 }
 
 /**

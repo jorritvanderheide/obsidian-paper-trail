@@ -20,32 +20,11 @@
  */
 export const DOMAIN = ['research', 'teaching', 'admin', 'personal'] as const;
 
-/**
- * The three parts a `type` value can play. The workflow reads the role, never
- * the word, so the words are yours: call them new, sorted and evergreen if you
- * like. There are exactly three because the machine has room for exactly three,
- * and a fourth value nothing reads would be a tag you could set by hand anyway.
- */
-export const ROLES = ['inbox', 'filed', 'living'] as const;
-export type Role = (typeof ROLES)[number];
-
-/** Which word plays which part. The default names them after the parts. */
-export type Types = Record<Role, string>;
-
-export const TYPE: Types = { inbox: 'inbox', filed: 'filed', living: 'living' };
-
-/** The part this value plays, or null when it plays none. */
-export function roleOf(types: Types, value: string | null): Role | null {
-	if (value === null) return null;
-	return ROLES.find((role) => types[role] === value) ?? null;
-}
-
-/** The three axes, as values, so a tag can be checked against them. */
-export const AXES = ['domain', 'type'] as const;
+/** The axes a tag can be checked against. One, since the type axis went. */
+export const AXES = ['domain'] as const;
 export type Axis = (typeof AXES)[number];
 
 export type Domain = (typeof DOMAIN)[number];
-
 
 /** Values where a bare capital gives the wrong word, because they are acronyms. */
 const LABELS: Record<string, string> = { ai: 'AI', phd: 'PhD' };
@@ -62,14 +41,12 @@ export function label(value: string): string {
 /** The values allowed on each axis, for a given configuration. */
 export interface Vocabulary {
 	domains: readonly string[];
-	types: Types;
 }
 
-export const DEFAULT_VOCABULARY: Vocabulary = { domains: DOMAIN, types: TYPE };
+export const DEFAULT_VOCABULARY: Vocabulary = { domains: DOMAIN };
 
-export function valuesOn(axis: Axis, vocabulary: Vocabulary): readonly string[] {
-	if (axis === 'domain') return vocabulary.domains;
-	return ROLES.map((role) => vocabulary.types[role]);
+export function valuesOn(_axis: Axis, vocabulary: Vocabulary): readonly string[] {
+	return vocabulary.domains;
 }
 
 export function isValid(axis: Axis, value: string, vocabulary: Vocabulary = DEFAULT_VOCABULARY): boolean {
@@ -133,17 +110,3 @@ export function readTags(value: unknown): string[] {
 	return [];
 }
 
-/**
- * The `type` a new note must end up carrying.
- *
- * Filing is the ordering principle: everything you write joins the loop and
- * leaves it once it has a domain. A template may opt out by declaring a living
- * type, but it has to say so, and a template that declares nothing the
- * vocabulary knows joins the loop rather than falling outside it. A note
- * nothing ever asks about again is a note you lose, and the point of the inbox
- * is that losing one has to be a decision.
- */
-export function typeForNewNote(tags: string[], types: Types): string {
-	const value = axisValue(tags, 'type');
-	return value !== null && roleOf(types, value) !== null ? value : types.inbox;
-}

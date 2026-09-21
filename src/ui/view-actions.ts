@@ -150,7 +150,7 @@ function stateOf(context: Context, view: MarkdownView): NoteState | null {
 
 /** The one stage this note is waiting at, if any. */
 function byStageOf(context: Context, note: NoteState): Stage | null {
-	for (const [stage, rows] of byStage([note], context.settings.types)) {
+	for (const [stage, rows] of byStage([note])) {
 		if (rows.length > 0) return stage;
 	}
 	return null;

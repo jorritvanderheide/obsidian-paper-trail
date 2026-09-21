@@ -1,24 +1,11 @@
 import { PluginSettingTab, type App, type SettingDefinitionItem } from 'obsidian';
-import { ROLES, parseValues } from '../core/vocabulary';
+import { parseValues } from '../core/vocabulary';
 import { DEFAULT_SETTINGS, loadSettings } from '../core/settings';
 import { forgetLibrary } from '../library';
 import type PaperTrail from '../main';
 import type { Settings } from '../core/settings';
 
 type Key = keyof Settings;
-
-/**
- * The tag this field actually writes.
- *
- * These three are named for the part they play rather than for the word they
- * write, which is right for a setting and left a gap: someone who saw
- * `type/living` on a note had no way to work out that the field controlling it
- * is called "Kept open". Saying both closes it, and it shows the current value
- * rather than the shipped one, so a renamed axis explains itself.
- */
-function writtenAs(value: string): string {
-	return `Written as type/${value}.`;
-}
 
 export class SettingsTab extends PluginSettingTab {
 	constructor(
@@ -30,8 +17,6 @@ export class SettingsTab extends PluginSettingTab {
 
 	getControlValue(key: string): unknown {
 		if (key === 'domains') return this.plugin.settings.domains.join(', ');
-		const role = ROLES.find((entry) => key === `type.${entry}`);
-		if (role) return this.plugin.settings.types[role];
 		return this.plugin.settings[key as Key];
 	}
 
@@ -46,9 +31,7 @@ export class SettingsTab extends PluginSettingTab {
 	 * malformed URL, reported as "could not reach Zotero".
 	 */
 	async setControlValue(key: string, value: unknown): Promise<void> {
-		const role = ROLES.find((entry) => key === `type.${entry}`);
 		if (key === 'domains') this.plugin.settings.domains = parseValues(value, DEFAULT_SETTINGS.domains);
-		else if (role) this.plugin.settings.types[role] = parseValues(value, [DEFAULT_SETTINGS.types[role]])[0] ?? DEFAULT_SETTINGS.types[role];
 		else (this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
 
 		this.plugin.settings = loadSettings(this.plugin.settings);
@@ -135,27 +118,6 @@ export class SettingsTab extends PluginSettingTab {
 						name: 'Status tag',
 						desc: 'Mirror each paper’s reading status into a tag, for browsing by tag rather than by folder. "status" gives status/queued, status/dropped and so on. Empty writes no tags. The frontmatter stays the real value either way, so this changes nothing except what a tag explorer can see.',
 						control: { type: 'text', key: 'statusTag' },
-					},
-				],
-			},
-			{
-				type: 'group',
-				heading: 'Editing status',
-				items: [
-					{
-						name: 'Waiting to be filed',
-						desc: `A note starts here and appears under File until it is given a domain. ${writtenAs(this.plugin.settings.types.inbox)}`,
-						control: { type: 'text', key: 'type.inbox' },
-					},
-					{
-						name: 'Filed',
-						desc: `Where the loop ends. Nothing asks about the note again. ${writtenAs(this.plugin.settings.types.filed)}`,
-						control: { type: 'text', key: 'type.filed' },
-					},
-					{
-						name: 'Kept open',
-						desc: `A note you keep adding to rather than finishing. Skips the loop entirely. ${writtenAs(this.plugin.settings.types.living)}`,
-						control: { type: 'text', key: 'type.living' },
 					},
 				],
 			},
