@@ -145,6 +145,57 @@ describe('promoteHeading', () => {
 		expect(promoteHeading('NASA said so.')).toBe('NASA said so.');
 		expect(promoteHeading('Introduction of the heat pump was slow.')).toBe('Introduction of the heat pump was slow.');
 	});
+
+	// Every one of these is a real heading from a paper in the test library that
+	// came through as body text, leaving the outline and the sections under it
+	// empty. Title case is the convention everywhere outside computing.
+	it('treats a title-cased line as a section, whatever it is called', () => {
+		expect(promoteHeading('The Brewing Perfect Storm of Opportunity')).toBe('# The Brewing Perfect Storm of Opportunity');
+		expect(promoteHeading('Social Learning')).toBe('# Social Learning');
+		expect(promoteHeading('New Tools for Extending Education: Social Learning Online')).toBe(
+			'# New Tools for Extending Education: Social Learning Online',
+		);
+	});
+
+	it('capitalises verbs like a style guide does, so a short heading survives', () => {
+		expect(promoteHeading('Learning to Be')).toBe('# Learning to Be');
+	});
+
+	it('allows a heading phrased as a question, which a review often is', () => {
+		expect(promoteHeading('How Are Scientists Working with the Literature?')).toBe('# How Are Scientists Working with the Literature?');
+	});
+
+	it('refuses a sentence, however short, because a full stop ends prose', () => {
+		expect(promoteHeading('Social Learning Is Good.')).toBe('Social Learning Is Good.');
+		expect(promoteHeading('We Studied Twelve Households,')).toBe('We Studied Twelve Households,');
+	});
+
+	it('refuses a line that is only capitalised at the front', () => {
+		expect(promoteHeading('By John seely Brown and Richard P. adler')).toBe('By John seely Brown and Richard P. adler');
+		expect(promoteHeading('Total MEDLINE abstracts Papers published on cell cycle')).toBe(
+			'Total MEDLINE abstracts Papers published on cell cycle',
+		);
+	});
+
+	// A drop cap is one capital alone on a line, and it was becoming the first
+	// heading of every article that opens with one.
+	it('refuses a drop cap', () => {
+		expect(promoteHeading('T')).toBe('T');
+		expect(promoteHeading('TO')).toBe('TO');
+	});
+
+	// Section numbers reach double figures and stop. A year does not.
+	it('refuses a figure axis, which is a line that merely starts with a number', () => {
+		expect(promoteHeading('1970 1980 1990 2000 Year')).toBe('1970 1980 1990 2000 Year');
+		expect(promoteHeading('828 14 AUGUST 2009 VOL 325 SCIENCE www.sciencemag.org')).toBe(
+			'828 14 AUGUST 2009 VOL 325 SCIENCE www.sciencemag.org',
+		);
+	});
+
+	it('still takes a numbered heading with a plausible number', () => {
+		expect(promoteHeading('12 Results')).toBe('# Results');
+		expect(promoteHeading('4.2.1 Technologism')).toBe('### Technologism');
+	});
 });
 
 describe('dropFrontMatter', () => {

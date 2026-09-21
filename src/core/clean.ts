@@ -121,23 +121,75 @@ const SECTION_WORD =
 	/^(?:abstract|introduction|background|related work|literature review|materials and methods|methodology|methods?|approach|results|findings|discussion|conclusions?|limitations|future work|implications|references|bibliography|acknowledge?ments?|funding|appendix)[\s.:]*$/i;
 
 /**
+ * Words a title-cased heading is allowed to leave in lowercase. Every style
+ * guide keeps articles, conjunctions and short prepositions down, so requiring
+ * every word to be capitalised would reject "Learning to Be".
+ */
+// Articles, conjunctions and short prepositions only. Not `is`, `are` or `be`:
+// a style guide capitalises a verb however short it is, and treating them as
+// minor lost "Learning to Be", whose only other word is the one carrying it.
+const MINOR_WORD =
+	/^(?:a|an|the|and|or|nor|but|for|so|yet|of|in|on|at|to|from|by|as|with|into|over|under|via|per|vs\.?|about|between|through|during|after|before|toward|towards|upon|within|without)$/i;
+
+/**
+ * Whether a line looks like a heading set in title case.
+ *
+ * This exists because the two rules below between them see only shouted
+ * headings and about twenty section names, which is the convention in computing
+ * and almost nowhere else. A social science journal writes "Conceptualising
+ * Care" and a magazine writes "The Brewing Perfect Storm of Opportunity", and
+ * without this both come through as body text: no outline, and no introduction
+ * or conclusion to show, because there is no heading to find them under.
+ *
+ * Capitalisation is the only signal left once a PDF has been flattened to text.
+ * The font is gone, and so is the blank line, because an extractor puts one
+ * paragraph on one line and a heading on one line and marks neither.
+ *
+ * Deliberately loose. A short capitalised line of body text promoted by mistake
+ * costs one junk row in the outline, which you can see and skip. A heading
+ * missed costs the whole section under it.
+ */
+function titleCased(line: string): boolean {
+	// A question is a heading often enough to allow, in a review especially:
+	// "How Are Scientists Working with the Literature?". A full stop is not: a
+	// sentence that happened to be short is still a sentence.
+	if (/[.,;:!]$/.test(line)) return false;
+	if (!/^[A-Z]/.test(line)) return false;
+
+	const words = line.split(/\s+/).filter((word) => word.length > 0);
+	// Two words at least, so an initial or a drop cap cannot qualify, and not so
+	// many that a whole sentence could.
+	if (words.length < 2 || words.length > 12) return false;
+
+	const carrying = words.filter((word) => /[A-Za-z]/.test(word) && !MINOR_WORD.test(word));
+	return carrying.length >= 2 && carrying.every((word) => /^[^a-zA-Z]*[A-Z]/.test(word));
+}
+
+/**
  * Promote section headings to markdown. Numbered headings carry their own
- * depth: "4.2.1 Technologism" is three levels down. Unnumbered ones are the
- * shouted kind a journal uses for its back matter, so a short line without
- * lowercase counts as a top-level section too, as does a line that is nothing
- * but a section name.
+ * depth: "4.2.1 Technologism" is three levels down. Unnumbered ones are either
+ * shouted, the kind a journal uses for its back matter, or title cased, which
+ * is what most of the world outside computing writes.
  */
 export function promoteHeading(line: string): string {
-	const numbered = /^([0-9]+(?:\.[0-9]+)*)\.? +(\S.*)$/.exec(line);
+	// Section numbers run to double figures and no further. Without that bound
+	// the rule read a figure's axis labels as a heading: "1970 1980 1990 2000
+	// Year" is a line starting with a number, and nothing else about it is.
+	const numbered = /^([0-9]{1,2}(?:\.[0-9]{1,2})*)\.? +(\S.*)$/.exec(line);
 	if (line.length < 100 && numbered?.[1] && numbered[2]) {
 		const depth = numbered[1].split('.').length;
 		return `${'#'.repeat(Math.min(depth, 6))} ${numbered[2]}`;
 	}
-	if (line.length < 60 && /[A-Z]/.test(line) && !/[a-z]/.test(line) && !/[.?!]$/.test(line)) {
+	// Three letters at least. A drop cap is a single capital on its own line,
+	// and "T" was being promoted at the top of every article that has one.
+	if (line.length < 60 && (line.match(/[A-Z]/g) ?? []).length >= 3 && !/[a-z]/.test(line) && !/[.?!]$/.test(line)) {
 		return `# ${line}`;
 	}
 	if (line.length < 60 && SECTION_WORD.test(line)) {
 		return `# ${line.replace(/[\s.:]+$/, '')}`;
+	}
+	if (line.length < 80 && titleCased(line)) {
+		return `# ${line}`;
 	}
 	return line;
 }
