@@ -68,10 +68,13 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	});
 	iconButton(buttons, 'arrow-right', 'Next', () => void next(context), 'nav-action-button');
 
+	// Every stage, including the empty ones. A section that vanished when it
+	// emptied meant the list moved under the cursor as you worked it, and you
+	// could never learn where Read sits. A zero is also worth reading: it says
+	// there is nothing to write up, which is different from not being told.
 	const files = root.createDiv({ cls: 'nav-files-container' });
 	for (const definition of STAGES) {
-		const rows = buckets.get(definition.stage) ?? [];
-		if (rows.length > 0) section(files, context, definition, rows);
+		section(files, context, definition, buckets.get(definition.stage) ?? []);
 	}
 }
 
@@ -190,19 +193,23 @@ function section(
 	rows: Row[],
 ): void {
 	const shown = expanded.has(stage) ? rows.length : ROWS;
-	const folded = collapsed.has(stage);
+	// An empty stage cannot be folded: there is nothing behind the chevron, and
+	// offering one would be a control that does nothing.
+	const empty = rows.length === 0;
+	const folded = !empty && collapsed.has(stage);
 
 	// A stage is a folder and its papers are the files in it, which is what the
 	// nav classes mean. The count goes in the flair slot, where the file
 	// explorer already puts a number beside a folder.
-	const el = root.createDiv({ cls: `tree-item nav-folder${folded ? ' is-collapsed' : ''}` });
+	const el = root.createDiv({ cls: `tree-item nav-folder${folded ? ' is-collapsed' : ''}${empty ? ' paper-trail-stage-empty' : ''}` });
 	const header = el.createDiv({
-		cls: 'tree-item-self nav-folder-title is-clickable mod-collapsible',
-		attr: { 'aria-label': hint, tabindex: '0' },
+		cls: `tree-item-self nav-folder-title${empty ? '' : ' is-clickable mod-collapsible'}`,
+		attr: empty ? { 'aria-label': hint } : { 'aria-label': hint, tabindex: '0' },
 	});
 
 	// The chevron, then the stage's own icon, which is the order the file
-	// explorer uses for a folder that has one.
+	// explorer uses for a folder that has one. An empty stage keeps the slot
+	// and hides what is in it, so every stage icon stays on one column.
 	setIcon(header.createDiv({ cls: 'tree-item-icon collapse-icon' }), 'chevron-down');
 	setIcon(header.createDiv({ cls: 'tree-item-icon paper-trail-stage-icon' }), stageIcon);
 	header.createDiv({
@@ -210,6 +217,8 @@ function section(
 		text: label,
 	});
 	header.createDiv({ cls: 'tree-item-flair-outer' }).createSpan({ cls: 'tree-item-flair', text: String(rows.length) });
+
+	if (empty) return;
 
 	// The count stays visible while folded, which is the point of folding one:
 	// a stage you are not working today should say how much it is holding

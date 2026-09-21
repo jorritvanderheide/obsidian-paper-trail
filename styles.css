@@ -256,3 +256,20 @@
 .paper-trail .tree-item.is-collapsed .collapse-icon svg {
 	transform: rotate(-90deg);
 }
+
+/*
+ * A stage with nothing in it keeps its place in the list, so the sections do
+ * not move under the cursor as you work them, and a zero is worth reading: it
+ * says there is nothing to write up rather than not saying anything.
+ *
+ * Quiet, and with the chevron hidden rather than removed: hidden keeps the
+ * stage icons on one column, and there is nothing behind it to open.
+ */
+.paper-trail-stage-empty .tree-item-inner,
+.paper-trail-stage-empty .paper-trail-stage-icon {
+	color: var(--text-faint);
+}
+
+.paper-trail-stage-empty .collapse-icon {
+	visibility: hidden;
+}
