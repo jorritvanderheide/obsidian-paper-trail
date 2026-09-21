@@ -251,3 +251,8 @@
 .paper-trail-suggestion-lines {
 	min-width: 0;
 }
+
+/* Obsidian rotates this for its own trees but not for one built here. */
+.paper-trail .tree-item.is-collapsed .collapse-icon svg {
+	transform: rotate(-90deg);
+}

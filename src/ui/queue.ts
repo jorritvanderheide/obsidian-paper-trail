@@ -109,6 +109,26 @@ function offline(root: HTMLElement, context: Context): void {
 const expanded = new Set<Stage>();
 
 /**
+ * Which sections have been folded away, for as long as the pane stays open.
+ *
+ * Session-scoped like `expanded`, and for the same reason turned round: a
+ * stage you collapsed because you are not reading today is not a standing
+ * instruction to hide it, and the queue's whole job is saying what is
+ * outstanding. It comes back open, and folding it again is one click.
+ */
+const collapsed = new Set<Stage>();
+
+/**
+ * The element the whole queue was drawn into.
+ *
+ * Redrawing from a section would nest a second copy of the queue inside the
+ * first, and both the fold and the more link redraw.
+ */
+function paneOf(el: HTMLElement): HTMLElement {
+	return el.closest<HTMLElement>('.paper-trail') ?? el;
+}
+
+/**
  * A button in this pane: an icon, labelled for the tooltip and for a screen
  * reader. Used by a row's actions and by the offline banner's retry.
  *
@@ -170,23 +190,45 @@ function section(
 	rows: Row[],
 ): void {
 	const shown = expanded.has(stage) ? rows.length : ROWS;
+	const folded = collapsed.has(stage);
 
 	// A stage is a folder and its papers are the files in it, which is what the
 	// nav classes mean. The count goes in the flair slot, where the file
 	// explorer already puts a number beside a folder.
-	const el = root.createDiv({ cls: 'tree-item nav-folder' });
+	const el = root.createDiv({ cls: `tree-item nav-folder${folded ? ' is-collapsed' : ''}` });
 	const header = el.createDiv({
-		cls: 'tree-item-self nav-folder-title',
-		attr: { 'aria-label': hint },
+		cls: 'tree-item-self nav-folder-title is-clickable mod-collapsible',
+		attr: { 'aria-label': hint, tabindex: '0' },
 	});
-	// Where a folder's collapse arrow would sit, which is where a tag explorer
-	// puts its folder icons too, so the two panes line up down the same edge.
+
+	// The chevron, then the stage's own icon, which is the order the file
+	// explorer uses for a folder that has one.
+	setIcon(header.createDiv({ cls: 'tree-item-icon collapse-icon' }), 'chevron-down');
 	setIcon(header.createDiv({ cls: 'tree-item-icon paper-trail-stage-icon' }), stageIcon);
 	header.createDiv({
 		cls: 'tree-item-inner nav-folder-title-content',
 		text: label,
 	});
 	header.createDiv({ cls: 'tree-item-flair-outer' }).createSpan({ cls: 'tree-item-flair', text: String(rows.length) });
+
+	// The count stays visible while folded, which is the point of folding one:
+	// a stage you are not working today should say how much it is holding
+	// without spending the rows to do it.
+	const fold = () => {
+		if (folded) collapsed.delete(stage);
+		else collapsed.add(stage);
+		renderQueue(paneOf(root), context);
+	};
+	header.addEventListener('click', fold);
+	header.addEventListener('keydown', (event) => {
+		if (event.key !== 'Enter' && event.key !== ' ') return;
+		event.preventDefault();
+		fold();
+	});
+
+	// Obsidian styles `is-collapsed` but does not hide anything with it: the
+	// file explorer drops the children instead. So does this.
+	if (folded) return;
 
 	const children = el.createDiv({
 		cls: 'tree-item-children nav-folder-children',
@@ -220,10 +262,7 @@ function section(
 	if (rows.length > shown) {
 		treeRow(children, `and ${rows.length - shown} more`, () => {
 			expanded.add(stage);
-			// The pane, not the container this section was drawn into: redrawing
-			// from here would put a second copy of the queue inside the first.
-			const pane = root.closest<HTMLElement>('.paper-trail') ?? root;
-			renderQueue(pane, context);
+			renderQueue(paneOf(root), context);
 		}).addClass('paper-trail-more');
 	}
 }
