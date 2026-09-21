@@ -99,78 +99,50 @@
 	margin-top: var(--size-2-2);
 }
 
-/* The queue: sections in workflow order, one row per outstanding thing. */
-.paper-trail-workflow-section {
-	margin-bottom: var(--size-4-3);
-}
-
-.paper-trail-workflow-header {
+/*
+ * The queue is a nav tree, and says so in markup rather than in CSS.
+ *
+ * Stages are `nav-folder`, papers are `nav-file`, so indentation, type scale,
+ * hover and the active colour all arrive from whatever theme is installed.
+ * Setting a font size here would match one theme and drift in every other, and
+ * would leave this pane looking like a guest beside the explorer it sits next
+ * to. What is left is only what Obsidian nav does not already do.
+ */
+.workspace-leaf-content[data-type='paper-trail-queue'] .view-content {
 	display: flex;
-	align-items: baseline;
-	gap: var(--size-2-2);
-	border-bottom: 1px solid var(--background-modifier-border);
-	padding-bottom: var(--size-2-1);
-	margin-bottom: var(--size-2-1);
+	flex-direction: column;
+	padding: 0;
+	overflow: hidden;
 }
 
-.paper-trail-workflow-label {
-	font-size: var(--font-ui-smaller);
-	font-weight: var(--font-semibold);
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--text-muted);
+.workspace-leaf-content[data-type='paper-trail-queue'] .paper-trail {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
 }
 
-.paper-trail-workflow-count {
+.paper-trail .nav-files-container {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+/* Sits where the explorer keeps its sort and collapse buttons, so the count
+   reads as pane chrome rather than as the first row of the list. */
+.paper-trail-outstanding {
+	margin-inline-end: auto;
+	align-self: center;
+	padding-inline-start: var(--size-4-2);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-faint);
-	font-variant-numeric: tabular-nums;
-}
-
-/* One line: title, then its actions at the trailing edge. */
-.paper-trail-workflow-row {
-	display: flex;
-	align-items: center;
-	gap: var(--size-2-2);
-	padding: var(--size-2-1) var(--size-4-1);
-	border-radius: var(--radius-s);
-}
-
-.paper-trail-workflow-row:hover {
-	background-color: var(--background-modifier-hover);
-}
-
-/* `min-width: 0` is what lets the title ellipsis inside a flex row: without it
-   a flex item refuses to shrink below its content and pushes the icons out. */
-.paper-trail-workflow-title {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	color: var(--text-normal);
-	/* An anchor for the focus and keyboard behaviour, not for the look: these
-	   are list rows, and a theme's link underline makes a list of papers read
-	   as a page of hyperlinks. Hover too, which is where most themes put it. */
-	text-decoration: none;
-}
-
-.paper-trail-workflow-title:hover {
-	text-decoration: none;
 }
 
 .paper-trail-workflow-actions {
 	display: flex;
 	flex-shrink: 0;
 	gap: var(--size-2-1);
-}
-
-/* Said rather than inherited. A row is an anchor next to a button, and left to
-   the browser's defaults those are a pointer next to an arrow: two controls on
-   one line disagreeing about whether they are controls. */
-.paper-trail-workflow-title,
-.paper-trail-workflow-actions .clickable-icon {
-	cursor: pointer;
+	margin-inline-start: auto;
 }
 
 /*
@@ -184,7 +156,8 @@
 }
 
 /* Focus too, never hover alone. A control a keyboard cannot reach is not one. */
-.paper-trail-workflow-row:hover .clickable-icon,
+.paper-trail .nav-file-title:hover .clickable-icon,
+.paper-trail .nav-file-title:focus-within .clickable-icon,
 .paper-trail-workflow-actions .clickable-icon:focus-visible {
 	opacity: 1;
 }
@@ -206,19 +179,8 @@
  * appear, and that appearing does not move anything.
  */
 
-.paper-trail-workflow-more,
-.paper-trail-workflow-clear {
-	font-size: var(--font-ui-smaller);
+.paper-trail-more .tree-item-inner {
 	color: var(--text-faint);
-}
-
-.paper-trail-workflow-more {
-	display: inline-block;
-	padding: var(--size-2-1) var(--size-4-1);
-}
-
-.paper-trail-workflow-more:hover {
-	color: var(--text-muted);
 }
 
 .paper-trail-picker-byline {
@@ -243,22 +205,6 @@
 .paper-trail-orphans {
 	padding-left: var(--size-4-4);
 	margin-top: 0;
-}
-
-/* The count, and one button for the whole list. Sticky, so Next stays to hand
-   however far down a long queue you have scrolled. */
-.paper-trail-queue-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--size-4-2);
-	position: sticky;
-	top: 0;
-	z-index: 1;
-	background-color: var(--background-secondary);
-	padding-bottom: var(--size-4-2);
-	border-bottom: 1px solid var(--background-modifier-border);
-	margin-bottom: var(--size-4-2);
 }
 
 /* Said only when Zotero is not answering. Silence means it is. */

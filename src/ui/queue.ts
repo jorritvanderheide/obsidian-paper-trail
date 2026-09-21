@@ -49,9 +49,10 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 		// with an empty vault means Zotero itself is empty or unreachable. The
 		// offline banner above has already said which.
 		const started = notes.some((note) => note.isPaper);
-		const empty = root.createDiv({ cls: 'paper-trail-workflow-clear' });
-
-		empty.setText(started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here to triage.');
+		root.createDiv({
+			cls: 'pane-empty',
+			text: started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here to triage.',
+		});
 		return;
 	}
 
@@ -59,13 +60,18 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	// topmost non-empty stage, and the palette is a poor home for the thing you
 	// reach for most.
 	const outstanding = [...buckets.values()].reduce((sum, list) => sum + list.length, 0);
-	const header = root.createDiv({ cls: 'paper-trail-queue-header' });
-	header.createSpan({ cls: 'paper-trail-workflow-more', text: `${outstanding} outstanding` });
-	header.createEl('button', { cls: 'mod-cta', text: 'Next' }).addEventListener('click', () => void next(context));
+	const header = root.createDiv({ cls: 'nav-header' });
+	const buttons = header.createDiv({ cls: 'nav-buttons-container' });
+	buttons.createSpan({
+		cls: 'paper-trail-outstanding',
+		text: `${outstanding} outstanding`,
+	});
+	iconButton(buttons, 'arrow-right', 'Next', () => void next(context), 'nav-action-button');
 
+	const files = root.createDiv({ cls: 'nav-files-container' });
 	for (const definition of STAGES) {
 		const rows = buckets.get(definition.stage) ?? [];
-		if (rows.length > 0) section(root, context, definition, rows);
+		if (rows.length > 0) section(files, context, definition, rows);
 	}
 }
 
@@ -110,34 +116,90 @@ const expanded = new Set<Stage>();
  * picks up the hover, focus and theme treatment every other icon button in the
  * app has rather than an approximation of it made here.
  */
-function iconButton(parent: HTMLElement, icon: string, label: string, onClick: () => void): void {
-	const button = parent.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': label } });
+function iconButton(parent: HTMLElement, icon: string, label: string, onClick: () => void, extra = ''): void {
+	const button = parent.createEl('button', {
+		cls: `clickable-icon ${extra}`.trim(),
+		attr: { 'aria-label': label },
+	});
 	setIcon(button, icon);
-	button.addEventListener('click', onClick);
+	button.addEventListener('click', (event) => {
+		// A row is clickable too, and its click means "open this". Without this
+		// a button would fire its own action and the row's underneath it.
+		event.stopPropagation();
+		onClick();
+	});
 }
 
-function section(root: HTMLElement, context: Context, { stage, label, action, icon, hint, done, doneIcon }: StageAction, rows: Row[]): void {
+/**
+ * One row of the tree, in Obsidian's own nav markup.
+ *
+ * The classes are not decoration. A sidebar that styles itself independently
+ * looks like a guest in the pane next to the file explorer, and matching by
+ * copying font sizes only matches the theme you happened to test. Emitting
+ * `tree-item` means the indentation, the type scale, the hover and the active
+ * colour all arrive from whatever theme is installed, and keep arriving when it
+ * changes.
+ */
+function treeRow(parent: HTMLElement, label: string, onClick: () => void): HTMLElement {
+	const item = parent.createDiv({ cls: 'tree-item nav-file' });
+	const self = item.createDiv({
+		cls: 'tree-item-self nav-file-title is-clickable',
+		attr: { tabindex: '0' },
+	});
+	self.createDiv({
+		cls: 'tree-item-inner nav-file-title-content',
+		text: label,
+	});
+
+	// The whole row, not just the words, which is how every other nav item in
+	// the app behaves. `tabindex` and the key handler are what the anchor this
+	// replaced gave for free: a row a keyboard cannot reach is not a row.
+	self.addEventListener('click', onClick);
+	self.addEventListener('keydown', (event) => {
+		if (event.key !== 'Enter' && event.key !== ' ') return;
+		event.preventDefault();
+		onClick();
+	});
+	return self;
+}
+
+function section(
+	root: HTMLElement,
+	context: Context,
+	{ stage, label, action, icon, hint, done, doneIcon }: StageAction,
+	rows: Row[],
+): void {
 	const shown = expanded.has(stage) ? rows.length : ROWS;
-	const el = root.createDiv({ cls: 'paper-trail-workflow-section' });
-	const header = el.createDiv({ cls: 'paper-trail-workflow-header' });
-	header.createSpan({ cls: 'paper-trail-workflow-label', text: label });
-	header.createSpan({ cls: 'paper-trail-workflow-count', text: String(rows.length) });
-	header.setAttr('aria-label', hint);
+
+	// A stage is a folder and its papers are the files in it, which is what the
+	// nav classes mean. The count goes in the flair slot, where the file
+	// explorer already puts a number beside a folder.
+	const el = root.createDiv({ cls: 'tree-item nav-folder' });
+	const header = el.createDiv({
+		cls: 'tree-item-self nav-folder-title',
+		attr: { 'aria-label': hint },
+	});
+	header.createDiv({
+		cls: 'tree-item-inner nav-folder-title-content',
+		text: label,
+	});
+	header.createDiv({ cls: 'tree-item-flair-outer' }).createSpan({ cls: 'tree-item-flair', text: String(rows.length) });
+
+	const children = el.createDiv({
+		cls: 'tree-item-children nav-folder-children',
+	});
 
 	for (const entry of rows.slice(0, shown)) {
-		const row = el.createDiv({ cls: 'paper-trail-workflow-row' });
-		const title = row.createEl('a', { cls: 'paper-trail-workflow-title', text: rowTitle(entry), href: '#' });
-		title.addEventListener('click', (event) => {
-			event.preventDefault();
-			// A pending paper has no note to open, so its title does the one
-			// thing there is to do with it rather than nothing at all.
+		const row = treeRow(children, rowTitle(entry), () => {
+			// A pending paper has no note to open, so its row does the one thing
+			// there is to do with it rather than nothing at all.
 			if (entry.kind === 'note') void openNote(context.app, entry.note);
 			else void act(context, stage, entry);
 		});
 
 		// At the trailing edge, on the same line as the title. A stage with no
 		// icon has no button here: its action is opening the note, which the
-		// title beside it already does.
+		// row it sits on already does.
 		const actions = row.createDiv({ cls: 'paper-trail-workflow-actions' });
 		// The stage's own end first, where it is reachable: a row you are
 		// coming back to is more often finished than started again.
@@ -153,12 +215,13 @@ function section(root: HTMLElement, context: Context, { stage, label, action, ic
 	// cap you cannot lift means a paper outside the top three is reachable only
 	// by whatever `next` happens to offer.
 	if (rows.length > shown) {
-		const more = el.createEl('a', { cls: 'paper-trail-workflow-more', text: `and ${rows.length - shown} more`, href: '#' });
-		more.addEventListener('click', (event) => {
-			event.preventDefault();
+		treeRow(children, `and ${rows.length - shown} more`, () => {
 			expanded.add(stage);
-			renderQueue(root, context);
-		});
+			// The pane, not the container this section was drawn into: redrawing
+			// from here would put a second copy of the queue inside the first.
+			const pane = root.closest<HTMLElement>('.paper-trail') ?? root;
+			renderQueue(pane, context);
+		}).addClass('paper-trail-more');
 	}
 }
 
@@ -211,17 +274,21 @@ export class QueueView extends ItemView {
 	 * when nothing moved: the usual answer is that nothing has, and redrawing
 	 * the queue reads every note in the vault.
 	 */
-	private readonly catchUp = debounce(() => {
-		const before = lastContact()?.reachable;
-		void refreshLibrary(this.context.settings.apiPort).then((moved) => {
-			// Redrawn when the library moved, and also when Zotero itself came or
-			// went. Skipping on "nothing moved" alone meant quitting Zotero with
-			// this pane open changed nothing on screen: the failure was recorded
-			// and never drawn, so the one surface that explains an unreachable
-			// Zotero stayed silent about it until something else forced a redraw.
-			if (moved || before !== lastContact()?.reachable) this.redraw();
-		});
-	}, 300, true);
+	private readonly catchUp = debounce(
+		() => {
+			const before = lastContact()?.reachable;
+			void refreshLibrary(this.context.settings.apiPort).then((moved) => {
+				// Redrawn when the library moved, and also when Zotero itself came or
+				// went. Skipping on "nothing moved" alone meant quitting Zotero with
+				// this pane open changed nothing on screen: the failure was recorded
+				// and never drawn, so the one surface that explains an unreachable
+				// Zotero stayed silent about it until something else forced a redraw.
+				if (moved || before !== lastContact()?.reachable) this.redraw();
+			});
+		},
+		300,
+		true,
+	);
 
 	async onOpen(): Promise<void> {
 		expanded.clear();
