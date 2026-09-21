@@ -233,3 +233,21 @@
 	display: block;
 	color: var(--text-muted);
 }
+
+/* A chooser row with an icon: icon at the left, label and description beside it. */
+.paper-trail-suggestion {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--size-4-2);
+}
+
+.paper-trail-suggestion-icon {
+	display: flex;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	margin-top: 2px;
+}
+
+.paper-trail-suggestion-lines {
+	min-width: 0;
+}

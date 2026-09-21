@@ -14,7 +14,7 @@ import { glance, referenceLines, type KnownPaper } from '../core/references';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, loadFulltext, SourceError } from '../source';
 import { PASS_ONE_VIEW, PassOneView, type Brief, type Full } from '../ui/pass-one-view';
-import { applyTriage, asks, landing, type Reading, type Triage } from '../core/triage';
+import { applyTriage, asks, iconOf, landing, type Reading, type Triage } from '../core/triage';
 import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
@@ -99,6 +99,7 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 		(entry) => entry.label,
 		`Reading status of ${file.basename}`,
 		(entry) => landing(entry.reading),
+		(entry) => iconOf(entry.reading),
 	);
 	if (!choice) return;
 	if (!(await decide(context, file, choice.reading))) return;

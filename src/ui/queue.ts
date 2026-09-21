@@ -166,7 +166,7 @@ function treeRow(parent: HTMLElement, label: string, onClick: () => void): HTMLE
 function section(
 	root: HTMLElement,
 	context: Context,
-	{ stage, label, action, icon, hint, done, doneIcon }: StageAction,
+	{ stage, stageIcon, label, action, icon, hint, done, doneIcon }: StageAction,
 	rows: Row[],
 ): void {
 	const shown = expanded.has(stage) ? rows.length : ROWS;
@@ -179,6 +179,9 @@ function section(
 		cls: 'tree-item-self nav-folder-title',
 		attr: { 'aria-label': hint },
 	});
+	// Where a folder's collapse arrow would sit, which is where a tag explorer
+	// puts its folder icons too, so the two panes line up down the same edge.
+	setIcon(header.createDiv({ cls: 'tree-item-icon paper-trail-stage-icon' }), stageIcon);
 	header.createDiv({
 		cls: 'tree-item-inner nav-folder-title-content',
 		text: label,

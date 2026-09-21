@@ -41,6 +41,14 @@ export interface NoteState {
 export interface StageAction {
 	stage: Stage;
 	label: string;
+	/**
+	 * The stage itself, as an icon, for the head of its section in the queue.
+	 *
+	 * Always present, unlike the action icon below: every stage is drawn as a
+	 * folder and a folder beside a tag explorer's iconned ones with nothing in
+	 * that slot reads as broken rather than as plain.
+	 */
+	stageIcon: string;
 	/** The button that takes you to the work. */
 	action: string;
 	/**
@@ -88,6 +96,7 @@ export interface StageAction {
 export const STAGES: StageAction[] = [
 	{
 		stage: 'triage',
+		stageIcon: 'scan-eye',
 		label: 'Triage',
 		action: 'Assess',
 		icon: 'scan-eye',
@@ -96,6 +105,7 @@ export const STAGES: StageAction[] = [
 	},
 	{
 		stage: 'read',
+		stageIcon: 'book-open',
 		label: 'Read',
 		action: 'Open in Zotero',
 		icon: 'external-link',
@@ -104,15 +114,16 @@ export const STAGES: StageAction[] = [
 		hint: 'Triage said these are worth an hour.',
 		inNote: true,
 	},
-	{ stage: 'write-up', label: 'Write up', action: 'Open note', hint: 'Read, but the claim is still empty.', inNote: false },
+	{ stage: 'write-up', label: 'Write up', stageIcon: 'square-pen', action: 'Open note', hint: 'Read, but the claim is still empty.', inNote: false },
 	{
 		stage: 'pass-three',
+		stageIcon: 'book-open-check',
 		label: 'Third pass',
 		action: 'Open note',
 		hint: 'You said this one earns four hours. The assessment is still empty.',
 		inNote: false,
 	},
-	{ stage: 'file', label: 'File', action: 'File it', icon: 'folder-input', hint: 'In the inbox, waiting for a domain.', inNote: true },
+	{ stage: 'file', label: 'File', stageIcon: 'folder-input', action: 'File it', icon: 'folder-input', hint: 'In the inbox, waiting for a domain.', inNote: true },
 ];
 
 /** The stage a note is at, as the thing that draws its title bar needs it. */

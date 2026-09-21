@@ -298,3 +298,13 @@ describe('rowsByStage', () => {
 		expect(rows.get('triage')?.map((row) => row.kind)).toEqual(['note']);
 	});
 });
+
+describe('stage icons', () => {
+	it('gives every stage one, because a folder with an empty icon slot reads as broken', () => {
+		for (const entry of STAGES) expect(entry.stageIcon, entry.stage).toBeTruthy();
+	});
+
+	it('gives each stage its own, or two sections look like the same section', () => {
+		expect(new Set(STAGES.map((entry) => entry.stageIcon)).size).toBe(STAGES.length);
+	});
+});

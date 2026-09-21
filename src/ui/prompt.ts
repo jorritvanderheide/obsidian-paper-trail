@@ -3,7 +3,7 @@
 //
 // The chooser is the command palette's own component, which is what every list
 // of options in this plugin is: a box to type in, and the options under it.
-import { FuzzySuggestModal, Modal, Setting, type App, type ButtonComponent, type FuzzyMatch } from 'obsidian';
+import { FuzzySuggestModal, Modal, Setting, setIcon, type App, type ButtonComponent, type FuzzyMatch } from 'obsidian';
 
 class Suggester<T> extends FuzzySuggestModal<T> {
 	private result: T | null = null;
@@ -14,6 +14,7 @@ class Suggester<T> extends FuzzySuggestModal<T> {
 		private readonly text: (item: T) => string,
 		private readonly done: (item: T | null) => void,
 		private readonly describe?: (item: T) => string,
+		private readonly icon?: (item: T) => string,
 	) {
 		super(app);
 	}
@@ -35,13 +36,21 @@ class Suggester<T> extends FuzzySuggestModal<T> {
 	 * you have to remember.
 	 */
 	renderSuggestion(match: FuzzyMatch<T>, el: HTMLElement): void {
-		if (!this.describe) {
+		if (!this.describe && !this.icon) {
 			super.renderSuggestion(match, el);
 			return;
 		}
 
-		el.createDiv({ text: this.text(match.item) });
-		el.createEl('small', { cls: 'paper-trail-suggestion-desc', text: this.describe(match.item) });
+		// The icon on the left edge rather than above the words, so a list of
+		// decisions scans down one column the way the triage pane's buttons do.
+		if (this.icon) {
+			el.addClass('paper-trail-suggestion');
+			setIcon(el.createDiv({ cls: 'paper-trail-suggestion-icon' }), this.icon(match.item));
+		}
+
+		const lines = this.icon ? el.createDiv({ cls: 'paper-trail-suggestion-lines' }) : el;
+		lines.createDiv({ text: this.text(match.item) });
+		if (this.describe) lines.createEl('small', { cls: 'paper-trail-suggestion-desc', text: this.describe(match.item) });
 	}
 
 	// Only records. SuggestModal does not guarantee that onChooseItem runs before
@@ -63,9 +72,10 @@ export function suggest<T>(
 	text: (item: T) => string,
 	placeholder: string,
 	describe?: (item: T) => string,
+	icon?: (item: T) => string,
 ): Promise<T | null> {
 	return new Promise((resolve) => {
-		const modal = new Suggester(app, items, text, resolve, describe);
+		const modal = new Suggester(app, items, text, resolve, describe, icon);
 		modal.setPlaceholder(placeholder);
 		modal.open();
 	});

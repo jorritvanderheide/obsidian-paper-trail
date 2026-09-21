@@ -13,7 +13,7 @@
 // write it down.
 import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
 import type { PassOne } from '../core/passOne';
-import { landing, type Reading } from '../core/triage';
+import { iconOf, landing, type Reading } from '../core/triage';
 import { label } from '../core/vocabulary';
 import type { Glance } from '../core/references';
 
@@ -51,23 +51,20 @@ export interface Handlers {
  * do not, and the third button is the honest extra: some of what you triage
  * turns out to be something you have already read.
  */
-const DECISIONS: { reading: Reading; label: string; icon: string; hint: string }[] = [
+const DECISIONS: { reading: Reading; label: string; hint: string }[] = [
 	{
 		reading: 'dropped',
 		label: 'Drop',
-		icon: 'x',
 		hint: 'Assessed and not going further. Asks why, so the exclusion is on the record.',
 	},
 	{
 		reading: 'queued',
 		label: 'Queue',
-		icon: 'bookmark',
 		hint: 'Worth a real read. Goes on the reading list.',
 	},
 	{
 		reading: 'finished',
 		label: 'Already read',
-		icon: 'check',
 		hint: 'Skip the queue: this one is done.',
 	},
 ];
@@ -260,7 +257,7 @@ export class PassOneView extends ItemView {
 		const row = parent.createDiv({ cls: 'paper-trail-pass-one-decisions' });
 		for (const decision of DECISIONS) {
 			const button = row.createEl('button', { attr: { 'aria-label': decision.hint } });
-			setIcon(button.createSpan(), decision.icon);
+			setIcon(button.createSpan(), iconOf(decision.reading));
 			button.createSpan({ text: decision.label });
 			button.addEventListener('click', () => {
 				this.decide(decision).catch((error: unknown) => {

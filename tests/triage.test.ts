@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyStatusTag, applyTriage, asks, landing, PASS_TWO, type Reading } from '../src/core/triage';
+import { applyStatusTag, applyTriage, asks, iconOf, landing, PASS_TWO, type Reading } from '../src/core/triage';
 
 /** A literature note as it is created, before any decision. */
 const untriaged = () => ({
@@ -217,3 +217,14 @@ describe('applyTriage with a status tag', () => {
 	});
 });
 
+describe('iconOf', () => {
+	it('names an icon for every state, so no chooser can draw a blank', () => {
+		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'pass-three'];
+		for (const state of states) expect(iconOf(state), state).toBeTruthy();
+	});
+
+	it('gives each state its own, or two decisions would look like one', () => {
+		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'pass-three'];
+		expect(new Set(states.map(iconOf)).size).toBe(states.length);
+	});
+});

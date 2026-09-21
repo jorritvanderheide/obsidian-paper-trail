@@ -38,6 +38,35 @@ export function asks(reading: Reading): { question: string; cta: string } | null
 }
 
 /**
+ * One icon per reading state, written down once.
+ *
+ * Three places show a state and each had its own answer, or none: the triage
+ * pane named `x`, `bookmark` and `check` inline, and the two choosers showed
+ * no icon at all, so the same decision looked like three different things.
+ *
+ * Every name is checked against the set Obsidian bundles rather than the Lucide
+ * catalogue, because an icon Obsidian does not ship renders as nothing and says
+ * nothing about why.
+ *
+ * These are also what to put in a tag explorer's folder icons, if you have the
+ * status tag turned on. The plugin cannot set those itself: they live in that
+ * plugin's own data, and reaching into it would be the same overreach as
+ * writing someone's hotkeys.
+ */
+const ICONS: Record<Reading, string> = {
+	untriaged: 'circle-dashed',
+	dropped: 'x',
+	queued: 'bookmark',
+	deferred: 'clock',
+	finished: 'check',
+	'pass-three': 'book-open-check',
+};
+
+export function iconOf(reading: Reading): string {
+	return ICONS[reading];
+}
+
+/**
  * Where a decision leaves the paper, in terms of the homepage.
  *
  * Named for the stage it lands in rather than the decision just taken: whoever

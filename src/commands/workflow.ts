@@ -11,7 +11,7 @@ import { loadFulltext } from '../source';
 import { decide, openTriage } from './reading';
 import { fileOf, queue } from '../outstanding';
 import { fileNote } from './tags';
-import { landing, PASS_TWO } from '../core/triage';
+import { iconOf, landing, PASS_TWO } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { reveal } from '../ui/reveal';
 import type { Context } from '../context';
@@ -116,6 +116,7 @@ export async function finish(context: Context, stage: Stage, row: Row): Promise<
 		(entry) => entry.label,
 		`Finished with ${note.title}`,
 		(entry) => landing(entry.reading),
+		(entry) => iconOf(entry.reading),
 	);
 	if (!choice) return;
 	if (!(await decide(context, file, choice.reading))) return;
