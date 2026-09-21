@@ -300,14 +300,13 @@ export class QueueView extends ItemView {
 	 * The plugin's own mark, shared with the ribbon so the tab and the button
 	 * that opens it are recognisably the same thing.
 	 *
-	 * Not a checklist, which is what it used to be. The queue shows what is
-	 * outstanding and offers an order, but it never refuses an action because an
-	 * earlier one is unfinished, and a row of ticked boxes promises exactly the
-	 * pipeline this is not. A stamp is the thing it actually does: a judgement,
-	 * pressed onto the record.
+	 * A stack of papers, which is what the queue holds. Not a checklist, which
+	 * is what it used to be and which promises a pipeline this is not, and not a
+	 * stamp, which was the next try: at ribbon size its handle and base reduce
+	 * to a blob, and a stamp means approved, which is one outcome out of six.
 	 */
 	getIcon(): string {
-		return 'stamp';
+		return 'file-stack';
 	}
 
 	/**

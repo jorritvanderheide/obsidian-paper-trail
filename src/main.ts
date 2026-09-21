@@ -49,7 +49,7 @@ export default class PaperTrail extends Plugin {
 		this.app.workspace.onLayoutReady(() => this.decorate());
 		this.registerView(PASS_ONE_VIEW, (leaf) => new PassOneView(leaf));
 		this.registerView(QUEUE_VIEW, (leaf) => new QueueView(leaf, this));
-		this.addRibbonIcon('stamp', 'Open queue', () => void openQueue(this.app));
+		this.addRibbonIcon('file-stack', 'Open queue', () => void openQueue(this.app));
 		this.registerMarkdownCodeBlockProcessor(WORKFLOW_BLOCK, (_source, el, ctx) => {
 			ctx.addChild(new WorkflowBlock(el, this));
 		});
