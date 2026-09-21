@@ -131,14 +131,16 @@ function section(root: HTMLElement, context: Context, { stage, label, action, ic
 			else void act(context, stage, entry);
 		});
 
-		// At the trailing edge, on the same line as the title.
+		// At the trailing edge, on the same line as the title. A stage with no
+		// icon has no button here: its action is opening the note, which the
+		// title beside it already does.
 		const actions = row.createDiv({ cls: 'paper-trail-workflow-actions' });
 		// The stage's own end first, where it is reachable: a row you are
 		// coming back to is more often finished than started again.
 		if (done && doneIcon && entry.kind === 'note') {
 			iconButton(actions, doneIcon, done, () => void finish(context, stage, entry));
 		}
-		iconButton(actions, icon, action, () => void act(context, stage, entry));
+		if (icon) iconButton(actions, icon, action, () => void act(context, stage, entry));
 	}
 
 	// The count is honest even when the list is not, because a backlog you

@@ -50,8 +50,12 @@ export interface StageAction {
 	 * points of label that cannot shrink, and two of those leave a paper's title
 	 * about sixteen characters. The label survives as the tooltip and as what a
 	 * screen reader reads, which is where a menu still uses it.
+	 *
+	 * Absent where the action is opening the row's own note, because clicking
+	 * the row already does that. A button that repeats the thing next to it
+	 * teaches you that the buttons are worth ignoring.
 	 */
-	icon: string;
+	icon?: string;
 	hint: string;
 	/**
 	 * A second button that ends the stage, for the one stage whose end the
@@ -100,12 +104,11 @@ export const STAGES: StageAction[] = [
 		hint: 'Triage said these are worth an hour.',
 		inNote: true,
 	},
-	{ stage: 'write-up', label: 'Write up', action: 'Open note', icon: 'pen-line', hint: 'Read, but the claim is still empty.', inNote: false },
+	{ stage: 'write-up', label: 'Write up', action: 'Open note', hint: 'Read, but the claim is still empty.', inNote: false },
 	{
 		stage: 'pass-three',
 		label: 'Third pass',
 		action: 'Open note',
-		icon: 'microscope',
 		hint: 'You said this one earns four hours. The assessment is still empty.',
 		inNote: false,
 	},

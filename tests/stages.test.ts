@@ -218,11 +218,15 @@ describe('STAGES', () => {
 
 	it('gives every button an icon, because a queue row draws it as one', () => {
 		for (const entry of STAGES) {
-			expect(entry.icon, `${entry.stage} has no icon`).toBeTruthy();
 			// A row draws the end-of-stage button only when both are there, so a
 			// `done` without its icon would lose the button and say nothing.
 			if (entry.done) expect(entry.doneIcon, `${entry.stage} has done but no doneIcon`).toBeTruthy();
 		}
+	});
+
+	it('gives no icon to the two whose action the row title already is', () => {
+		const withButton = STAGES.filter((entry) => entry.icon).map((entry) => entry.stage);
+		expect(withButton).toEqual(['triage', 'read', 'file']);
 	});
 
 	it('keeps the words, which the tooltip and the note menu still use', () => {
