@@ -215,6 +215,19 @@ describe('STAGES', () => {
 	it('gives no other stage one: acting on those rows is what ends them', () => {
 		expect(STAGES.filter((entry) => entry.done).map((entry) => entry.stage)).toEqual(['read']);
 	});
+
+	it('gives every button an icon, because a queue row draws it as one', () => {
+		for (const entry of STAGES) {
+			expect(entry.icon, `${entry.stage} has no icon`).toBeTruthy();
+			// A row draws the end-of-stage button only when both are there, so a
+			// `done` without its icon would lose the button and say nothing.
+			if (entry.done) expect(entry.doneIcon, `${entry.stage} has done but no doneIcon`).toBeTruthy();
+		}
+	});
+
+	it('keeps the words, which the tooltip and the note menu still use', () => {
+		for (const entry of STAGES) expect(entry.action).toBeTruthy();
+	});
 });
 
 describe('noteState', () => {

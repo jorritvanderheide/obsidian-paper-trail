@@ -43,6 +43,15 @@ export interface StageAction {
 	label: string;
 	/** The button that takes you to the work. */
 	action: string;
+	/**
+	 * The same action as an icon, for a queue row.
+	 *
+	 * A row in a sidebar has no width to spare: "Open in Zotero" is a hundred
+	 * points of label that cannot shrink, and two of those leave a paper's title
+	 * about sixteen characters. The label survives as the tooltip and as what a
+	 * screen reader reads, which is where a menu still uses it.
+	 */
+	icon: string;
 	hint: string;
 	/**
 	 * A second button that ends the stage, for the one stage whose end the
@@ -59,6 +68,8 @@ export interface StageAction {
 	 * the same mistake in a smaller place.
 	 */
 	done?: string;
+	/** `done` as an icon, for the same reason `action` has one. */
+	doneIcon?: string;
 	/**
 	 * Whether the action is worth offering from inside the note it concerns.
 	 *
@@ -75,19 +86,30 @@ export const STAGES: StageAction[] = [
 		stage: 'triage',
 		label: 'Triage',
 		action: 'Assess',
+		icon: 'scan-eye',
 		hint: 'Added, not yet assessed. Twenty seconds on the abstract, or eight minutes if it earns them.',
 		inNote: true,
 	},
-	{ stage: 'read', label: 'Read', action: 'Open in Zotero', done: 'Finished', hint: 'Triage said these are worth an hour.', inNote: true },
-	{ stage: 'write-up', label: 'Write up', action: 'Open note', hint: 'Read, but the claim is still empty.', inNote: false },
+	{
+		stage: 'read',
+		label: 'Read',
+		action: 'Open in Zotero',
+		icon: 'external-link',
+		done: 'Finished',
+		doneIcon: 'check',
+		hint: 'Triage said these are worth an hour.',
+		inNote: true,
+	},
+	{ stage: 'write-up', label: 'Write up', action: 'Open note', icon: 'pen-line', hint: 'Read, but the claim is still empty.', inNote: false },
 	{
 		stage: 'pass-three',
 		label: 'Third pass',
 		action: 'Open note',
+		icon: 'microscope',
 		hint: 'You said this one earns four hours. The assessment is still empty.',
 		inNote: false,
 	},
-	{ stage: 'file', label: 'File', action: 'File it', hint: 'In the inbox, waiting for a domain.', inNote: true },
+	{ stage: 'file', label: 'File', action: 'File it', icon: 'folder-input', hint: 'In the inbox, waiting for a domain.', inNote: true },
 ];
 
 /** The stage a note is at, as the thing that draws its title bar needs it. */

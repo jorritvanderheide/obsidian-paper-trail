@@ -13,7 +13,7 @@
 // Derived, never authoritative: everything is read from the metadata cache and
 // every write goes through the same commands the palette uses. If this and a
 // note disagree, the note is right.
-import { ItemView, debounce, type App, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, debounce, setIcon, type App, type WorkspaceLeaf } from 'obsidian';
 import { rowTitle, STAGES, type Row, type Stage, type StageAction } from '../core/stages';
 import { act, finish, next, openNote } from '../commands/workflow';
 import { queue } from '../outstanding';
@@ -99,7 +99,20 @@ function offline(root: HTMLElement, context: Context): void {
  */
 const expanded = new Set<Stage>();
 
-function section(root: HTMLElement, context: Context, { stage, label, action, hint, done }: StageAction, rows: Row[]): void {
+/**
+ * A row's action: an icon, labelled for the tooltip and for a screen reader.
+ *
+ * `clickable-icon` is Obsidian's own class for exactly this, so the button
+ * picks up the hover, focus and theme treatment every other icon button in the
+ * app has rather than an approximation of it made here.
+ */
+function iconButton(parent: HTMLElement, icon: string, label: string, onClick: () => void): void {
+	const button = parent.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': label } });
+	setIcon(button, icon);
+	button.addEventListener('click', onClick);
+}
+
+function section(root: HTMLElement, context: Context, { stage, label, action, icon, hint, done, doneIcon }: StageAction, rows: Row[]): void {
 	const shown = expanded.has(stage) ? rows.length : ROWS;
 	const el = root.createDiv({ cls: 'paper-trail-workflow-section' });
 	const header = el.createDiv({ cls: 'paper-trail-workflow-header' });
@@ -118,15 +131,14 @@ function section(root: HTMLElement, context: Context, { stage, label, action, hi
 			else void act(context, stage, entry);
 		});
 
-		// Grouped, so a second button does not get pushed to the far edge by
-		// the row's space-between and read as belonging to something else.
+		// At the trailing edge, on the same line as the title.
 		const actions = row.createDiv({ cls: 'paper-trail-workflow-actions' });
 		// The stage's own end first, where it is reachable: a row you are
 		// coming back to is more often finished than started again.
-		if (done && entry.kind === 'note') {
-			actions.createEl('button', { text: done }).addEventListener('click', () => void finish(context, stage, entry));
+		if (done && doneIcon && entry.kind === 'note') {
+			iconButton(actions, doneIcon, done, () => void finish(context, stage, entry));
 		}
-		actions.createEl('button', { text: action }).addEventListener('click', () => void act(context, stage, entry));
+		iconButton(actions, icon, action, () => void act(context, stage, entry));
 	}
 
 	// The count is honest even when the list is not, because a backlog you

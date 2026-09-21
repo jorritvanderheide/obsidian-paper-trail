@@ -127,18 +127,12 @@
 	font-variant-numeric: tabular-nums;
 }
 
-/*
- * Title above, actions below.
- *
- * Side by side, the title shrank and the buttons did not, so a Read row spent
- * most of a sidebar on "Finished" and "Open in Zotero" and left about sixteen
- * characters for the paper. The title is the part you are reading.
- */
+/* One line: title, then its actions at the trailing edge. */
 .paper-trail-workflow-row {
 	display: flex;
-	flex-direction: column;
-	gap: var(--size-2-1);
-	padding: var(--size-2-2) var(--size-4-1);
+	align-items: center;
+	gap: var(--size-2-2);
+	padding: var(--size-2-1) var(--size-4-1);
 	border-radius: var(--radius-s);
 }
 
@@ -146,7 +140,11 @@
 	background-color: var(--background-modifier-hover);
 }
 
+/* `min-width: 0` is what lets the title ellipsis inside a flex row: without it
+   a flex item refuses to shrink below its content and pushes the icons out. */
 .paper-trail-workflow-title {
+	flex: 1;
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -155,29 +153,31 @@
 
 .paper-trail-workflow-actions {
 	display: flex;
-	justify-content: flex-end;
-	gap: var(--size-4-1);
-}
-
-/* Quiet until the row is under the cursor: the list is for reading titles. */
-.paper-trail-workflow-row button {
 	flex-shrink: 0;
-	font-size: var(--font-ui-smaller);
-	box-shadow: none;
-	background-color: transparent;
-	color: var(--text-muted);
-	padding: 0 var(--size-4-1);
+	gap: var(--size-2-1);
 }
 
-.paper-trail-workflow-row:hover button,
-.paper-trail-workflow-row button:focus-visible {
-	background-color: var(--interactive-normal);
-	color: var(--text-normal);
+/*
+ * Quiet until the row is under the cursor: the list is for reading titles.
+ *
+ * Transparent rather than unrendered, so the title keeps the same width either
+ * way. Collapsing the icons would reflow every row you moved the mouse over.
+ */
+.paper-trail-workflow-actions .clickable-icon {
+	opacity: 0;
 }
 
-.paper-trail-workflow-row button:hover {
-	background-color: var(--interactive-hover);
-	color: var(--text-accent);
+/* Focus too, never hover alone. A control a keyboard cannot reach is not one. */
+.paper-trail-workflow-row:hover .clickable-icon,
+.paper-trail-workflow-actions .clickable-icon:focus-visible {
+	opacity: 1;
+}
+
+/* A touch screen has no hover, so nothing would ever appear. */
+@media (hover: none) {
+	.paper-trail-workflow-actions .clickable-icon {
+		opacity: 1;
+	}
 }
 
 .paper-trail-workflow-more,
