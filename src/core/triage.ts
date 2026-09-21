@@ -80,7 +80,7 @@ export function landing(reading: Reading): string {
 		case 'dropped':
 			return 'Dropped, and off the list.';
 		case 'queued':
-			return 'Queued. It moves to Read.';
+			return 'Queued, and waiting to be read.';
 		case 'deferred':
 			return 'Parked, with the condition on the note.';
 		case 'finished':

@@ -103,7 +103,7 @@ export const STAGES: StageAction[] = [
 	{
 		stage: 'read',
 		stageIcon: 'book-open',
-		label: 'Read',
+		label: 'To read',
 		action: 'Open in Zotero',
 		icon: 'external-link',
 		done: 'Finished',
