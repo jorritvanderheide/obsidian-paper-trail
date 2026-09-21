@@ -10,31 +10,6 @@
 /** The fence that renders the queue block. One constant, so the command that inserts it and the processor that renders it cannot drift. */
 export const WORKFLOW_BLOCK = 'paper-trail';
 
-const CAPTURE = `---
----
-# {{TITLE}}
-`;
-
-
-const MOC = `---
----
-# {{TITLE}}
-
-<!-- A map gathers other notes and says why they belong together. It is the
-     answer to "what is all this material for?", which no tag can give you.
-
-     Replace this with a paragraph saying what the map is about. Rewrite that
-     paragraph as your thinking moves, rather than stacking new ones below it. -->
-
-## Notes
-
-<!-- One line per note, each saying what it adds. Put them in the order you
-     would explain them: read top to bottom, the list should make an argument.
-
-     - [[a note]] what this one adds -->
-`;
-
-
 export const PAPER = `# {{TITLE}}
 
 {{LINKS}}
@@ -77,10 +52,4 @@ export interface Template {
  * specific than that belongs in your template folder rather than in the
  * plugin, where it would be one discipline's method shipped to everyone.
  */
-export const TEMPLATES: Template[] = [
-	{ label: 'Note', file: 'Capture.md', content: CAPTURE },
-	{ label: 'Map', file: 'Map.md', content: MOC },
-];
-
-/** The literature note, one per paper. Its filename is the citation key. */
 export const PAPER_TEMPLATE: Template = { label: 'Paper', file: 'Paper.md', content: PAPER };

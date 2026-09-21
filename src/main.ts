@@ -1,5 +1,4 @@
 import { debounce, Notice, Plugin } from 'obsidian';
-import { createFromTemplate } from './commands/notes';
 import { next } from './commands/workflow';
 import { insertCitation } from './commands/citations';
 import { refreshPaper, syncOnOpen } from './commands/papers';
@@ -59,7 +58,6 @@ export default class PaperTrail extends Plugin {
 		this.command('insert-block', 'Insert queue block', () => insertBlock(this));
 		this.command('next', 'Next', () => next(this));
 		this.command('refresh-paper', 'Refresh paper from Zotero', () => refreshPaper(this));
-		this.command('add-note', 'Add note', () => createFromTemplate(this));
 		this.command('retag', 'Retag note', () => retag(this));
 		this.command('excluded', 'Export excluded papers', () => writeReport(this));
 		this.command('find-orphans', 'Find tags nothing recognises', () => Promise.resolve(findOrphans(this)));

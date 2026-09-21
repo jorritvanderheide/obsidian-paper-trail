@@ -90,11 +90,6 @@ export class SettingsTab extends PluginSettingTab {
 				heading: 'Vault',
 				items: [
 					{
-						name: 'Notes folder',
-						desc: 'Where your own notes go. Flat: a title cannot contain a slash.',
-						control: { type: 'text', key: 'notesFolder' },
-					},
-					{
 						name: 'Template folder',
 						desc: 'Note templates. Missing ones are written here the first time you pick them, and your edits to them are kept.',
 						control: { type: 'text', key: 'templateFolder' },

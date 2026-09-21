@@ -36,8 +36,6 @@ export interface Settings {
 	/** Zotero data directory. Empty means: ask Zotero's prefs.js, then ~/Zotero. */
 	dataDir: string;
 
-	/** Flat folder holding your own notes. */
-	notesFolder: string;
 	/** Flat folder holding one note per paper, named for its citation key. */
 	papersFolder: string;
 	/**
@@ -81,7 +79,6 @@ export const DEFAULT_SETTINGS: Settings = {
 	version: SETTINGS_VERSION,
 	keyField: 'zotero-key',
 	dataDir: '',
-	notesFolder: 'Notes',
 	papersFolder: 'Literature',
 	statusTag: '',
 	domains: [...DOMAIN],
@@ -112,7 +109,6 @@ export function loadSettings(raw: unknown): Settings {
 		keyField: text(data.keyField, DEFAULT_SETTINGS.keyField),
 		// The one field where empty is meaningful: it means "ask Zotero".
 		dataDir: typeof data.dataDir === 'string' ? data.dataDir.trim() : DEFAULT_SETTINGS.dataDir,
-		notesFolder: text(data.notesFolder, DEFAULT_SETTINGS.notesFolder),
 		papersFolder: text(data.papersFolder, DEFAULT_SETTINGS.papersFolder),
 		// The one other field where empty is meaningful: it means "write no tags".
 		statusTag: typeof data.statusTag === 'string' ? data.statusTag.trim() : DEFAULT_SETTINGS.statusTag,

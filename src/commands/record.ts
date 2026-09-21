@@ -7,7 +7,6 @@
 import { Notice, normalizePath, type TFile } from 'obsidian';
 import { excluded, renderReport, type Decided } from '../core/record';
 import { isPaper } from '../core/paper-note';
-import { ensureFolder } from './templates';
 import { reveal } from '../ui/reveal';
 import type { Context } from '../context';
 
@@ -44,18 +43,21 @@ function decided(context: Context): Decided[] {
 /**
  * Write the table of everything ruled out, and open it.
  *
- * Into the notes folder as an ordinary note, so it is searchable, linkable and
- * yours to move. Rewritten in place on every run rather than dated and kept:
- * the history lives on the papers, and a folder of near-identical reports would
- * be the sort of thing you stop reading.
+ * Into the vault root as an ordinary note, so it is searchable, linkable and
+ * yours to move. The root rather than a folder of the plugin's choosing,
+ * because this is an artefact you export rather than a note you keep, and a
+ * setting naming a home for one file would be a setting earning very little.
+ *
+ * Rewritten in place on every run rather than dated and kept: the history
+ * lives on the papers, and a folder of near-identical reports would be the
+ * sort of thing you stop reading.
  */
 export async function writeReport(context: Context): Promise<void> {
 	const app = context.app;
 	const report = excluded(decided(context));
 	const markdown = renderReport(report, new Date().toISOString().slice(0, 10));
 
-	await ensureFolder(app, context.settings.notesFolder);
-	const path = normalizePath(`${context.settings.notesFolder}/${REPORT}`);
+	const path = normalizePath(REPORT);
 
 	const existing = app.vault.getFileByPath(path);
 	const file: TFile = existing ?? (await app.vault.create(path, markdown));

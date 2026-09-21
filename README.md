@@ -82,14 +82,15 @@ paper, ready for an appendix.
 
 ## Your own notes
 
-**Add note** offers any template in your template folder; two ship with it, a
-plain note and a map. Nothing is stamped on what you write and nothing asks you
-about it afterwards: the queue is for papers, and a note you wrote is finished
-when you stop typing. **Retag note** sets a `domain/`, which is the one tag axis
-Paper Trail knows, because it claims one only where the workflow reads it.
+Paper Trail has no opinion about them. It writes nothing on a note you wrote,
+asks nothing about it afterwards, and the queue is papers only. Making notes is
+what Obsidian's own Templates plugin is for.
 
-A literature note also carries two buttons in its own title bar: refresh from
-Zotero, and whatever that note is waiting for.
+**Retag note** sets a `domain/`, the one tag axis Paper Trail knows, and **Find
+tags nothing recognises** catches the typos that split a tag tree.
+
+A literature note carries buttons in its own title bar: refresh from Zotero, and
+whatever that paper is waiting for.
 
 ## Safety
 

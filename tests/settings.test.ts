@@ -18,12 +18,12 @@ describe('loadSettings', () => {
 
 describe('loadSettings, the address fields', () => {
 	it('trims, because a stray space in a folder name is a silent miss', () => {
-		expect(loadSettings({ notesFolder: '  Nota  ' }).notesFolder).toBe('Nota');
+		expect(loadSettings({ papersFolder: '  Lit  ' }).papersFolder).toBe('Lit');
 	});
 
 	it('falls back when a field is blanked, rather than pointing at nothing', () => {
-		expect(loadSettings({ notesFolder: '   ', claimHeading: '', assessmentHeading: '  ' })).toMatchObject({
-			notesFolder: 'Notes',
+		expect(loadSettings({ papersFolder: '   ', claimHeading: '', assessmentHeading: '  ' })).toMatchObject({
+			papersFolder: 'Literature',
 			claimHeading: 'Claim',
 			assessmentHeading: 'Assessment',
 		});
@@ -40,23 +40,23 @@ describe('versioning', () => {
 	});
 
 	it('treats data written before versioning as version 0', () => {
-		expect(migrate({ notesFolder: 'Notes' })).toMatchObject({ version: SETTINGS_VERSION });
+		expect(migrate({ papersFolder: 'Literature' })).toMatchObject({ version: SETTINGS_VERSION });
 	});
 
 	it('leaves already-current data alone', () => {
-		const current = { version: SETTINGS_VERSION, notesFolder: 'Nota' };
+		const current = { version: SETTINGS_VERSION, papersFolder: 'Lit' };
 		expect(migrate(current)).toBe(current);
 	});
 
 	it('does not lose a setting while migrating', () => {
-		expect(migrate({ notesFolder: 'Nota', papersFolder: 'Papers' })).toMatchObject({
-			notesFolder: 'Nota',
+		expect(migrate({ papersFolder: 'Papers' })).toMatchObject({
+
 			papersFolder: 'Papers',
 		});
 	});
 
 	it('upgrades on load, so a saved file never has to be touched by hand', () => {
-		expect(loadSettings({ notesFolder: 'Nota' })).toMatchObject({ version: SETTINGS_VERSION, notesFolder: 'Nota' });
+		expect(loadSettings({ papersFolder: 'Lit' })).toMatchObject({ version: SETTINGS_VERSION, papersFolder: 'Lit' });
 	});
 });
 
