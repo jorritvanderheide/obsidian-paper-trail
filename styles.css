@@ -99,9 +99,9 @@
 	margin-top: var(--size-2-2);
 }
 
-/* Workflow block: sections in workflow order, one action per row. */
+/* The queue: sections in workflow order, one row per outstanding thing. */
 .paper-trail-workflow-section {
-	margin-bottom: var(--size-4-4);
+	margin-bottom: var(--size-4-3);
 }
 
 .paper-trail-workflow-header {
@@ -110,7 +110,7 @@
 	gap: var(--size-2-2);
 	border-bottom: 1px solid var(--background-modifier-border);
 	padding-bottom: var(--size-2-1);
-	margin-bottom: var(--size-2-2);
+	margin-bottom: var(--size-2-1);
 }
 
 .paper-trail-workflow-label {
@@ -127,35 +127,72 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Title above, actions below.
+ *
+ * Side by side, the title shrank and the buttons did not, so a Read row spent
+ * most of a sidebar on "Finished" and "Open in Zotero" and left about sixteen
+ * characters for the paper. The title is the part you are reading.
+ */
 .paper-trail-workflow-row {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--size-4-2);
-	padding: var(--size-2-1) 0;
+	flex-direction: column;
+	gap: var(--size-2-1);
+	padding: var(--size-2-2) var(--size-4-1);
+	border-radius: var(--radius-s);
+}
+
+.paper-trail-workflow-row:hover {
+	background-color: var(--background-modifier-hover);
 }
 
 .paper-trail-workflow-title {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	color: var(--text-normal);
 }
 
 .paper-trail-workflow-actions {
 	display: flex;
-	flex-shrink: 0;
+	justify-content: flex-end;
 	gap: var(--size-4-1);
 }
 
+/* Quiet until the row is under the cursor: the list is for reading titles. */
 .paper-trail-workflow-row button {
 	flex-shrink: 0;
 	font-size: var(--font-ui-smaller);
+	box-shadow: none;
+	background-color: transparent;
+	color: var(--text-muted);
+	padding: 0 var(--size-4-1);
+}
+
+.paper-trail-workflow-row:hover button,
+.paper-trail-workflow-row button:focus-visible {
+	background-color: var(--interactive-normal);
+	color: var(--text-normal);
+}
+
+.paper-trail-workflow-row button:hover {
+	background-color: var(--interactive-hover);
+	color: var(--text-accent);
 }
 
 .paper-trail-workflow-more,
 .paper-trail-workflow-clear {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-faint);
+}
+
+.paper-trail-workflow-more {
+	display: inline-block;
+	padding: var(--size-2-1) var(--size-4-1);
+}
+
+.paper-trail-workflow-more:hover {
+	color: var(--text-muted);
 }
 
 .paper-trail-picker-byline {
@@ -182,12 +219,17 @@
 	margin-top: 0;
 }
 
-/* Queue header: the count, and one button for the whole list. */
+/* The count, and one button for the whole list. Sticky, so Next stays to hand
+   however far down a long queue you have scrolled. */
 .paper-trail-queue-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--size-4-2);
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background-color: var(--background-secondary);
 	padding-bottom: var(--size-4-2);
 	border-bottom: 1px solid var(--background-modifier-border);
 	margin-bottom: var(--size-4-2);
