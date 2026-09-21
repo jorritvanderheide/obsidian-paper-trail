@@ -75,13 +75,10 @@ export function decorate(context: Context): void {
 			? stageActionOf(byStageOf(context, note))
 			: null;
 
-		// The stage's end first, matching the sidebar: a paper you have come
-		// back to is more often finished than started again.
-		const done = ensure(view, DONE, 'check', 'Finished', () =>
-			withCurrent(context, view, finish),
-		);
-		show(done, outstanding?.done, outstanding?.doneIcon);
-
+		// Made in the reverse of the order they appear. `addAction` puts each new
+		// one at the front, so the last one made is the leftmost: this reads
+		// backwards and has to, or the pair comes out mirrored.
+		//
 		// Write up and the third pass are absent by design. Their action is
 		// "open this note", and you are in it.
 		const action = ensure(view, ACT, 'scan-eye', 'Assess', () =>
@@ -92,6 +89,13 @@ export function decorate(context: Context): void {
 			outstanding?.inNote ? outstanding.action : undefined,
 			outstanding?.icon,
 		);
+
+		// So this one lands to its left, matching the sidebar row: a paper you
+		// have come back to is more often finished than started again.
+		const done = ensure(view, DONE, 'check', 'Finished', () =>
+			withCurrent(context, view, finish),
+		);
+		show(done, outstanding?.done, outstanding?.doneIcon);
 	}
 }
 

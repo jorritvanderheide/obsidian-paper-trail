@@ -141,15 +141,6 @@ npm run lint
 `src/core/` is pure and holds every decision, with a test named after each file.
 `src/commands/` and `src/ui/` wire that to Obsidian.
 
-## Credits
-
-The text cleaner began in a vendored copy of
-[Speed Reader](https://github.com/madhusudan-kulkarni/obsidian-speed-reader) by
-Madhusudan Kulkarni, under its 0BSD licence. Nothing of the reader itself
-remains: Rayner et al. (*Psychological Science in the Public Interest*, 2016)
-find reading speed is bounded by comprehension rather than eye movement, so
-Paper Trail helps you read less instead of faster.
-
 ## License
 
 [EUPL-1.2](LICENSE)
