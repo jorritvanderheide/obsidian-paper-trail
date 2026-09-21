@@ -103,7 +103,7 @@ export const STAGES: StageAction[] = [
 	{
 		stage: 'read',
 		stageIcon: 'book-open',
-		label: 'To read',
+		label: 'Reading',
 		action: 'Open in Zotero',
 		icon: 'external-link',
 		done: 'Finished',
@@ -111,11 +111,11 @@ export const STAGES: StageAction[] = [
 		hint: 'Triage said these are worth an hour.',
 		inNote: true,
 	},
-	{ stage: 'write-up', label: 'Write up', stageIcon: 'square-pen', action: 'Open note', hint: 'Read, but the claim is still empty.', inNote: false },
+	{ stage: 'write-up', label: 'Claim', stageIcon: 'square-pen', action: 'Open note', hint: 'Read, but the claim is still empty.', inNote: false },
 	{
 		stage: 'assess',
 		stageIcon: 'book-open-check',
-		label: 'Assess',
+		label: 'Assessment',
 		action: 'Open note',
 		hint: 'You said this one earns four hours. The assessment is still empty.',
 		inNote: false,

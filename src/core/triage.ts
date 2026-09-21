@@ -84,9 +84,9 @@ export function landing(reading: Reading): string {
 		case 'deferred':
 			return 'Parked, with the condition on the note.';
 		case 'finished':
-			return 'Finished. It moves to Write up, for the claim.';
+			return 'Finished. It owes a claim.';
 		case 'pass-three':
-			return 'Worth assessing. Write the claim first.';
+			return 'Worth an assessment. The claim comes first.';
 	}
 }
 

@@ -122,12 +122,12 @@ export class SettingsTab extends PluginSettingTab {
 					},
 					{
 						name: 'Claim heading',
-						desc: `The second pass ends here. A paper leaves Write up once this heading has something under it, so it must match your literature template.${this.headingStatus(this.plugin.settings.claimHeading, 'Write up')}`,
+						desc: `The second pass ends here. A paper leaves Write up once this heading has something under it, so it must match your literature template.${this.headingStatus(this.plugin.settings.claimHeading, 'Claim')}`,
 						control: { type: 'text', key: 'claimHeading' },
 					},
 					{
 						name: 'Assessment heading',
-						desc: `Assess ends here, and only papers you promote to it are asked for one.${this.headingStatus(this.plugin.settings.assessmentHeading, 'Assess')}`,
+						desc: `Assess ends here, and only papers you promote to it are asked for one.${this.headingStatus(this.plugin.settings.assessmentHeading, 'Assessment')}`,
 						control: { type: 'text', key: 'assessmentHeading' },
 					},
 				],

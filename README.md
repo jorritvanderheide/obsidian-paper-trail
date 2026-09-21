@@ -24,10 +24,10 @@ creates the literature note itself, and keeps one list of what is outstanding.
     Reframing heat pump transitions
     Strategic Reading and Ontologies
     How to Read a Paper
-▾ To read                                1
+▾ Reading                                1
     Scholars Before Researchers
-▾ Write up                               2
-▾ Assess                                 1
+▾ Claim                                  2
+▾ Assessment                             1
 ```
 
 A row opens the paper; what else that stage offers appears as icons when you
@@ -56,15 +56,15 @@ extracted. It also reads the bibliography and tells you how many of those papers
 you already have, with the ones you **dropped** listed first. Then: drop it and
 say why, queue it, or mark it already read.
 
-**To read** holds what triage kept. Opening a row opens the paper in Zotero,
+**Reading** holds what triage kept. Opening a row opens the paper in Zotero,
 where your highlights belong. When you are done, **Finished** asks what came of
 it: enough, worth assessing closely, come back later, or not worth finishing.
-The first two move it to **Write up** for the claim, in your own words. Your
+The first two move it to **Claim**, where you write what the paper argues in
+your own words. Your
 highlights are already in the note by then.
 
-**Assess** is for the few papers you promote, and ends when the assessment is
-written. It is Keshav's third pass: arguing with a paper you can already
-summarise.
+**Assessment** is for the few papers you promote, and ends when it is written.
+It is Keshav's third pass: arguing with a paper you can already summarise.
 
 ## The record
 
@@ -130,8 +130,8 @@ literature note itself.
 ## Settings
 
 Addresses, not opinions: which folders hold your notes, papers and templates,
-which frontmatter property names the Zotero item, and which headings Write up
-and Assess end under. Point the item key property at whatever your
+which frontmatter property names the Zotero item, and which headings Claim and
+Assessment end under. Point the item key property at whatever your
 existing literature notes use and they are recognised without being rewritten.
 
 The stages and the `reading` vocabulary are not configurable. They are the
