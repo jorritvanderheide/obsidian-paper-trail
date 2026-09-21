@@ -98,7 +98,7 @@ function offline(root: HTMLElement, context: Context): void {
 	// is the same gesture: go and ask Zotero again. The reason beside it is
 	// already carrying the words, so the button does not need to repeat them.
 	iconButton(box, 'refresh-cw', 'Try again', () => {
-		void refreshLibrary(context.settings.apiPort).then(() => renderQueue(root, context));
+		void refreshLibrary().then(() => renderQueue(root, context));
 	});
 }
 
@@ -328,7 +328,7 @@ export class QueueView extends ItemView {
 	private readonly catchUp = debounce(
 		() => {
 			const before = lastContact()?.reachable;
-			void refreshLibrary(this.context.settings.apiPort).then((moved) => {
+			void refreshLibrary().then((moved) => {
 				// Redrawn when the library moved, and also when Zotero itself came or
 				// went. Skipping on "nothing moved" alone meant quitting Zotero with
 				// this pane open changed nothing on screen: the failure was recorded
@@ -348,7 +348,7 @@ export class QueueView extends ItemView {
 		// Draw first from what is already known, then ask Zotero and draw again.
 		// Triage comes entirely from Zotero, so waiting for the request before
 		// showing anything would mean an empty pane every time this opens.
-		void refreshLibrary(this.context.settings.apiPort).then(() => this.redraw());
+		void refreshLibrary().then(() => this.redraw());
 
 		this.registerEvent(this.app.metadataCache.on('changed', this.redraw));
 		this.registerEvent(this.app.vault.on('delete', this.redraw));

@@ -50,9 +50,9 @@ export function forgetLibrary(): void {
  * that collapsed to nothing every time you quit Zotero would be worse than one
  * that is briefly out of date.
  */
-export async function refreshLibrary(port: number): Promise<boolean> {
+export async function refreshLibrary(): Promise<boolean> {
 	try {
-		const changes = await changedSince(port, read ? version : 0);
+		const changes = await changedSince(read ? version : 0);
 		const before = items.length;
 
 		merge(changes.items);
@@ -64,7 +64,7 @@ export async function refreshLibrary(port: number): Promise<boolean> {
 		// how many it has, so a count that disagrees with ours means something
 		// went, and reading again is the only way to find out which.
 		if (changes.total !== items.length) {
-			items = (await changedSince(port, 0)).items;
+			items = (await changedSince(0)).items;
 		}
 
 		return changes.items.length > 0 || items.length !== before;

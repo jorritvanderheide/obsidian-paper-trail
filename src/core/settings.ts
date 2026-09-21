@@ -35,8 +35,6 @@ export interface Settings {
 	keyField: string;
 	/** Zotero data directory. Empty means: ask Zotero's prefs.js, then ~/Zotero. */
 	dataDir: string;
-	/** Port of Zotero's local API. */
-	apiPort: number;
 
 	/** Flat folder holding your own notes. */
 	notesFolder: string;
@@ -83,7 +81,6 @@ export const DEFAULT_SETTINGS: Settings = {
 	version: SETTINGS_VERSION,
 	keyField: 'zotero-key',
 	dataDir: '',
-	apiPort: 23119,
 	notesFolder: 'Notes',
 	papersFolder: 'Literature',
 	statusTag: '',
@@ -110,13 +107,11 @@ export function loadSettings(raw: unknown): Settings {
 	const data = migrate((typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>) as Partial<
 		Record<keyof Settings, unknown>
 	>;
-	const port = Number(data.apiPort);
 	return {
 		version: SETTINGS_VERSION,
 		keyField: text(data.keyField, DEFAULT_SETTINGS.keyField),
 		// The one field where empty is meaningful: it means "ask Zotero".
 		dataDir: typeof data.dataDir === 'string' ? data.dataDir.trim() : DEFAULT_SETTINGS.dataDir,
-		apiPort: Number.isInteger(port) && port > 0 && port < 65536 ? port : DEFAULT_SETTINGS.apiPort,
 		notesFolder: text(data.notesFolder, DEFAULT_SETTINGS.notesFolder),
 		papersFolder: text(data.papersFolder, DEFAULT_SETTINGS.papersFolder),
 		// The one other field where empty is meaningful: it means "write no tags".

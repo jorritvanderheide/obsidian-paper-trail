@@ -36,7 +36,6 @@ class ItemPicker extends SuggestModal<ApiItem> {
 
 	constructor(
 		app: App,
-		private readonly port: number,
 		private readonly done: (item: ApiItem | null) => void,
 		escape?: Escape,
 	) {
@@ -64,7 +63,7 @@ class ItemPicker extends SuggestModal<ApiItem> {
 		const searching = text.length >= MIN_QUERY;
 
 		try {
-			const items = searching ? await searchItems(this.port, text) : await this.recentlyAdded();
+			const items = searching ? await searchItems(text) : await this.recentlyAdded();
 			this.emptyStateText = searching ? 'No matching items.' : 'Nothing in your Zotero library yet.';
 			return items.filter((item) => !NOT_A_PAPER.has(item.data.itemType ?? ''));
 		} catch (error) {
@@ -81,7 +80,7 @@ class ItemPicker extends SuggestModal<ApiItem> {
 	 * unset, which means the next keystroke tries again.
 	 */
 	private async recentlyAdded(): Promise<ApiItem[]> {
-		this.recent ??= await recentItems(this.port, RECENT);
+		this.recent ??= await recentItems(RECENT);
 		return this.recent;
 	}
 
@@ -113,6 +112,6 @@ class ItemPicker extends SuggestModal<ApiItem> {
  * simply to stop. Making this a three-way answer would put a union type through
  * every call site to describe a branch only one of them has.
  */
-export function pickItem(app: App, port: number, escape?: Escape): Promise<ApiItem | null> {
-	return new Promise((resolve) => new ItemPicker(app, port, resolve, escape).open());
+export function pickItem(app: App, escape?: Escape): Promise<ApiItem | null> {
+	return new Promise((resolve) => new ItemPicker(app, resolve, escape).open());
 }

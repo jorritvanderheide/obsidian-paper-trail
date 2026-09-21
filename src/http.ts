@@ -5,6 +5,13 @@
 import { get } from 'http';
 
 /**
+ * Zotero's local server, which is always here. The port is fixed in Zotero and
+ * has no setting in its interface, so asking for it was a text box nobody
+ * would ever have a reason to touch.
+ */
+const PORT = 23119;
+
+/**
  * Only the headers anything here reads. Zotero puts the library's version and
  * the size of the result set on every response, and both answer questions that
  * would otherwise cost their own request.
@@ -31,10 +38,10 @@ export interface JsonResponse {
 /** Five seconds is plenty for a database read on localhost. */
 const TIMEOUT = 5000;
 
-export function getText(port: number, path: string, timeout = TIMEOUT): Promise<Response> {
+export function getText(path: string, timeout = TIMEOUT): Promise<Response> {
 	return new Promise((resolve, reject) => {
 		// Zotero listens on IPv4 only, and localhost may resolve to ::1 first.
-		const request = get({ host: '127.0.0.1', port, path, headers: { Accept: 'application/json' } }, (response) => {
+		const request = get({ host: '127.0.0.1', port: PORT, path, headers: { Accept: 'application/json' } }, (response) => {
 			let body = '';
 			response.setEncoding('utf8');
 			response.on('data', (chunk: string) => (body += chunk));
@@ -54,8 +61,8 @@ export function getText(port: number, path: string, timeout = TIMEOUT): Promise<
 	});
 }
 
-export async function getJson(port: number, path: string): Promise<JsonResponse> {
-	const { status, body, headers } = await getText(port, path);
+export async function getJson(path: string): Promise<JsonResponse> {
+	const { status, body, headers } = await getText(path);
 	let json: unknown = null;
 	try {
 		json = JSON.parse(body);

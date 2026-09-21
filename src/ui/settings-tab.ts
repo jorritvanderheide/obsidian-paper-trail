@@ -37,7 +37,7 @@ export class SettingsTab extends PluginSettingTab {
 		this.plugin.settings = loadSettings(this.plugin.settings);
 
 		// The library was read from whatever Zotero was at the old address.
-		if (key === 'apiPort' || key === 'dataDir') forgetLibrary();
+		if (key === 'dataDir') forgetLibrary();
 
 		await this.plugin.saveSettings();
 	}
@@ -82,11 +82,6 @@ export class SettingsTab extends PluginSettingTab {
 						name: 'Data directory',
 						desc: 'Where Zotero keeps its storage folder. Empty means the directory Zotero itself is set to.',
 						control: { type: 'text', key: 'dataDir' },
-					},
-					{
-						name: 'Local API port',
-						desc: '23119 unless you changed it in Zotero. The API needs "Allow other applications on this computer to communicate with Zotero" in Settings > Advanced.',
-						control: { type: 'text', key: 'apiPort' },
 					},
 				],
 			},

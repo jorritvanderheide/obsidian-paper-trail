@@ -28,7 +28,7 @@ import type { Context } from '../context';
 async function advanced(context: Context): Promise<void> {
 	const app = context.app;
 	try {
-		const citation = await pickCitation(context.settings.apiPort);
+		const citation = await pickCitation();
 		if (!citation) return;
 
 		// Fetched after the dialog closes, for the same reason as below: it was
@@ -53,7 +53,7 @@ export async function insertCitation(context: Context): Promise<void> {
 	}
 
 	try {
-		const chosen = await pickItem(app, context.settings.apiPort, {
+		const chosen = await pickItem(app, {
 			purpose: 'locators, prefixes, several at once',
 			run: () => void advanced(context),
 		});

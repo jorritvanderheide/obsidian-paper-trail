@@ -95,15 +95,15 @@ export function lastContact(): Contact {
 	return contact;
 }
 
-async function api<T>(port: number, path: string): Promise<T> {
-	return (await answered<T>(port, path)).body;
+async function api<T>(path: string): Promise<T> {
+	return (await answered<T>(path)).body;
 }
 
 /** The same request, when the caller needs what Zotero said in its headers too. */
-async function answered<T>(port: number, path: string): Promise<{ body: T; headers: Headers }> {
+async function answered<T>(path: string): Promise<{ body: T; headers: Headers }> {
 	let response;
 	try {
-		response = await getJson(port, `/api/${path}`);
+		response = await getJson(`/api/${path}`);
 	} catch (error) {
 		console.error('paper-trail: local API request failed', error);
 		const reason = `Could not reach Zotero. Is it running, with ${API_SETTING} on?`;
@@ -126,8 +126,8 @@ async function answered<T>(port: number, path: string): Promise<{ body: T; heade
 	return { body: response.json as T, headers: response.headers };
 }
 
-export function searchItems(port: number, query: string): Promise<ApiItem[]> {
-	return api<ApiItem[]>(port, `users/0/items/top?q=${encodeURIComponent(query)}&limit=25`);
+export function searchItems(query: string): Promise<ApiItem[]> {
+	return api<ApiItem[]>(`users/0/items/top?q=${encodeURIComponent(query)}&limit=25`);
 }
 
 /**
@@ -138,8 +138,8 @@ export function searchItems(port: number, query: string): Promise<ApiItem[]> {
  * more as a list of those than as an instruction to start typing the title of
  * something you are already looking at.
  */
-export function recentItems(port: number, limit: number): Promise<ApiItem[]> {
-	return api<ApiItem[]>(port, `users/0/items/top?sort=dateAdded&direction=desc&limit=${limit}`);
+export function recentItems(limit: number): Promise<ApiItem[]> {
+	return api<ApiItem[]>(`users/0/items/top?sort=dateAdded&direction=desc&limit=${limit}`);
 }
 
 /** Zotero's maximum, and the fewest requests a library can be read in. */
@@ -169,7 +169,7 @@ export async function loadFulltext(settings: Settings, ref: ItemRef, body = ''):
 	const local = tryKeys([settings.attachments[id], ...linkedKeys(body, ref.key), ref.key]);
 	if (local) return local;
 
-	const keys = attachmentKeys(await api<ApiItem[]>(settings.apiPort, `${libraryPath(ref)}/items/${ref.key}/children`));
+	const keys = attachmentKeys(await api<ApiItem[]>(`${libraryPath(ref)}/items/${ref.key}/children`));
 	if (keys.length === 0) throw new SourceError('This item has no file attachment in Zotero.');
 
 	const found = tryKeys(keys);
@@ -181,8 +181,8 @@ export async function loadFulltext(settings: Settings, ref: ItemRef, body = ''):
 }
 
 /** A paper's metadata, for building or refreshing its note. */
-export function itemMetadata(port: number, ref: ItemRef): Promise<ApiItem> {
-	return api<ApiItem>(port, `${libraryPath(ref)}/items/${ref.key}`);
+export function itemMetadata(ref: ItemRef): Promise<ApiItem> {
+	return api<ApiItem>(`${libraryPath(ref)}/items/${ref.key}`);
 }
 
 /**
@@ -192,14 +192,14 @@ export function itemMetadata(port: number, ref: ItemRef): Promise<ApiItem> {
  * returns an empty list for an attachment that has highlights, which the web
  * API does not do, so code written from its documentation fails silently.
  */
-export async function attachmentAnnotations(port: number, ref: ItemRef, attachmentKey: string): Promise<Highlight[]> {
-	const children = await api<ApiItem[]>(port, `${libraryPath(ref)}/items/${attachmentKey}/children?itemType=annotation`);
+export async function attachmentAnnotations(ref: ItemRef, attachmentKey: string): Promise<Highlight[]> {
+	const children = await api<ApiItem[]>(`${libraryPath(ref)}/items/${attachmentKey}/children?itemType=annotation`);
 	return highlights(children);
 }
 
 /** An item's children: its attachments, and its notes. */
-export function itemChildren(port: number, ref: ItemRef): Promise<ApiItem[]> {
-	return api<ApiItem[]>(port, `${libraryPath(ref)}/items/${ref.key}/children`);
+export function itemChildren(ref: ItemRef): Promise<ApiItem[]> {
+	return api<ApiItem[]>(`${libraryPath(ref)}/items/${ref.key}/children`);
 }
 
 const BBT_MISSING = 'Could not reach Better BibTeX. Is it installed in Zotero?';
@@ -217,10 +217,10 @@ const BBT_MISSING = 'Could not reach Better BibTeX. Is it installed in Zotero?';
  * someone searching their library, so it runs without a timeout. The five
  * seconds that suit a database read would cancel the dialog under them.
  */
-export async function pickCitation(port: number): Promise<string | null> {
+export async function pickCitation(): Promise<string | null> {
 	let response;
 	try {
-		response = await getText(port, '/better-bibtex/cayw?format=pandoc&brackets=true', 0);
+		response = await getText('/better-bibtex/cayw?format=pandoc&brackets=true', 0);
 	} catch (error) {
 		console.error('paper-trail: cite-as-you-write request failed', error);
 		throw new SourceError(BBT_MISSING);
@@ -257,14 +257,14 @@ export interface Changes {
  * that, because a count that disagrees with what the caller is holding means
  * something went, even though it does not say what.
  */
-export async function changedSince(port: number, since: number): Promise<Changes> {
-	const { body, headers } = await answered<ApiItem[]>(port, `users/0/items/top?since=${since}&limit=${PAGE}`);
+export async function changedSince(since: number): Promise<Changes> {
+	const { body, headers } = await answered<ApiItem[]>(`users/0/items/top?since=${since}&limit=${PAGE}`);
 
 	// A full read can exceed one page. An update almost never will, but a week
 	// away from a busy library is exactly when it would.
 	const items = [...body];
 	for (let start = PAGE; items.length >= start; start += PAGE) {
-		const page = await api<ApiItem[]>(port, `users/0/items/top?since=${since}&limit=${PAGE}&start=${start}`);
+		const page = await api<ApiItem[]>(`users/0/items/top?since=${since}&limit=${PAGE}&start=${start}`);
 		items.push(...page);
 		if (page.length < PAGE) break;
 	}

@@ -57,14 +57,13 @@ export async function writePaperFrontmatter(
  */
 export async function createPaperNote(context: Context, item: ApiItem, ref: ItemRef): Promise<TFile> {
 	const app = context.app;
-	const port = context.settings.apiPort;
 
-	const attachment = attachmentKeys(await itemChildren(port, ref))[0] ?? null;
+	const attachment = attachmentKeys(await itemChildren(ref))[0] ?? null;
 
 	// A brand new paper usually has no annotations, but one imported with a
 	// PDF you had already marked up has all of them, and a note that opens
 	// with an empty Highlights section under an annotated paper looks broken.
-	const highlights = attachment ? await attachmentAnnotations(port, ref, attachment) : [];
+	const highlights = attachment ? await attachmentAnnotations(ref, attachment) : [];
 
 	await ensureFolder(app, context.settings.papersFolder);
 
@@ -114,16 +113,15 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 	const ref = parseItemRef(frontmatter?.[context.settings.keyField]);
 	if (!ref) return;
 
-	const port = context.settings.apiPort;
-	const item = await itemMetadata(port, ref);
+	const item = await itemMetadata(ref);
 
 	// Whichever attachment Zotero offers now, asked every time rather than
 	// remembered. Recording one and preferring it would save a request on
 	// localhost and cost the case that matters: replace a PDF and the note goes
 	// on reading annotations off an attachment that has gone.
-	const attachment = attachmentKeys(await itemChildren(port, ref))[0] ?? null;
+	const attachment = attachmentKeys(await itemChildren(ref))[0] ?? null;
 
-	const highlights = attachment ? await attachmentAnnotations(port, ref, attachment) : [];
+	const highlights = attachment ? await attachmentAnnotations(ref, attachment) : [];
 
 	const managed = paperFrontmatter(item, ref);
 	if (managedDiffers(frontmatter, managed, context.settings.keyField)) {

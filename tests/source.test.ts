@@ -4,11 +4,11 @@ import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadSettings } from '../src/core/settings';
 
-const getJson = vi.fn<(port: number, path: string) => Promise<unknown>>();
-const getText = vi.fn<(port: number, path: string, timeout?: number) => Promise<unknown>>();
+const getJson = vi.fn<(path: string) => Promise<unknown>>();
+const getText = vi.fn<(path: string, timeout?: number) => Promise<unknown>>();
 vi.mock('../src/http', () => ({
-	getJson: (port: number, path: string) => getJson(port, path),
-	getText: (port: number, path: string, timeout?: number) => getText(port, path, timeout),
+	getJson: (path: string) => getJson(path),
+	getText: (path: string, timeout?: number) => getText(path, timeout),
 }));
 
 const {
@@ -71,10 +71,7 @@ describe('loadFulltext', () => {
 		});
 		const s = settings();
 		expect(await loadFulltext(s, parent)).toEqual({ attachmentKey: 'PDF23456', text: 'api text' });
-		expect(getJson).toHaveBeenCalledWith(
-			23119,
-			'/api/users/0/items/PARENT23/children',
-		);
+		expect(getJson).toHaveBeenCalledWith('/api/users/0/items/PARENT23/children');
 
 		getJson.mockClear();
 		await loadFulltext(s, parent);
@@ -84,10 +81,7 @@ describe('loadFulltext', () => {
 	it('uses the group library path for group items', async () => {
 		getJson.mockResolvedValue(answer([]));
 		await expect(loadFulltext(settings(), { key: 'PARENT23', groupID: 9 })).rejects.toThrow('no file attachment');
-		expect(getJson).toHaveBeenCalledWith(
-			23119,
-			'/api/groups/9/items/PARENT23/children',
-		);
+		expect(getJson).toHaveBeenCalledWith('/api/groups/9/items/PARENT23/children');
 	});
 
 	it('reads a standalone attachment as its own item', async () => {
@@ -117,25 +111,25 @@ describe('loadFulltext', () => {
 describe('attachmentAnnotations', () => {
 	it('asks for annotations explicitly, because a bare /children omits them', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await attachmentAnnotations(23119, parent, 'ATTACH23');
+		await attachmentAnnotations(parent, 'ATTACH23');
 
 		// Verified against a real highlight: /children returned 0 and this
 		// returned 1. Dropping the query drops every annotation, silently.
-		expect(getJson).toHaveBeenCalledWith(23119, '/api/users/0/items/ATTACH23/children?itemType=annotation');
+		expect(getJson).toHaveBeenCalledWith('/api/users/0/items/ATTACH23/children?itemType=annotation');
 	});
 
 	it('uses the group library path for a group item', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await attachmentAnnotations(23119, { key: 'PARENT23', groupID: 9 }, 'ATTACH23');
-		expect(getJson).toHaveBeenCalledWith(23119, '/api/groups/9/items/ATTACH23/children?itemType=annotation');
+		await attachmentAnnotations({ key: 'PARENT23', groupID: 9 }, 'ATTACH23');
+		expect(getJson).toHaveBeenCalledWith('/api/groups/9/items/ATTACH23/children?itemType=annotation');
 	});
 });
 
 describe('itemMetadata', () => {
 	it('fetches the item itself, where the citation key lives', async () => {
 		getJson.mockResolvedValue({ status: 200, json: { key: 'PARENT23', data: {} } });
-		await itemMetadata(23119, parent);
-		expect(getJson).toHaveBeenCalledWith(23119, '/api/users/0/items/PARENT23');
+		await itemMetadata(parent);
+		expect(getJson).toHaveBeenCalledWith('/api/users/0/items/PARENT23');
 	});
 });
 
@@ -143,8 +137,8 @@ describe('itemMetadata', () => {
 describe('browsing the library', () => {
 	it('asks for the newest items first, which is what an empty picker shows', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await recentItems(23119, 15);
-		const path = getJson.mock.calls[0]?.[1] ?? '';
+		await recentItems(15);
+		const path = getJson.mock.calls[0]?.[0] ?? '';
 		expect(path).toContain('sort=dateAdded');
 		expect(path).toContain('direction=desc');
 		expect(path).toContain('limit=15');
@@ -152,20 +146,20 @@ describe('browsing the library', () => {
 
 	it('asks only for top-level items, so attachments and annotations never appear', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await recentItems(23119, 15);
-		await searchItems(23119, 'heat pump');
-		for (const call of getJson.mock.calls) expect(call[1]).toContain('/items/top');
+		await recentItems(15);
+		await searchItems('heat pump');
+		for (const call of getJson.mock.calls) expect(call[0]).toContain('/items/top');
 	});
 
 	it('escapes what was typed, so a query with an ampersand still searches', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await searchItems(23119, 'comfort & convenience');
-		expect(getJson.mock.calls[0]?.[1]).toContain('q=comfort%20%26%20convenience');
+		await searchItems('comfort & convenience');
+		expect(getJson.mock.calls[0]?.[0]).toContain('q=comfort%20%26%20convenience');
 	});
 
 	it('explains an unreachable Zotero rather than throwing a socket error', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(recentItems(23119, 15)).rejects.toBeInstanceOf(SourceError);
+		await expect(recentItems(15)).rejects.toBeInstanceOf(SourceError);
 	});
 });
 
@@ -176,29 +170,29 @@ describe('browsing the library', () => {
 describe('pickCitation', () => {
 	it('returns what the dialog gave back', async () => {
 		getText.mockResolvedValue({ status: 200, body: '[@vanderhaerReframingHeatPump2026, p. 45]\n' });
-		expect(await pickCitation(23119)).toBe('[@vanderhaerReframingHeatPump2026, p. 45]');
+		expect(await pickCitation()).toBe('[@vanderhaerReframingHeatPump2026, p. 45]');
 	});
 
 	it('runs without a timeout, because the dialog waits on a person', async () => {
 		getText.mockResolvedValue({ status: 200, body: '[@x]' });
-		await pickCitation(23119);
+		await pickCitation();
 		// The five seconds that suit a database read would cancel it under them.
-		expect(getText).toHaveBeenCalledWith(23119, '/better-bibtex/cayw?format=pandoc&brackets=true', 0);
+		expect(getText).toHaveBeenCalledWith('/better-bibtex/cayw?format=pandoc&brackets=true', 0);
 	});
 
 	it('reads an empty answer as a cancelled dialog, not a failure', async () => {
 		getText.mockResolvedValue({ status: 200, body: '  \n' });
-		expect(await pickCitation(23119)).toBeNull();
+		expect(await pickCitation()).toBeNull();
 	});
 
 	it('says what is missing when Better BibTeX is not there', async () => {
 		getText.mockResolvedValue({ status: 404, body: 'No endpoint found' });
-		await expect(pickCitation(23119)).rejects.toThrow(/Better BibTeX/);
+		await expect(pickCitation()).rejects.toThrow(/Better BibTeX/);
 	});
 
 	it('explains an unreachable Zotero rather than throwing a socket error', async () => {
 		getText.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(pickCitation(23119)).rejects.toBeInstanceOf(SourceError);
+		await expect(pickCitation()).rejects.toBeInstanceOf(SourceError);
 	});
 });
 
@@ -210,36 +204,36 @@ describe('pickCitation', () => {
 describe('lastContact', () => {
 	it('records that Zotero is there when it answers', async () => {
 		getJson.mockResolvedValue(answer({}));
-		await itemMetadata(23119, { key: 'ABCD2345', groupID: null });
+		await itemMetadata({ key: 'ABCD2345', groupID: null });
 		expect(lastContact()).toEqual({ reachable: true });
 	});
 
 	it('records that it is not when the socket refuses', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(itemMetadata(23119, { key: 'ABCD2345', groupID: null })).rejects.toBeInstanceOf(SourceError);
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toBeInstanceOf(SourceError);
 		expect(lastContact()).toMatchObject({ reachable: false });
 	});
 
 	it('says which setting to turn on when Zotero refuses the request', async () => {
 		getJson.mockResolvedValue({ status: 403, json: null, headers: { version: 0, total: 0 } });
-		await expect(itemMetadata(23119, { key: 'ABCD2345', groupID: null })).rejects.toThrow(/Allow other applications/);
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow(/Allow other applications/);
 		const contact = lastContact();
 		expect(contact).toMatchObject({ reachable: false });
 	});
 
 	it('counts a 404 as reachable, because only the item is unknown', async () => {
 		getJson.mockResolvedValue({ status: 404, json: null });
-		await expect(itemMetadata(23119, { key: 'ABCD2345', groupID: null })).rejects.toThrow(/does not know/);
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow(/does not know/);
 		expect(lastContact()).toEqual({ reachable: true });
 	});
 
 	it('is updated by ordinary work, not only by asking on purpose', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(itemMetadata(23119, { key: 'ABCD2345', groupID: null })).rejects.toBeInstanceOf(SourceError);
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toBeInstanceOf(SourceError);
 		expect(lastContact()).toMatchObject({ reachable: false });
 
 		getJson.mockResolvedValue(answer({}));
-		await itemMetadata(23119, { key: 'ABCD2345', groupID: null });
+		await itemMetadata({ key: 'ABCD2345', groupID: null });
 		expect(lastContact()).toEqual({ reachable: true });
 	});
 });
@@ -253,49 +247,49 @@ describe('changedSince', () => {
 
 	it('asks from the version it was given', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await changedSince(23119, 79);
-		expect(getJson.mock.calls[0]?.[1]).toContain('since=79');
+		await changedSince(79);
+		expect(getJson.mock.calls[0]?.[0]).toContain('since=79');
 	});
 
 	it('hands back the version to ask with next time', async () => {
 		getJson.mockResolvedValue(answer([], { version: 80 }));
-		expect((await changedSince(23119, 79)).version).toBe(80);
+		expect((await changedSince(79)).version).toBe(80);
 	});
 
 	it('answers with nothing when nothing has changed, which is the usual case', async () => {
 		getJson.mockResolvedValue(answer([], { version: 79, total: 6 }));
-		const changes = await changedSince(23119, 79);
+		const changes = await changedSince(79);
 		expect(changes.items).toEqual([]);
 		expect(changes.total).toBe(6);
 	});
 
 	it('reads the whole library when asked from nothing', async () => {
 		getJson.mockResolvedValue(answer([item('AAAA1111'), item('BBBB2222')]));
-		expect((await changedSince(23119, 0)).items).toHaveLength(2);
-		expect(getJson.mock.calls[0]?.[1]).toContain('since=0');
+		expect((await changedSince(0)).items).toHaveLength(2);
+		expect(getJson.mock.calls[0]?.[0]).toContain('since=0');
 	});
 
 	it('asks only top-level items, so attachments never reach the queue', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await changedSince(23119, 0);
-		expect(getJson.mock.calls[0]?.[1]).toContain('/items/top');
+		await changedSince(0);
+		expect(getJson.mock.calls[0]?.[0]).toContain('/items/top');
 	});
 
 	it('pages when a full page comes back, because one is not always enough', async () => {
 		const full = Array.from({ length: 100 }, (_, n) => item(`K${n}`));
 		getJson.mockResolvedValueOnce(answer(full)).mockResolvedValueOnce(answer([item('LAST')]));
-		expect((await changedSince(23119, 0)).items).toHaveLength(101);
-		expect(getJson.mock.calls[1]?.[1]).toContain('start=100');
+		expect((await changedSince(0)).items).toHaveLength(101);
+		expect(getJson.mock.calls[1]?.[0]).toContain('start=100');
 	});
 
 	it('stops after one page when that page was short', async () => {
 		getJson.mockResolvedValue(answer([item('AAAA1111')]));
-		await changedSince(23119, 0);
+		await changedSince(0);
 		expect(getJson).toHaveBeenCalledTimes(1);
 	});
 
 	it('reports an unreachable Zotero rather than an empty library', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(changedSince(23119, 0)).rejects.toBeInstanceOf(SourceError);
+		await expect(changedSince(0)).rejects.toBeInstanceOf(SourceError);
 	});
 });

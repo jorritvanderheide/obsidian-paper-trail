@@ -197,7 +197,7 @@ async function noteFor(context: Context, item: Pending): Promise<TFile> {
 	const ref: ItemRef = { key: item.key, groupID: null };
 	// The queue's copy is a summary. The note wants the authors and the citation
 	// key, which only the item itself carries.
-	return createPaperNote(context, await itemMetadata(context.settings.apiPort, ref), ref);
+	return createPaperNote(context, await itemMetadata(ref), ref);
 }
 
 /**
@@ -323,7 +323,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 			problem = `${settings.keyField} is "${key}", which is not a Zotero item key. Fix it in the note, or decide from the title.`;
 		} else {
 			try {
-				const item = await itemMetadata(settings.apiPort, ref);
+				const item = await itemMetadata(ref);
 				brief = { abstract: abstractOf(item), venue: venueOf(item), year: itemYear(item) };
 			} catch (error) {
 				if (!(error instanceof SourceError)) console.error(error);
