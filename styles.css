@@ -1,0 +1,247 @@
+/* Prompt: the title field fills the modal rather than sitting at its default width. */
+.paper-trail-prompt-input {
+	width: 100%;
+}
+
+/* Pass one: a document to read, so it gets reading measure rather than pane width. */
+.paper-trail-pass-one {
+	padding: var(--size-4-4);
+	overflow-y: auto;
+	user-select: text;
+}
+
+.paper-trail-pass-one p {
+	max-width: 34em;
+}
+
+.paper-trail-pass-one-meta {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.paper-trail-pass-one-problem {
+	border-left: var(--size-2-1) solid var(--text-warning);
+	padding-left: var(--size-4-2);
+	color: var(--text-muted);
+}
+
+.paper-trail-pass-one-empty {
+	color: var(--text-faint);
+	font-style: italic;
+}
+
+.paper-trail-pass-one-outline {
+	list-style: none;
+	padding-left: 0;
+}
+
+.paper-trail-pass-one-seen {
+	padding-left: var(--size-4-4);
+}
+
+.paper-trail-pass-one-status {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	margin-left: var(--size-4-2);
+}
+
+.paper-trail-pass-one-outline li {
+	padding-left: calc((var(--level) - 1) * var(--size-4-4));
+	border-left: 2px solid var(--background-modifier-border);
+	margin-left: var(--size-2-2);
+}
+
+.paper-trail-pass-one-outline li[data-level='1'] {
+	--level: 1;
+	font-weight: var(--font-semibold);
+}
+
+.paper-trail-pass-one-outline li[data-level='2'] {
+	--level: 2;
+}
+
+.paper-trail-pass-one-outline li[data-level='3'] {
+	--level: 3;
+	color: var(--text-muted);
+}
+
+.paper-trail-pass-one-outline li[data-level='4'],
+.paper-trail-pass-one-outline li[data-level='5'],
+.paper-trail-pass-one-outline li[data-level='6'] {
+	--level: 4;
+	color: var(--text-muted);
+}
+
+/* The decision is the point of the pane, so it does not hide at the bottom. */
+.paper-trail-pass-one-decisions {
+	display: flex;
+	gap: var(--size-4-2);
+	position: sticky;
+	bottom: 0;
+	padding: var(--size-4-2) 0;
+	background: var(--background-primary);
+}
+
+.paper-trail-pass-one-decisions button {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+}
+
+.paper-trail-prompt-input:focus {
+	border-color: var(--interactive-accent);
+}
+
+.paper-trail-prompt-error {
+	color: var(--text-error);
+	font-size: var(--font-ui-smaller);
+	min-height: var(--font-ui-smaller);
+	margin-top: var(--size-2-2);
+}
+
+/* Workflow block: sections in workflow order, one action per row. */
+.paper-trail-workflow-section {
+	margin-bottom: var(--size-4-4);
+}
+
+.paper-trail-workflow-header {
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-2-2);
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: var(--size-2-1);
+	margin-bottom: var(--size-2-2);
+}
+
+.paper-trail-workflow-label {
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.paper-trail-workflow-count {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+.paper-trail-workflow-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+	padding: var(--size-2-1) 0;
+}
+
+.paper-trail-workflow-title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.paper-trail-workflow-actions {
+	display: flex;
+	flex-shrink: 0;
+	gap: var(--size-4-1);
+}
+
+.paper-trail-workflow-row button {
+	flex-shrink: 0;
+	font-size: var(--font-ui-smaller);
+}
+
+.paper-trail-workflow-more,
+.paper-trail-workflow-clear {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+.paper-trail-picker-byline {
+	display: block;
+	color: var(--text-muted);
+}
+
+.paper-trail-welcome-lead {
+	font-size: var(--font-ui-medium);
+	color: var(--text-normal);
+}
+
+.paper-trail-welcome-steps {
+	padding-left: var(--size-4-4);
+	color: var(--text-muted);
+}
+
+.paper-trail-welcome-steps li {
+	margin-bottom: var(--size-2-2);
+}
+
+.paper-trail-orphans {
+	padding-left: var(--size-4-4);
+	margin-top: 0;
+}
+
+/* Queue header: the count, and one button for the whole list. */
+.paper-trail-queue-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+	padding-bottom: var(--size-4-2);
+	border-bottom: 1px solid var(--background-modifier-border);
+	margin-bottom: var(--size-4-2);
+}
+
+/* Decision modal: every option visible, with what it does written under it. */
+.paper-trail-choices {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+.paper-trail-choice {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--size-2-1);
+	height: auto;
+	padding: var(--size-4-2) var(--size-4-3);
+	text-align: left;
+	white-space: normal;
+}
+
+.paper-trail-choice-label {
+	font-weight: var(--font-semibold);
+}
+
+.paper-trail-choice-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+/* Said only when Zotero is not answering. Silence means it is. */
+.paper-trail-offline {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+	padding: var(--size-4-2);
+	margin-bottom: var(--size-4-2);
+	border-left: var(--size-2-1) solid var(--text-warning);
+	background-color: var(--background-secondary);
+}
+
+.paper-trail-offline-reason {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.paper-trail-offline button {
+	flex-shrink: 0;
+}
+
+/* An empty queue offers the one thing there is to do. */
+.paper-trail-workflow-clear button {
+	margin-top: var(--size-4-2);
+}

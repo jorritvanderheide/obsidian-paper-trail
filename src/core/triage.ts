@@ -1,0 +1,106 @@
+// What a triage decision leaves on the literature note. Pure, so the exact
+// frontmatter a decision produces is testable without an Obsidian running.
+import { sortKeys } from './frontmatter';
+
+/**
+ * How far a paper is going, in Keshav's terms. `untriaged` is the state a new
+ * note is stamped with, never chosen.
+ *
+ * Two of these are intents rather than reports: `queued` says the paper earned
+ * a second pass, `pass-three` says it earned a third. What has actually been written
+ * is read off the note's headings, so the stage a paper waits at is the pair of
+ * the two and neither has to be kept in step with the other.
+ */
+export type Reading = 'untriaged' | 'dropped' | 'queued' | 'deferred' | 'finished' | 'pass-three';
+
+export interface Triage {
+	reading: Reading;
+	reason: string | null;
+}
+
+/**
+ * The question a decision has to answer before it can be written, and the word
+ * on the button that writes it.
+ *
+ * Here rather than at each of the three call sites, because a drop asked for a
+ * reason in the triage pane and in the status command and would have grown a
+ * third wording the moment the second pass learned to drop too.
+ *
+ * Only the two that take a paper off the list ask. A deferral is the one worth
+ * insisting on: unlike a drop it is a promise to come back, and a promise with
+ * no condition attached is how the queue quietly becomes a graveyard.
+ */
+export function asks(reading: Reading): { question: string; cta: string } | null {
+	if (reading === 'dropped') return { question: 'Why is this not worth reading?', cta: 'Drop' };
+	if (reading === 'deferred') return { question: 'What has to happen before this is worth another hour?', cta: 'Defer' };
+	return null;
+}
+
+/**
+ * Where a decision leaves the paper, in terms of the homepage.
+ *
+ * Named for the stage it lands in rather than the decision just taken: whoever
+ * pressed the button already knows what they chose, and what they cannot know
+ * is what the block will say about it a second later.
+ */
+export function landing(reading: Reading): string {
+	switch (reading) {
+		case 'untriaged':
+			return 'Back to Triage, to be assessed again.';
+		case 'dropped':
+			return 'Dropped, and off the list.';
+		case 'queued':
+			return 'Queued. It moves to Read.';
+		case 'deferred':
+			return 'Parked, with the condition on the note.';
+		case 'finished':
+			return 'Finished. It moves to Write up, for the claim.';
+		case 'pass-three':
+			return 'Worth a third pass. Write the claim first.';
+	}
+}
+
+/**
+ * What can be decided at the end of the second pass.
+ *
+ * Keshav's three, in his order: it was enough, come back to it after reading
+ * something else, or persevere to the third pass. The fourth is not his and is
+ * not optional: an hour in, you sometimes know the paper is not worth
+ * finishing, and the honest thing is to record that rather than leave it queued
+ * forever or mark it read when it was not.
+ */
+export const PASS_TWO: { reading: Reading; label: string }[] = [
+	{ reading: 'finished', label: 'Enough: I have what I need' },
+	{ reading: 'pass-three', label: 'Worth a third pass' },
+	{ reading: 'deferred', label: 'Come back to it later' },
+	{ reading: 'dropped', label: 'Not worth finishing' },
+];
+
+/**
+ * Mutates in place, which is the shape `processFrontMatter` wants.
+ *
+ * Every field a decision owns is written on every decision, so re-triaging a
+ * paper cannot leave part of the previous answer behind.
+ *
+ * It writes no tags. Nothing reads a domain or a type on a paper, and stamping
+ * either on every decision would overwrite whatever you had set by hand: a
+ * write that buys nothing and costs an edit.
+ */
+export function applyTriage(frontmatter: Record<string, unknown>, triage: Triage, date: string): void {
+	frontmatter.reading = triage.reading;
+	frontmatter['reading-date'] = date;
+
+	// When the first opinion was formed, written once and never again.
+	// `reading-date` moves with the status, so on its own it cannot answer "when
+	// did I first assess this", which is the question year four asks of a paper
+	// whose status has since changed.
+	if (typeof frontmatter['triaged-date'] !== 'string') frontmatter['triaged-date'] = date;
+
+	// The reason belongs to the drop. Without the delete, a paper dropped and
+	// later queued keeps carrying the sentence saying why it was not worth
+	// reading, which is then wrong in the one place it will be trusted.
+	if (triage.reason) frontmatter['reading-reason'] = triage.reason;
+	else delete frontmatter['reading-reason'];
+
+	sortKeys(frontmatter);
+}

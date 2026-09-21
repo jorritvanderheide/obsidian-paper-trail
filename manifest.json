@@ -1,0 +1,11 @@
+{
+	"id": "paper-trail",
+	"name": "Paper Trail",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.0",
+	"description": "Decide what to read before you read it, and keep the decision. Triage papers from your Zotero library and keep the record of what you ruled out and why.",
+	"author": "Jorrit van der Heide",
+	"authorUrl": "https://github.com/jorritvanderheide",
+	"fundingUrl": "https://liberapay.com/BW20",
+	"isDesktopOnly": true
+}
