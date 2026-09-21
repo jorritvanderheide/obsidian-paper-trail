@@ -17,7 +17,6 @@ import { ItemView, debounce, type App, type WorkspaceLeaf } from 'obsidian';
 import { rowTitle, STAGES, type Row, type Stage, type StageAction } from '../core/stages';
 import { act, finish, next, openNote } from '../commands/workflow';
 import { queue } from '../outstanding';
-import { addPaper } from '../commands/papers';
 import { lastContact } from '../source';
 import { refreshLibrary } from '../library';
 import type { Context } from '../context';
@@ -43,20 +42,16 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 
 	if ([...buckets.values()].every((list) => list.length === 0)) {
 		// Two different empties. A vault that has dealt with everything needs
-		// telling it is done; a vault with no papers yet needs the thing it has
-		// to do next, as a button rather than as the name of a command. Naming a
-		// command in a pane made of buttons would leave the very first action
-		// anyone takes as the only one they had to find in the palette.
+		// telling it is done; a vault that has never seen a paper needs telling
+		// where papers come from, because nothing here is how you add one.
+		//
+		// Triage is everything Zotero holds that has no note, so reaching this
+		// with an empty vault means Zotero itself is empty or unreachable. The
+		// offline banner above has already said which.
 		const started = notes.some((note) => note.isPaper);
 		const empty = root.createDiv({ cls: 'paper-trail-workflow-clear' });
 
-		if (started) {
-			empty.setText('Nothing outstanding.');
-			return;
-		}
-
-		empty.createDiv({ text: 'No papers yet.' });
-		empty.createEl('button', { cls: 'mod-cta', text: 'Add paper from Zotero' }).addEventListener('click', () => void addPaper(context));
+		empty.setText(started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here to triage.');
 		return;
 	}
 
@@ -80,9 +75,9 @@ export function renderQueue(root: HTMLElement, context: Context): void {
  * Silence means working, which is the right default for something that is true
  * almost always: a banner saying "connected" every time you glance at the queue
  * would be noise you learn to stop reading, and then miss on the day it
- * changes. Triage, highlights and the paper picker all need Zotero, and with it
- * closed they fail quietly on purpose, so this is the one place that explains
- * a plugin which has apparently stopped doing anything.
+ * changes. Triage is read from Zotero entirely, so with Zotero closed the queue
+ * is not short, it is wrong, and that is worth a line. This is the one place
+ * that explains a plugin which has apparently stopped doing anything.
  */
 function offline(root: HTMLElement, context: Context): void {
 	const contact = lastContact();

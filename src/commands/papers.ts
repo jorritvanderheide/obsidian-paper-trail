@@ -1,7 +1,10 @@
-// Making a paper's note. Pick an item in Zotero, and either open the note that
-// already exists for it or write a new one.
+// Making a paper's note, and keeping it level with Zotero afterwards.
 //
-// The plugin owns the note from here on, which is what lets it know the shape
+// Nothing here is a command you reach for to start a paper. A note is written
+// by a triage decision and by nothing else, so every file in the vault stands
+// for a judgement somebody made.
+//
+// The plugin owns the note from there on, which is what lets it know the shape
 // instead of asking: where the claim heading is, which region a sync may
 // rewrite, and which frontmatter keys are its own.
 import { Notice, normalizePath, type TFile } from 'obsidian';
@@ -20,31 +23,11 @@ import {
 import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
 import { attachmentAnnotations, itemChildren, itemMetadata, SourceError } from '../source';
 import { ensureFolder, templateBody } from './templates';
-import { pickItem } from '../ui/item-picker';
-import { reveal } from '../ui/reveal';
 import type { Context } from '../context';
 
 /** Where a new note for this paper would go. */
 function notePath(context: Context, item: ApiItem): string {
 	return normalizePath(`${context.settings.papersFolder}/${noteName(item)}.md`);
-}
-
-/**
- * The note for a paper, wherever it is.
- *
- * By the key it names, not by the filename it would have: a note that has been
- * renamed, or moved before the papers folder was changed, is still that
- * paper's note, and matching on path alone would quietly make a second one.
- */
-function existingNote(context: Context, item: ApiItem): TFile | null {
-	const app = context.app;
-	const keyField = context.settings.keyField;
-
-	const byKey = app.vault
-		.getMarkdownFiles()
-		.find((file) => app.metadataCache.getFileCache(file)?.frontmatter?.[keyField] === item.key);
-
-	return byKey ?? app.vault.getFileByPath(notePath(context, item));
 }
 
 /**
@@ -108,36 +91,6 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	const file = await app.vault.create(notePath(context, item), `---\n---\n${replaceRegion(body, renderHighlights(highlights))}`);
 	await writePaperFrontmatter(context, file, item, ref, true);
 	return file;
-}
-
-/**
- * Find or make the note for a paper. The same command answers both, because
- * from the outside they are one question: show me this paper's note.
- */
-export async function addPaper(context: Context): Promise<void> {
-	const app = context.app;
-
-	const chosen = await pickItem(app, context.settings.apiPort);
-	if (!chosen) return;
-
-	const ref: ItemRef = { key: chosen.key, groupID: null };
-
-	try {
-		// The search result is a summary; the item itself carries the citation
-		// key, the abstract and the creators.
-		const item = await itemMetadata(context.settings.apiPort, ref);
-		const existing = existingNote(context, item);
-		if (existing) {
-			await reveal(app, existing);
-			new Notice(`${noteName(item)} already exists.`);
-			return;
-		}
-
-		await reveal(app, await createPaperNote(context, item, ref));
-	} catch (error) {
-		if (!(error instanceof SourceError)) console.error(error);
-		new Notice(error instanceof Error ? error.message : String(error));
-	}
 }
 
 /**

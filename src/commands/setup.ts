@@ -59,7 +59,7 @@ class Welcome extends Modal {
 
 		const steps = el.createEl('ol', { cls: 'paper-trail-welcome-steps' });
 		for (const step of [
-			'Add a paper from your Zotero library.',
+			'Everything in your Zotero library turns up in Triage. Nothing is written until you rule on it.',
 			'Triage it on its abstract, in about twenty seconds. Spend eight minutes only when that is not enough.',
 			'Drop it and say why, queue it for a real read, or mark it already read.',
 			'Queued papers open in Zotero. Mark one read and it asks you for the claim.',

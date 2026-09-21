@@ -2,7 +2,7 @@ import { debounce, Notice, Plugin } from 'obsidian';
 import { createFromTemplate } from './commands/notes';
 import { next } from './commands/workflow';
 import { insertCitation } from './commands/citations';
-import { addPaper, refreshPaper, syncOnOpen } from './commands/papers';
+import { refreshPaper, syncOnOpen } from './commands/papers';
 import { findOrphans } from './commands/orphans';
 import { writeReport } from './commands/record';
 import { setReading } from './commands/reading';
@@ -43,9 +43,9 @@ export default class PaperTrail extends Plugin {
 		this.registerEvent(this.app.workspace.on('layout-change', () => this.decorate()));
 		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.decorate()));
 		// Whether a note is a paper is read from the metadata cache, and a note
-		// that has just been created is not in it yet: `Add paper from Zotero`
-		// opened one whose buttons stayed hidden until you switched tabs and back.
-		// This is the cache catching up, which is the moment the answer changes.
+		// that has just been created is not in it yet: a note written by a triage
+		// decision opened with its buttons hidden until you switched tabs and
+		// back. This is the cache catching up, which is when the answer changes.
 		this.registerEvent(this.app.metadataCache.on('changed', () => this.decorate()));
 		this.app.workspace.onLayoutReady(() => this.decorate());
 		this.registerView(PASS_ONE_VIEW, (leaf) => new PassOneView(leaf));
@@ -58,7 +58,6 @@ export default class PaperTrail extends Plugin {
 		this.command('open-queue', 'Open queue', () => openQueue(this.app));
 		this.command('insert-block', 'Insert queue block', () => insertBlock(this));
 		this.command('next', 'Next', () => next(this));
-		this.command('add-paper', 'Add paper from Zotero', () => addPaper(this));
 		this.command('refresh-paper', 'Refresh paper from Zotero', () => refreshPaper(this));
 		this.command('add-note', 'Add note', () => createFromTemplate(this));
 		this.command('file-note', 'File note', () => fileNote(this));

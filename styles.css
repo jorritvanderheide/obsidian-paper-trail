@@ -256,11 +256,6 @@
 	flex-shrink: 0;
 }
 
-/* An empty queue offers the one thing there is to do. */
-.paper-trail-workflow-clear button {
-	margin-top: var(--size-4-2);
-}
-
 /* A chooser that says what each option will do, under the option. */
 .paper-trail-suggestion-desc {
 	display: block;
