@@ -131,6 +131,11 @@ export class SettingsTab extends PluginSettingTab {
 						desc: 'One note per paper, named for its citation key. Flat, like the notes folder.',
 						control: { type: 'text', key: 'papersFolder' },
 					},
+					{
+						name: 'Status tag',
+						desc: 'Mirror each paper’s reading status into a tag, for browsing by tag rather than by folder. "status" gives status/queued, status/dropped and so on. Empty writes no tags. The frontmatter stays the real value either way, so this changes nothing except what a tag explorer can see.',
+						control: { type: 'text', key: 'statusTag' },
+					},
 				],
 			},
 			{

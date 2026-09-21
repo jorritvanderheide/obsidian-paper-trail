@@ -37,7 +37,7 @@ function today(): string {
 export async function writeTriage(context: Context, file: TFile, triage: Triage): Promise<void> {
 	const date = today();
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-		applyTriage(frontmatter, triage, date);
+		applyTriage(frontmatter, triage, date, context.settings.statusTag);
 	});
 }
 

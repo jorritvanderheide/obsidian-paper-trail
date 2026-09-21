@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyTriage, asks, landing, PASS_TWO, type Reading } from '../src/core/triage';
+import { applyStatusTag, applyTriage, asks, landing, PASS_TWO, type Reading } from '../src/core/triage';
 
 /** A literature note as it is created, before any decision. */
 const untriaged = () => ({
@@ -152,3 +152,68 @@ describe('landing', () => {
 		expect(new Set(all.map(landing)).size).toBe(all.length);
 	});
 });
+
+describe('applyStatusTag', () => {
+	it('writes nothing at all when no namespace is set', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyStatusTag(frontmatter, 'dropped', '');
+		expect('tags' in frontmatter).toBe(false);
+	});
+
+	it('mirrors the reading status under the namespace it is given', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyStatusTag(frontmatter, 'dropped', 'status');
+		expect(frontmatter.tags).toEqual(['status/dropped']);
+	});
+
+	// The namespace is a setting so it cannot collide with one a vault already
+	// uses, which is only worth anything if it is actually honoured.
+	it('uses a namespace of your own choosing', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyStatusTag(frontmatter, 'queued', 'reading-state');
+		expect(frontmatter.tags).toEqual(['reading-state/queued']);
+	});
+
+	it('replaces the old status rather than collecting them', () => {
+		const frontmatter: Record<string, unknown> = { tags: ['status/untriaged'] };
+		applyStatusTag(frontmatter, 'queued', 'status');
+		expect(frontmatter.tags).toEqual(['status/queued']);
+	});
+
+	// The one thing this must never do. Every other tag belongs to whoever put
+	// it there.
+	it('leaves every tag outside its namespace alone', () => {
+		const frontmatter: Record<string, unknown> = { tags: ['domain/research', 'type/filed', 'status/untriaged'] };
+		applyStatusTag(frontmatter, 'dropped', 'status');
+		expect(frontmatter.tags).toEqual(['domain/research', 'status/dropped', 'type/filed']);
+	});
+
+	it('reads tags written as a string, which is a shape Obsidian allows', () => {
+		const frontmatter: Record<string, unknown> = { tags: 'domain/research status/untriaged' };
+		applyStatusTag(frontmatter, 'finished', 'status');
+		expect(frontmatter.tags).toEqual(['domain/research', 'status/finished']);
+	});
+});
+
+describe('applyTriage with a status tag', () => {
+	it('keeps the frontmatter and the tag saying the same thing', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyTriage(frontmatter, { reading: 'dropped', reason: 'Out of scope' }, '2026-09-21', 'status');
+		expect(frontmatter.reading).toBe('dropped');
+		expect(frontmatter.tags).toEqual(['status/dropped']);
+	});
+
+	it('writes no tag when the setting is empty, which is the default', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyTriage(frontmatter, { reading: 'dropped', reason: 'Out of scope' }, '2026-09-21');
+		expect('tags' in frontmatter).toBe(false);
+	});
+
+	// Retriaging must not leave the previous answer behind in the tag either.
+	it('moves the tag with the decision', () => {
+		const frontmatter: Record<string, unknown> = { tags: ['status/dropped'] };
+		applyTriage(frontmatter, { reading: 'queued', reason: null }, '2026-09-22', 'status');
+		expect(frontmatter.tags).toEqual(['status/queued']);
+	});
+});
+

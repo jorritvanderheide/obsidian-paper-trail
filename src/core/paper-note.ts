@@ -5,6 +5,7 @@
 // frontmatter keys listed below and the region between the markers. Everything
 // else in the file belongs to whoever wrote it, and losing a word of that is
 // the one unforgivable failure for a plugin like this.
+import { applyStatusTag } from './triage';
 import { authorNames, itemYear, readerUrl, type ApiItem, type Highlight, type ItemRef } from './zotero';
 import { sortKeys } from './frontmatter';
 
@@ -196,6 +197,7 @@ export function applyPaperFrontmatter(
 	managed: PaperFrontmatter,
 	fresh: boolean,
 	keyField: string,
+	statusTag = '',
 ): void {
 	for (const key of MANAGED_KEYS) {
 		const value = managed[key];
@@ -214,7 +216,13 @@ export function applyPaperFrontmatter(
 	// the same name or a vault stops recognising its own notes.
 	frontmatter[keyField] = managed.itemKey;
 
-	if (fresh) frontmatter.reading = 'untriaged';
+	// A new paper is untriaged and says so in both places at once. Without the
+	// tag it would be the one thing a tag explorer cannot see, which is exactly
+	// the pile the queue exists to work through.
+	if (fresh) {
+		frontmatter.reading = 'untriaged';
+		applyStatusTag(frontmatter, 'untriaged', statusTag);
+	}
 
 	sortKeys(frontmatter);
 }

@@ -42,6 +42,22 @@ export interface Settings {
 	notesFolder: string;
 	/** Flat folder holding one note per paper, named for its citation key. */
 	papersFolder: string;
+	/**
+	 * Tag namespace to mirror a paper's reading status into, or empty for none.
+	 *
+	 * An address rather than an opinion, and configurable where the other axes
+	 * are not, for one reason: nothing in the workflow reads this tag. `reading`
+	 * in the frontmatter stays the value every rule uses, so setting or clearing
+	 * this cannot change what the plugin does, only what a tag explorer can see.
+	 *
+	 * Empty by default. Navigating by tag is a real way to work and not the
+	 * common one, and a plugin that wrote tags into a stranger's notes unasked
+	 * would leave them editing every file to undo it.
+	 *
+	 * Naming the namespace rather than taking a yes or no is what keeps it from
+	 * colliding with a `status/` a vault already uses for something else.
+	 */
+	statusTag: string;
 	/** Values on the `domain/` axis. Per-person by definition, so not in code. */
 	domains: string[];
 	/** What to call the three parts a `type` value can play. */
@@ -72,6 +88,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	apiPort: 23119,
 	notesFolder: 'Notes',
 	papersFolder: 'Literature',
+	statusTag: '',
 	domains: [...DOMAIN],
 	types: { ...TYPE },
 	templateFolder: 'Templates/Notes',
@@ -105,6 +122,8 @@ export function loadSettings(raw: unknown): Settings {
 		apiPort: Number.isInteger(port) && port > 0 && port < 65536 ? port : DEFAULT_SETTINGS.apiPort,
 		notesFolder: text(data.notesFolder, DEFAULT_SETTINGS.notesFolder),
 		papersFolder: text(data.papersFolder, DEFAULT_SETTINGS.papersFolder),
+		// The one other field where empty is meaningful: it means "write no tags".
+		statusTag: typeof data.statusTag === 'string' ? data.statusTag.trim() : DEFAULT_SETTINGS.statusTag,
 		domains: parseValues(data.domains, DOMAIN),
 		types: parseTypes(data.types),
 		templateFolder: text(data.templateFolder, DEFAULT_SETTINGS.templateFolder),

@@ -44,7 +44,7 @@ export async function writePaperFrontmatter(
 ): Promise<void> {
 	const managed = paperFrontmatter(item, ref);
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-		applyPaperFrontmatter(frontmatter, managed, fresh, context.settings.keyField);
+		applyPaperFrontmatter(frontmatter, managed, fresh, context.settings.keyField, context.settings.statusTag);
 	});
 }
 

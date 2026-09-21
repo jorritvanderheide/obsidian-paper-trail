@@ -1,6 +1,7 @@
 // What a triage decision leaves on the literature note. Pure, so the exact
 // frontmatter a decision produces is testable without an Obsidian running.
 import { sortKeys } from './frontmatter';
+import { readTags, setAxis } from './vocabulary';
 
 /**
  * How far a paper is going, in Keshav's terms. `untriaged` is the state a new
@@ -77,18 +78,46 @@ export const PASS_TWO: { reading: Reading; label: string }[] = [
 ];
 
 /**
+ * Mirror the reading status into a tag, for a vault navigated by tag rather
+ * than by folder.
+ *
+ * Derived, never authoritative. `reading` in the frontmatter stays the value
+ * every rule reads; this is a copy of it for the tag pane and for plugins that
+ * build a tree from one. Rewritten on every decision, so it cannot drift: edit
+ * the tag by hand and the next decision puts it back.
+ *
+ * A tag as well as the property, not instead of it. A tag is the only thing a
+ * tag explorer can see, and `reading` is single-valued where a tag list is not:
+ * keeping both makes a paper browsable without letting it be queued and dropped
+ * at once.
+ *
+ * An empty namespace writes nothing, and is the default. A plugin should not
+ * put tags in a stranger's notes unasked, and taking them out again would mean
+ * editing every file.
+ *
+ * Only values in this namespace are touched. Every other tag on the note
+ * belongs to whoever put it there and is passed through.
+ */
+export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Reading, namespace: string): void {
+	if (namespace.length === 0) return;
+	frontmatter.tags = setAxis(readTags(frontmatter.tags), namespace, reading);
+}
+
+/**
  * Mutates in place, which is the shape `processFrontMatter` wants.
  *
  * Every field a decision owns is written on every decision, so re-triaging a
  * paper cannot leave part of the previous answer behind.
  *
- * It writes no tags. Nothing reads a domain or a type on a paper, and stamping
- * either on every decision would overwrite whatever you had set by hand: a
- * write that buys nothing and costs an edit.
+ * It writes no domain or type tag. Nothing reads either on a paper, and
+ * stamping one on every decision would overwrite whatever you had set by hand:
+ * a write that buys nothing and costs an edit. The status tag below is the
+ * exception, and only because you asked for it by naming a namespace.
  */
-export function applyTriage(frontmatter: Record<string, unknown>, triage: Triage, date: string): void {
+export function applyTriage(frontmatter: Record<string, unknown>, triage: Triage, date: string, statusTag = ''): void {
 	frontmatter.reading = triage.reading;
 	frontmatter['reading-date'] = date;
+	applyStatusTag(frontmatter, triage.reading, statusTag);
 
 	// When the first opinion was formed, written once and never again.
 	// `reading-date` moves with the status, so on its own it cannot answer "when

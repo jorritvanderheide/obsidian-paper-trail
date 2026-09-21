@@ -115,7 +115,12 @@ export function axisValue(tags: string[], axis: Axis): string | null {
  * out, because the Linter sorts tag arrays ascending and a note that comes back
  * already sorted does not show up as a diff the next time it runs.
  */
-export function setAxis(tags: string[], axis: Axis, value: string | null): string[] {
+/**
+ * A plain string rather than an `Axis`, because one caller is not an axis: the
+ * derived `status/` tag names its own namespace in a setting, since the
+ * workflow never reads it and a vault may already use that word.
+ */
+export function setAxis(tags: string[], axis: string, value: string | null): string[] {
 	const rest = tags.filter((tag) => !tag.startsWith(`${axis}/`));
 	if (value !== null) rest.push(`${axis}/${value}`);
 	return rest.sort();
