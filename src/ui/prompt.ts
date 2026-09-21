@@ -1,6 +1,9 @@
-// A text prompt and a chooser. Both resolve to null when dismissed,
-// so a caller can tell "cancelled" from "chose something" without exceptions.
-import { FuzzySuggestModal, Modal, Setting, type App, type ButtonComponent } from 'obsidian';
+// A text prompt and a chooser. Both resolve to null when dismissed, so a caller
+// can tell "cancelled" from "chose something" without exceptions.
+//
+// The chooser is the command palette's own component, which is what every list
+// of options in this plugin is: a box to type in, and the options under it.
+import { FuzzySuggestModal, Modal, Setting, type App, type ButtonComponent, type FuzzyMatch } from 'obsidian';
 
 class Suggester<T> extends FuzzySuggestModal<T> {
 	private result: T | null = null;
@@ -10,6 +13,7 @@ class Suggester<T> extends FuzzySuggestModal<T> {
 		private readonly items: T[],
 		private readonly text: (item: T) => string,
 		private readonly done: (item: T | null) => void,
+		private readonly describe?: (item: T) => string,
 	) {
 		super(app);
 	}
@@ -20,6 +24,24 @@ class Suggester<T> extends FuzzySuggestModal<T> {
 
 	getItemText(item: T): string {
 		return this.text(item);
+	}
+
+	/**
+	 * One line, or two when the caller can say what a choice will do.
+	 *
+	 * Recording a judgement is the case that wants the second line: picking a
+	 * file is a question of finding the right one, but picking "worth a third
+	 * pass" is a question of what happens next, and that should not be something
+	 * you have to remember.
+	 */
+	renderSuggestion(match: FuzzyMatch<T>, el: HTMLElement): void {
+		if (!this.describe) {
+			super.renderSuggestion(match, el);
+			return;
+		}
+
+		el.createDiv({ text: this.text(match.item) });
+		el.createEl('small', { cls: 'paper-trail-suggestion-desc', text: this.describe(match.item) });
 	}
 
 	// Only records. SuggestModal does not guarantee that onChooseItem runs before
@@ -35,9 +57,15 @@ class Suggester<T> extends FuzzySuggestModal<T> {
 	}
 }
 
-export function suggest<T>(app: App, items: T[], text: (item: T) => string, placeholder: string): Promise<T | null> {
+export function suggest<T>(
+	app: App,
+	items: T[],
+	text: (item: T) => string,
+	placeholder: string,
+	describe?: (item: T) => string,
+): Promise<T | null> {
 	return new Promise((resolve) => {
-		const modal = new Suggester(app, items, text, resolve);
+		const modal = new Suggester(app, items, text, resolve, describe);
 		modal.setPlaceholder(placeholder);
 		modal.open();
 	});

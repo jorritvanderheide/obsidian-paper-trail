@@ -18,8 +18,7 @@ import { applyTriage, asks, landing, type Reading, type Triage } from '../core/t
 import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
-import { prompt } from '../ui/prompt';
-import { choose } from '../ui/decision';
+import { prompt, suggest } from '../ui/prompt';
 import { leafShowing, reveal } from '../ui/reveal';
 import type { Context } from '../context';
 
@@ -93,15 +92,17 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 		return;
 	}
 
-	const reading = await choose(
+	const choice = await suggest(
 		app,
+		CHOICES,
+		(entry) => entry.label,
 		`Reading status of ${file.basename}`,
-		CHOICES.map((entry) => ({ value: entry.reading, label: entry.label, description: landing(entry.reading) })),
+		(entry) => landing(entry.reading),
 	);
-	if (!reading) return;
-	if (!(await decide(context, file, reading))) return;
+	if (!choice) return;
+	if (!(await decide(context, file, choice.reading))) return;
 
-	new Notice(`${file.basename}\n${landing(reading)}`);
+	new Notice(`${file.basename}\n${landing(choice.reading)}`);
 }
 
 /**

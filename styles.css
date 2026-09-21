@@ -193,33 +193,6 @@
 	margin-bottom: var(--size-4-2);
 }
 
-/* Decision modal: every option visible, with what it does written under it. */
-.paper-trail-choices {
-	display: flex;
-	flex-direction: column;
-	gap: var(--size-4-2);
-}
-
-.paper-trail-choice {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: var(--size-2-1);
-	height: auto;
-	padding: var(--size-4-2) var(--size-4-3);
-	text-align: left;
-	white-space: normal;
-}
-
-.paper-trail-choice-label {
-	font-weight: var(--font-semibold);
-}
-
-.paper-trail-choice-desc {
-	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
-}
-
 /* Said only when Zotero is not answering. Silence means it is. */
 .paper-trail-offline {
 	display: flex;
@@ -244,4 +217,10 @@
 /* An empty queue offers the one thing there is to do. */
 .paper-trail-workflow-clear button {
 	margin-top: var(--size-4-2);
+}
+
+/* A chooser that says what each option will do, under the option. */
+.paper-trail-suggestion-desc {
+	display: block;
+	color: var(--text-muted);
 }

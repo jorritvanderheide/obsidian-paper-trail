@@ -14,7 +14,7 @@ import { pendingOf } from '../core/pending';
 import { decide, openTriage } from './reading';
 import { fileNote } from './tags';
 import { landing, PASS_TWO } from '../core/triage';
-import { choose } from '../ui/decision';
+import { suggest } from '../ui/prompt';
 import { reveal } from '../ui/reveal';
 import type { Context } from '../context';
 
@@ -133,15 +133,17 @@ export async function finish(context: Context, stage: Stage, row: Row): Promise<
 	const file = fileOf(app, note);
 	if (!file) return;
 
-	const reading = await choose(
+	const choice = await suggest(
 		app,
+		PASS_TWO,
+		(entry) => entry.label,
 		`Finished with ${note.title}`,
-		PASS_TWO.map((entry) => ({ value: entry.reading, label: entry.label, description: landing(entry.reading) })),
+		(entry) => landing(entry.reading),
 	);
-	if (!reading) return;
-	if (!(await decide(context, file, reading))) return;
+	if (!choice) return;
+	if (!(await decide(context, file, choice.reading))) return;
 
-	new Notice(`${note.title}\n${landing(reading)}`);
+	new Notice(`${note.title}\n${landing(choice.reading)}`);
 }
 
 /**
