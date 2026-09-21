@@ -165,6 +165,14 @@
 	gap: var(--size-2-1);
 }
 
+/* Said rather than inherited. A row is an anchor next to a button, and left to
+   the browser's defaults those are a pointer next to an arrow: two controls on
+   one line disagreeing about whether they are controls. */
+.paper-trail-workflow-title,
+.paper-trail-workflow-actions .clickable-icon {
+	cursor: pointer;
+}
+
 /*
  * Quiet until the row is under the cursor: the list is for reading titles.
  *
@@ -187,6 +195,16 @@
 		opacity: 1;
 	}
 }
+
+/*
+ * Nothing here says what a hovered icon button looks like. `clickable-icon` is
+ * how every icon button in the app agrees with every other one, and a theme
+ * that restyles it expects to win. Colouring this one to taste would make it
+ * the single button that ignores the theme.
+ *
+ * What is the plugin's to decide is above: where the icons sit, when they
+ * appear, and that appearing does not move anything.
+ */
 
 .paper-trail-workflow-more,
 .paper-trail-workflow-clear {
