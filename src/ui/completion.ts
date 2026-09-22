@@ -11,7 +11,7 @@
 // dropping a paper on its abstract.
 //
 // What counts as finished is core's to say. This watches and speaks.
-import { Notice } from 'obsidian';
+import { say } from './notify';
 import { finishedByWriting, noteState, TASKS, writtenOf, type Written } from '../core/stages';
 import type { Context } from '../context';
 import type { TFile } from 'obsidian';
@@ -52,7 +52,7 @@ export function announce(context: Context, file: TFile): void {
 	// Reading was already answered by the chooser that sent it there.
 	const done = finishedByWriting(was, now);
 	const said = done && TASKS[done].completed;
-	if (said) new Notice(`${note.title}\n${said}`);
+	if (said) say(context, `${note.title}\n${said}`);
 }
 
 /** Forget everything, so unloading leaves nothing to speak up about later. */

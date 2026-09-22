@@ -147,3 +147,17 @@ describe('the retired list as it is loaded', () => {
 		expect(loadSettings({ retiredStatusTags: 'status' }).retiredStatusTags).toEqual([]);
 	});
 });
+
+describe('quieter notifications', () => {
+	it('is off, so the plugin answers until you ask it not to', () => {
+		expect(loadSettings(null).quietNotices).toBe(false);
+	});
+
+	it('takes the toggle', () => {
+		expect(loadSettings({ quietNotices: true }).quietNotices).toBe(true);
+	});
+
+	it('ignores a saved value of the wrong shape', () => {
+		expect(loadSettings({ quietNotices: 'yes' }).quietNotices).toBe(false);
+	});
+});

@@ -31,7 +31,7 @@ creates the literature note itself, and keeps one list of what is outstanding.
     Scholars Before Researchers
 ▾ Assessment                             1
 ───────────────────────────────────────────
-▸ Decided                               41
+▸ Filed                                 41
 ```
 
 Four sections, in the order a paper passes through them. Three buttons above
@@ -52,7 +52,7 @@ A paper Zotero holds that the vault has no note for has nothing to open yet, so
 clicking it writes the note and shows you that. Opening the PDF is still the
 button's job.
 
-**Decided** holds everything that has left: dropped, parked, read, assessed,
+**Filed** holds everything that has left: dropped, parked, read, assessed,
 newest first, each with the icon of the decision that put it there. It takes
 whatever height the list leaves over, so it sits on the floor of the pane when
 there is room and scrolls along at the end of the list when there is not. Shut

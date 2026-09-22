@@ -234,6 +234,13 @@ export class SettingsTab extends PluginSettingTab {
 						control: { type: 'toggle', key: 'statusPill' },
 					},
 					{
+						name: 'Quieter notifications',
+						desc:
+							'Stops Paper Trail saying what you can already see: where a decision put a paper, that a pass is finished, that the pile is empty. Each of those follows something you pressed, and the queue has already moved to show it.' +
+							' Failures are always shown, and so is the question asked when you land at a heading, which is what tells you what goes there.',
+						control: { type: 'toggle', key: 'quietNotices' },
+					},
+					{
 						name: 'Claim heading',
 						desc: `The second pass ends here. A paper leaves Reading once this heading has something under it, so it must match your literature template.${this.headingStatus(this.plugin.settings.claimHeading, 'Reading')}`,
 						control: { type: 'text', key: 'claimHeading' },

@@ -10,7 +10,7 @@
 import { Notice, type App, type TFile } from 'obsidian';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, SourceError } from '../source';
-import { messageOf } from '../ui/notify';
+import { messageOf, say } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
 import { applyTriage, asks, iconOf, landing, READING_ORDER, type Reading, type Triage } from '../core/triage';
 import { statusTagsOf } from '../core/settings';
@@ -38,19 +38,6 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
 		applyTriage(frontmatter, triage, date, statusTagsOf(context.settings));
 	});
-}
-
-/**
- * A decision about a paper that already has a note. Returns whether anything
- * was written.
- *
- * `decideOn` with the note already in hand, and nothing else. This was a
- * second copy of it for a while, which is the exact failure its own comment
- * warns about: two functions holding "a drop asks why" is how one of them
- * stops asking.
- */
-export async function decide(context: Context, file: TFile, reading: Reading): Promise<boolean> {
-	return (await decideOn(context, { kind: 'note', file }, reading)) !== null;
 }
 
 /**
@@ -97,18 +84,34 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 		return;
 	}
 
+	await chooseReading(context, { kind: 'note', file }, file.basename);
+}
+
+/**
+ * Put the six states to someone and write the one they pick.
+ *
+ * Takes a target rather than a file, so a queue row can offer it whether or not
+ * the paper has a note yet: for one that has none, deciding is what writes it,
+ * exactly as it is in the triage dialog.
+ *
+ * Every state, including the ones no button offers, because the reason to reach
+ * for this is to correct a record rather than to make a decision. `landing`
+ * rides along on each option so the list says where a paper will end up, which
+ * is the thing you cannot know from the word alone.
+ */
+export async function chooseReading(context: Context, target: TriageTarget, name: string): Promise<void> {
 	const choice = await suggest(
-		app,
+		context.app,
 		CHOICES,
 		(entry) => entry.label,
-		`Reading status of ${file.basename}`,
+		`Reading status of ${name}`,
 		(entry) => landing(entry.reading),
 		(entry) => iconOf(entry.reading),
 	);
 	if (!choice) return;
-	if (!(await decide(context, file, choice.reading))) return;
+	if (!(await decideOn(context, target, choice.reading))) return;
 
-	new Notice(`${file.basename}\n${landing(choice.reading)}`);
+	say(context, `${name}\n${landing(choice.reading)}`);
 }
 
 /**
@@ -200,7 +203,7 @@ async function advance(context: Context, decided: TFile, key: string | null): Pr
 	}
 
 	open?.close();
-	new Notice('Nothing left to triage.');
+	say(context, 'Nothing left to triage.');
 }
 
 /**
@@ -300,7 +303,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 	const decide = async (reading: Reading) => {
 		const file = await decideOn(context, target, reading);
 		if (!file) return;
-		new Notice(`${title}\n${landing(reading)}`);
+		say(context, `${title}\n${landing(reading)}`);
 		await advance(context, file, key);
 	};
 

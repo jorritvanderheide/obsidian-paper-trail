@@ -13,6 +13,7 @@ import { decideOn, noteFor, openTriage, targetOf } from './reading';
 import { fileOf, queue } from '../outstanding';
 import { iconOf, landing, PASS_TWO } from '../core/triage';
 import { suggest } from '../ui/prompt';
+import { say } from '../ui/notify';
 import { openAtHeading, reveal } from '../ui/reveal';
 import type { Context } from '../context';
 
@@ -136,7 +137,12 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
 		// how the paper got here says it on the same slip as the question, which
 		// is where you are about to be looking anyway. Finishing a reading used
 		// to raise both, and they largely said the same thing twice.
-		const said = [lead, TASKS[task].prompt].filter(Boolean).join('\n');
+		//
+		// The prompt is never silenced: it is the question that replaced the ones
+		// the template used to carry, and a heading with no question is the state
+		// this plugin moved away from. The lead is an answer and can be.
+		const answer = context.settings.quietNotices ? undefined : lead;
+		const said = [answer, TASKS[task].prompt].filter(Boolean).join('\n');
 		if (said) new Notice(said);
 		return;
 	}
@@ -198,7 +204,7 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 		return;
 	}
 
-	new Notice(landed);
+	say(context, landed);
 }
 
 /**
@@ -222,7 +228,7 @@ export async function next(context: Context): Promise<void> {
 		// so announcing the paper a beat before either of those was the first of
 		// two notices for one keypress.
 		if (!TASKS[task].announces) {
-			new Notice(`${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} outstanding` : ''}`);
+			say(context, `${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} outstanding` : ''}`);
 		}
 		await act(context, task, first);
 		return;

@@ -6,6 +6,7 @@
 // keeping, so it is written down once.
 import { Notice } from 'obsidian';
 import { SourceError } from '../source';
+import type { Context } from '../context';
 
 /** Whatever was thrown, as a sentence. */
 export function messageOf(error: unknown): string {
@@ -29,4 +30,18 @@ export function notify(error: unknown, tag?: string): void {
 		else console.error(error);
 	}
 	new Notice(messageOf(error));
+}
+
+/**
+ * An answer: what just happened, where a paper went, that a pass is finished.
+ *
+ * Silenced by the quiet setting, because each of these follows something you
+ * pressed and the queue has already moved to show it. A failure never comes
+ * through here, and neither does the question asked when you land at a heading:
+ * one is the difference between broken and busy, the other is the whole reason
+ * the template stopped carrying prompts.
+ */
+export function say(context: Context, text: string): void {
+	if (context.settings.quietNotices) return;
+	new Notice(text);
 }

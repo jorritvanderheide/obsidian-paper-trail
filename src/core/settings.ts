@@ -47,6 +47,22 @@ export interface Settings {
 	 */
 	statusPill: boolean;
 	/**
+	 * Whether to stop saying what you can already see.
+	 *
+	 * Off, and the second thing here that is a preference about chrome rather
+	 * than about the workflow. It silences answers: where a decision put a
+	 * paper, that a pass is finished, that the pile is empty. Each of those
+	 * follows something you pressed, and the queue has already moved.
+	 *
+	 * It never silences a failure, because a plugin that fails quietly is a
+	 * plugin that looks broken. It never silences the question asked when you
+	 * land at a heading, which is the thing that replaced the prompts the
+	 * template used to carry. And it never silences an answer to a command that
+	 * would otherwise do nothing you can see: Next with nothing outstanding, or
+	 * a refresh that found no change, are dead keys without a word.
+	 */
+	quietNotices: boolean;
+	/**
 	 * Whether a paper Zotero holds and the vault has no note for arrives to be
 	 * triaged, or arrives already queued to read.
 	 *
@@ -136,6 +152,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	version: SETTINGS_VERSION,
 	keyField: 'zotero-key',
 	statusPill: true,
+	quietNotices: false,
 	triage: false,
 	collection: '',
 	papersFolder: 'Literature',
@@ -159,6 +176,7 @@ export function loadSettings(raw: unknown): Settings {
 		version: SETTINGS_VERSION,
 		keyField: text(data.keyField, DEFAULT_SETTINGS.keyField),
 		statusPill: typeof data.statusPill === 'boolean' ? data.statusPill : DEFAULT_SETTINGS.statusPill,
+		quietNotices: typeof data.quietNotices === 'boolean' ? data.quietNotices : DEFAULT_SETTINGS.quietNotices,
 		triage: typeof data.triage === 'boolean' ? data.triage : DEFAULT_SETTINGS.triage,
 		// Two fields where empty is meaningful rather than missing, so neither can
 		// go through `text`: an empty collection means the whole library, and an

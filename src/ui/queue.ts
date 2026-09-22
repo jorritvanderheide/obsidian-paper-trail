@@ -14,12 +14,22 @@
 // every write goes through the same commands the palette uses. If this and a
 // note disagree, the note is right.
 import { ItemView, Menu, Notice, debounce, setIcon, type App, type WorkspaceLeaf } from 'obsidian';
-import { rowTask, rowTitle, TASKS, visibleStages, type Row, type Settled, type Task, type TaskDefinition } from '../core/stages';
+import {
+	rowTask,
+	rowTitle,
+	settledOf,
+	TASKS,
+	visibleStages,
+	type Row,
+	type Settled,
+	type Task,
+	type TaskDefinition,
+} from '../core/stages';
 import { DEFAULT_ROWS, fit } from '../core/fit';
 import { act, finish, next, openNote } from '../commands/workflow';
 import { iconOf, label } from '../core/triage';
-import { noteFor, setReading } from '../commands/reading';
-import { fileOf, queue } from '../outstanding';
+import { chooseReading, noteFor, targetOf } from '../commands/reading';
+import { queue } from '../outstanding';
 import { reveal } from './reveal';
 import { notify } from './notify';
 import type { Pending } from '../core/pending';
@@ -47,26 +57,8 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	root.toggleClass('paper-trail-block', !sidebar);
 	offline(root, context);
 
-	if ([...buckets.values()].every((list) => list.length === 0)) {
-		// Two different empties. A vault that has dealt with everything needs
-		// telling it is done; a vault that has never seen a paper needs telling
-		// where papers come from, because nothing here is how you add one.
-		//
-		// Every paper Zotero holds that the vault has no note for is in here
-		// somewhere, so reaching this with an empty vault means Zotero itself is
-		// empty or unreachable. The banner above has already said which.
-		const started = notes.some((note) => note.isPaper);
-		root.createDiv({
-			cls: 'pane-empty',
-			text: started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here.',
-		});
-		// Still drawn, and this is the moment it earns its place: an empty queue
-		// is the one state where the only thing worth showing is what you did.
-		decided(root, context, done);
-		return;
-	}
-
 	const visible = visibleStages(buckets, context.settings.triage);
+	const empty = [...buckets.values()].every((list) => list.length === 0);
 
 	// The pane only. A block is a view of the queue on a note of your own, and a
 	// row of controls at the top of somebody's writing is the plugin making
@@ -84,6 +76,29 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	// overflowing list would squash its own rows instead of scrolling.
 	const files = root.createDiv({ cls: 'nav-files-container paper-trail-stages' });
 	const tree = files.createDiv({ cls: 'paper-trail-tree' });
+
+	// Two different empties. A vault that has dealt with everything needs telling
+	// it is done; a vault that has never seen a paper needs telling where papers
+	// come from, because nothing here is how you add one.
+	//
+	// Every paper Zotero holds that the vault has no note for is in here
+	// somewhere, so reaching this with an empty vault means Zotero itself is
+	// empty or unreachable. The banner above has already said which.
+	//
+	// Inside the tree rather than straight onto the pane, which is where it used
+	// to go: the record drawn under it then sat outside the container everything
+	// else is styled and measured in, so the one section still on screen was the
+	// one that did not look like itself.
+	if (empty) {
+		const started = notes.some((note) => note.isPaper);
+		tree.createDiv({
+			cls: 'pane-empty',
+			text: started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here.',
+		});
+		decided(tree, context, done);
+		root.style.setProperty('--paper-trail-clearance', `${clearance(root, files)}px`);
+		return;
+	}
 
 	const open: { task: Task; rows: Row[]; children: HTMLElement }[] = [];
 	for (const definition of visible) {
@@ -530,6 +545,12 @@ function sectionRows(
 			else void showPending(context, entry.item);
 		});
 
+		// Overruling the workflow, on every row rather than only on a filed one.
+		// Moving a paper between states was reachable from inside its note and
+		// nowhere else, which is a long way round for a list whose whole subject
+		// is what state things are in.
+		row.addEventListener('contextmenu', (event) => rowMenu(context, entry, row, event));
+
 		// At the trailing edge, on the same line as the title. A task with no
 		// icon has no button here: its action is opening the note, which the
 		// row it sits on already does.
@@ -582,21 +603,22 @@ let openDecided = false;
  * record.
  */
 function decided(root: HTMLElement, context: Context, done: Settled[]): boolean {
-	// The one section that is hidden rather than shown at zero. A stage keeps
-	// its place so the list does not move under the cursor as you work it; the
-	// record has no place to keep until there is something in it, and "Decided
-	// 0" on a vault that has decided nothing is a row spent saying so.
-	if (done.length === 0) return false;
-
 	// A box of its own, holding one section, which is the hook the auto margin
 	// hangs on. Inside the list rather than under it: two scrolling boxes in one
 	// pane means a wheel that stops working halfway down for no reason you can
 	// see, and a record capped at some height of its own is a record you cannot
 	// read to the end of.
+	//
+	// Drawn at zero, dimmed, exactly like a stage. It used to be the one section
+	// that vanished when empty, on the grounds that a record has no place to
+	// keep until there is something in it. That is one row's worth of argument
+	// against the reason every other section stays: the pane should be the same
+	// shape every time you look at it, and a dimmed row teaches where the record
+	// will be.
 	const box = root.createDiv({ cls: 'paper-trail-decided' });
 
 	const children = folder(box, {
-		label: 'Decided',
+		label: 'Filed',
 		// A box things go into when they are done with, which is what this is.
 		// Not a tick: that is one outcome of the four in here.
 		icon: 'archive',
@@ -618,7 +640,7 @@ function decided(root: HTMLElement, context: Context, done: Settled[]): boolean 
 		// The state in words as well as in the icon, because the icon is the only
 		// thing distinguishing four outcomes and an icon cannot be read aloud.
 		row.setAttribute('aria-label', decidedState(entry));
-		row.addEventListener('contextmenu', (event) => decidedMenu(context, entry, row, event));
+		row.addEventListener('contextmenu', (event) => rowMenu(context, { kind: 'note', note: entry.note }, row, event));
 	}
 
 	return true;
@@ -638,44 +660,73 @@ function decidedState(entry: Settled): string {
 }
 
 /**
- * What a decided paper still offers, which is one thing: changing its mind.
- *
- * Right-click because there is nowhere else for it to go. An outstanding row
- * carries its actions as icons at the trailing edge, but a decided one has no
- * action by definition, and hanging a button off every row of a record for the
- * rare occasion you reconsider would be paying in every row for one of them.
- *
- * Reconsidering is not rare enough to leave out, though. A deferral is a
- * promise to come back and this is the only place that promise resurfaces; a
- * paper dropped on its abstract is exactly the one a citation sends you back to
- * two years later.
+ * Where a row sits now, for the head of its menu: the section it is in for one
+ * still outstanding, and the decision that filed it for one that is not.
  */
-function decidedMenu(context: Context, entry: Settled, row: HTMLElement, event: MouseEvent): void {
-	const file = fileOf(context.app, entry.note);
-	if (!file) return;
+function rowState(row: Row, triage: boolean): { text: string; icon: string } | null {
+	const task = rowTask(row, triage);
+	if (task) return { text: TASKS[task].label, icon: TASKS[task].stageIcon };
+	if (row.kind !== 'note') return null;
+
+	const reading = settledOf(row.note);
+	return reading ? { text: decidedState({ note: row.note, reading }), icon: iconOf(reading) } : null;
+}
+
+/**
+ * What a row offers besides its own next step: changing where the paper sits.
+ *
+ * On every row, not just a filed one. Moving a paper between states was only
+ * reachable from inside its note, which is a long way round for a list whose
+ * whole subject is what state things are in.
+ *
+ * Right-click rather than another icon. A row's trailing edge already carries
+ * the one or two things the paper is actually waiting for, and hanging a third
+ * button on every row for the occasion you overrule the workflow would pay in
+ * every row for a few of them. Reconsidering is not rare enough to leave out,
+ * though: a deferral is a promise to come back and this is where it resurfaces,
+ * and a paper dropped on its abstract is exactly the one a citation sends you
+ * back to two years later.
+ *
+ * Not drag and drop, which the shape of the workflow will not support. Claim
+ * and Assessment are not states you can put a paper into: they mean the reading
+ * is finished and the heading is still empty, so dropping a paper on Assessment
+ * would land it in Claim whenever the claim is unwritten, and dropping one on
+ * Claim would land it in Filed whenever the claim is written. A target that
+ * takes the paper somewhere other than where you dropped it is worse than a
+ * menu that names where each state leads, which is what this opens.
+ */
+function rowMenu(context: Context, row: Row, el: HTMLElement, event: MouseEvent): void {
+	const target = targetOf(context.app, row);
+	if (!target) return;
 
 	event.preventDefault();
 	const menu = new Menu();
 
-	// The state first, and not as a choice. A row in here carries an icon and
-	// nothing else, and four outcomes is more than one glyph can teach.
-	menu.addItem((item) => item.setTitle(decidedState(entry)).setIcon(iconOf(entry.reading)).setIsLabel(true));
-	menu.addSeparator();
+	// Where the paper is now, and not as a choice. A filed row carries an icon
+	// and nothing else, and four outcomes is more than one glyph can teach; an
+	// outstanding row says which section it is in, which its own heading is too
+	// far from to read at a glance in a long list.
+	const heading = rowState(row, context.settings.triage);
+	if (heading) {
+		menu.addItem((item) => item.setTitle(heading.text).setIcon(heading.icon).setIsLabel(true));
+		menu.addSeparator();
+	}
 
-	// Through the same command the palette offers, so a paper reconsidered from
-	// here lands exactly where one reconsidered from the note would.
+	// Through the same chooser the palette offers, so a paper moved from here
+	// lands exactly where one moved from its own note would, and a paper that
+	// has no note yet gets one written by the decision.
 	menu.addItem((item) =>
 		item
 			.setTitle('Set reading status')
 			.setIcon('list-checks')
-			.onClick(() => void setReading(context, file)),
+			.onClick(() => void chooseReading(context, target, rowTitle(row))),
 	);
 
 	// The context-menu key raises this event too, and arrives with no pointer to
 	// anchor to. Without this the menu would open in the corner of the screen
 	// for anyone not using a mouse.
 	if (event.clientX === 0 && event.clientY === 0) {
-		const box = row.getBoundingClientRect();
+		const box = el.getBoundingClientRect();
 		menu.showAtPosition({ x: box.left, y: box.bottom });
 	} else {
 		menu.showAtMouseEvent(event);
