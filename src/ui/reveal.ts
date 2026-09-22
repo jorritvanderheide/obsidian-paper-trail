@@ -5,7 +5,7 @@
 // click it again, and there are three. The triage pane had the right behaviour
 // and kept it to itself.
 import { MarkdownView, type App, type Editor, type TFile, type WorkspaceLeaf } from 'obsidian';
-import { headingLine } from '../core/stages';
+import { headingLine, roomUnder } from '../core/stages';
 import { indexed } from './editing';
 
 /** The pane a file is already open in, if any. */
@@ -106,20 +106,20 @@ export async function openAtHeading(app: App, file: TFile, heading: string): Pro
  * Idempotent: arriving at a heading that already has the room takes none.
  */
 function makeRoom(editor: Editor, line: number): number {
-	const blank = (n: number) => n <= editor.lastLine() && editor.getLine(n).trim() === '';
+	// The lines the note actually has after the heading, so `roomUnder` can tell
+	// a section with something under it from one at the end of the note.
+	const following = [1, 2, 3]
+		.map((n) => line + n)
+		.filter((n) => n <= editor.lastLine())
+		.map((n) => editor.getLine(n));
 
-	// Nothing under the heading at all, or prose right beneath it: open two
-	// lines, a blank one and one to write on.
-	if (!blank(line + 1)) {
-		editor.replaceRange('\n\n', { line, ch: editor.getLine(line).length });
-		return line + 2;
-	}
-
-	// The blank is there but the next thing is the following heading, which is
-	// the shipped template exactly. Split the blank in two.
-	if (!blank(line + 2)) {
-		editor.replaceRange('\n', { line: line + 1, ch: 0 });
-		return line + 2;
+	const room = roomUnder(following);
+	if (room) {
+		const at =
+			room.below === 0
+				? { line, ch: editor.getLine(line).length }
+				: { line: line + room.below, ch: 0 };
+		editor.replaceRange('\n'.repeat(room.newlines), at);
 	}
 
 	return line + 2;

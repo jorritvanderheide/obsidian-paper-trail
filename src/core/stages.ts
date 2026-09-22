@@ -374,6 +374,37 @@ export function byStage(notes: NoteState[]): Map<Task, NoteState[]> {
 	return out;
 }
 
+/**
+ * What to open up under a heading so there is a line to write on.
+ *
+ * The line you land on wants a blank line above it and a blank line below it,
+ * which is how anyone writes markdown and what the Linter would put back
+ * anyway. Only the one above was arranged, so what you typed came out pressed
+ * against whatever followed the section: against the next heading in a claim,
+ * and against the managed region in an assessment, which is the last heading a
+ * paper has.
+ *
+ * `following` is the lines the note actually has after the heading, up to
+ * three, so a heading at the end of a note is short rather than padded.
+ * Answers null when the room is already there, which is what makes arriving at
+ * the same heading twice cost one edit rather than two.
+ */
+export interface Room {
+	/** Newlines to insert. */
+	newlines: number;
+	/** How far below the heading to insert them; 0 is the heading's own end. */
+	below: number;
+}
+
+export function roomUnder(following: readonly string[]): Room | null {
+	const blank = (n: number) => n < following.length && following[n]?.trim() === '';
+
+	if (!blank(0)) return { newlines: 3, below: 0 };
+	if (!blank(1)) return { newlines: 2, below: 1 };
+	if (!blank(2)) return { newlines: 1, below: 2 };
+	return null;
+}
+
 /** Where a heading is in the cache's list, or -1. Matched loosely on case and padding. */
 function indexOfHeading(cache: CachedMetadata | null, heading: string): number {
 	const wanted = heading.trim().toLowerCase();

@@ -11,6 +11,7 @@ import {
 	rowsByStage,
 	rowTask,
 	rowTitle,
+	roomUnder,
 	settled,
 	outcomeOf,
 	STAGES,
@@ -711,5 +712,44 @@ describe('NEXT_ORDER', () => {
 		expect(NEXT_ORDER[0]).toBe('claim');
 		expect(NEXT_ORDER[NEXT_ORDER.length - 1]).toBe('triage');
 		expect(STAGES[0]?.task).toBe('triage');
+	});
+});
+
+/**
+ * Opening a line to write on under a heading.
+ *
+ * The line you land on wants a blank above and a blank below. Only the one
+ * above was arranged, so what you typed came out pressed against whatever
+ * followed the section: the next heading after a claim, and the managed region
+ * after an assessment, which is the last heading a paper has.
+ */
+describe('roomUnder', () => {
+	it('opens three lines when something sits straight under the heading', () => {
+		expect(roomUnder(['some prose'])).toEqual({ newlines: 3, below: 0 });
+	});
+
+	// The shipped template exactly: a blank, then the next thing.
+	it('opens two when the blank above is there and the one below is not', () => {
+		expect(roomUnder(['', '<!--paper-trail-->'])).toEqual({ newlines: 2, below: 1 });
+	});
+
+	it('opens one when only the blank below is missing', () => {
+		expect(roomUnder(['', '', '<!--paper-trail-->'])).toEqual({ newlines: 1, below: 2 });
+	});
+
+	// Arriving at the same heading twice should cost one edit, not two.
+	it('opens nothing when the room is already there', () => {
+		expect(roomUnder(['', '', ''])).toBeNull();
+		expect(roomUnder(['', '', '', 'later prose'])).toBeNull();
+	});
+
+	// A heading at the very end of a note has no lines after it at all, and
+	// should end up with exactly the room rather than a tail of blanks.
+	it('opens three at the end of a note', () => {
+		expect(roomUnder([])).toEqual({ newlines: 3, below: 0 });
+	});
+
+	it('counts a line of only spaces as blank, because it reads as one', () => {
+		expect(roomUnder(['   ', '\t', ''])).toBeNull();
 	});
 });
