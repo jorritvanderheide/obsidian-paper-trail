@@ -18,11 +18,9 @@ import { REGION_END, REGION_START } from './paper-note';
  * you drop stays three lines long and a paper's outline is what has actually
  * been written.
  *
- * The old note.
- *
- * Each heading carried an HTML comment asking for what goes under it, which
- * was the only way to ask at the point of use back when arriving at the point
- * of use was something you did by scrolling. Now the queue puts the cursor
+ * Each of them used to carry an HTML comment asking for what goes under it,
+ * which was the only way to ask at the point of use back when arriving at the
+ * point of use was something you did by scrolling. Now the queue puts the cursor
  * under the heading and asks there, so the question is asked once, is always
  * the current wording, and disappears when it is answered.
  *

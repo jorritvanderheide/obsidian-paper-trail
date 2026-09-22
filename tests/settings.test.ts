@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, SETTINGS_VERSION, loadSettings, migrate, retireStatusTag } from '../src/core/settings';
+import { DEFAULT_SETTINGS, SETTINGS_VERSION, loadSettings, retireStatusTag } from '../src/core/settings';
 
 describe('loadSettings', () => {
 	it('fills in defaults', () => {
@@ -41,23 +41,7 @@ describe('versioning', () => {
 		expect(loadSettings(null).version).toBe(SETTINGS_VERSION);
 	});
 
-	it('treats data written before versioning as version 0', () => {
-		expect(migrate({ papersFolder: 'Literature' })).toMatchObject({ version: SETTINGS_VERSION });
-	});
-
-	it('leaves already-current data alone', () => {
-		const current = { version: SETTINGS_VERSION, papersFolder: 'Lit' };
-		expect(migrate(current)).toBe(current);
-	});
-
-	it('does not lose a setting while migrating', () => {
-		expect(migrate({ papersFolder: 'Papers' })).toMatchObject({
-
-			papersFolder: 'Papers',
-		});
-	});
-
-	it('upgrades on load, so a saved file never has to be touched by hand', () => {
+	it('stamps it on saved data too, so a file on disk always says what it is', () => {
 		expect(loadSettings({ papersFolder: 'Lit' })).toMatchObject({ version: SETTINGS_VERSION, papersFolder: 'Lit' });
 	});
 });

@@ -179,9 +179,6 @@ describe('decidedOf', () => {
 		expect(of({ 'zotero-key': 'ABCD2345' })?.reading).toBe('untriaged');
 	});
 
-	it('reads an old spelling as what it is called now', () => {
-		expect(of({ 'zotero-key': 'ABCD2345', reading: 'pass-three' })?.reading).toBe('promoted');
-	});
 
 	it('falls back to the filename when a paper has no title', () => {
 		expect(of({ 'zotero-key': 'ABCD2345' })?.title).toBe('vanderhaer2026');

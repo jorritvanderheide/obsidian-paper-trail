@@ -453,19 +453,7 @@ describe('stateOf', () => {
 		expect(at({ reading: 'queued' })).toEqual({ reading: 'queued', progress: null });
 	});
 
-	// The merged era. None of these is a verdict, so a note holding one says
-	// which era wrote it by saying it.
-	it('splits every value the merged field used to hold', () => {
-		expect(at({ reading: 'read' })).toEqual({ reading: 'queued', progress: 'read' });
-		expect(at({ reading: 'summarised' })).toEqual({ reading: 'queued', progress: 'summarised' });
-		expect(at({ reading: 'assessing' })).toEqual({ reading: 'promoted', progress: 'summarised' });
-		expect(at({ reading: 'assessed' })).toEqual({ reading: 'promoted', progress: 'assessed' });
-	});
 
-	it('splits the two spellings that came before that', () => {
-		expect(at({ reading: 'finished' })).toEqual({ reading: 'queued', progress: 'read' });
-		expect(at({ reading: 'pass-three' })).toEqual({ reading: 'promoted', progress: 'read' });
-	});
 
 	// The one value that is both a verdict now and a merged value before. It is
 	// not ambiguous, because promoting a paper is something you decide at the
@@ -478,12 +466,6 @@ describe('stateOf', () => {
 		});
 	});
 
-	it('lets an explicit progress win over what a merged value implied', () => {
-		expect(at({ reading: 'read', 'reading-progress': 'summarised' })).toEqual({
-			reading: 'queued',
-			progress: 'summarised',
-		});
-	});
 
 	// Untriaged rather than nothing: no opinion the machine can read has been
 	// formed, and that is the answer that puts the paper back in front of you.

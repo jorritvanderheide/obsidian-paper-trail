@@ -12,14 +12,18 @@
 import type { StatusTags } from './triage';
 
 /**
- * Bumped when a saved key is renamed or its meaning changes, never for adding
- * or removing one: an absent key already falls back to its default, and a key
- * nothing reads any more is dropped by the loader, which builds a fresh object
- * out of the names it knows rather than editing the saved one.
+ * Stamped on every save, and bumped when a saved key is renamed or its meaning
+ * changes. Never for adding or removing one: an absent key already falls back
+ * to its default, and a key nothing reads any more is dropped by the loader,
+ * which builds a fresh object out of the names it knows rather than editing the
+ * saved one.
  *
- * Data written before versioning existed has no `version` at all, which reads
- * as 0. Establishing that baseline now is the point; doing it after people have
- * saved settings means guessing what their data was.
+ * The stamp is here before the first release because it is the one thing that
+ * cannot be added afterwards: a rename later on needs to know what it is
+ * looking at, and by then the data is already on disk unlabelled. There is no
+ * migration step yet, and writing an empty one to hold the place would only be
+ * guessing at the shape of a rename nobody has made. The first one reads
+ * `data.version` in `loadSettings` and moves the value it is about to drop.
  */
 export const SETTINGS_VERSION = 1;
 
@@ -126,10 +130,9 @@ export interface Settings {
 	 * is not stale but false.
 	 *
 	 * Written when the setting changes, and read on every decision, so a paper
-	 * sheds the old namespace the next time you rule on it. That is the same
-	 * promise `RENAMED` makes about a renamed reading value, and it has the same
-	 * gap: a paper you never decide on again keeps what it has. The settings tab
-	 * says how many those are rather than pretending the rename was complete.
+	 * sheds the old namespace the next time you rule on it. Which leaves a gap:
+	 * a paper you never decide on again keeps what it has. The settings tab says
+	 * how many those are rather than pretending the rename was complete.
 	 */
 	retiredStatusTags: string[];
 	/** Where the paper template is kept, and seeded to when it is missing. */
@@ -169,9 +172,7 @@ function text(value: unknown, fallback: string): string {
 }
 
 export function loadSettings(raw: unknown): Settings {
-	const data = migrate((typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>) as Partial<
-		Record<keyof Settings, unknown>
-	>;
+	const data = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<Record<keyof Settings, unknown>>;
 	return {
 		version: SETTINGS_VERSION,
 		keyField: text(data.keyField, DEFAULT_SETTINGS.keyField),
@@ -191,26 +192,6 @@ export function loadSettings(raw: unknown): Settings {
 	};
 }
 
-/**
- * Bring saved data up to the current version.
- *
- * Nothing to do yet, and that is the useful state to be in: the shape is
- * recorded, so the first rename has somewhere obvious to go instead of
- * silently dropping whatever people had set.
- *
- * Migrations run in order and each one moves the data forward a single step,
- * so a vault that skipped three releases arrives by the same path as one that
- * skipped none.
- */
-export function migrate(data: Record<string, unknown>): Record<string, unknown> {
-	const from = typeof data.version === 'number' ? data.version : 0;
-	if (from >= SETTINGS_VERSION) return data;
-
-	const out = { ...data };
-	// for (let v = from; v < SETTINGS_VERSION; v++) { ... }
-	out.version = SETTINGS_VERSION;
-	return out;
-}
 
 /** A saved list of namespaces, trimmed and deduplicated, blanks dropped. */
 function namespaces(value: unknown): string[] {

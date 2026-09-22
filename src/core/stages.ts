@@ -310,22 +310,17 @@ export function taskOf(note: NoteState): Task | null {
 }
 
 /**
- * The states a paper can come to rest in. Every one of them is an answer
- * somebody gave: three ways a paper can be done with you and one way you can
- * be done with it.
- */
-/**
  * Where a paper came to rest, or null while it is still outstanding.
+ *
+ * Every one of the four is an answer somebody gave: three ways a paper can be
+ * done with you and one way you can be done with it.
  *
  * A paper and nothing outstanding is a paper at rest, and there is nothing
  * further to test: `taskOf` sends untriaged to Triage and queued to Reading, so
- * what reaches here is always one of the four a decision can leave behind.
- *
- * It used to check the value against that list of four as well, and the second
- * check is what made a fully finished `pass-three` paper vanish. `taskOf` reads
- * the old spelling as `promoted` and let it out; this compared the raw value,
- * matched nothing, and answered null, so the paper was in no section and in no
- * record. One reading of the field, in one place, is what stops that.
+ * what reaches here is always one of the four a decision can leave behind. It
+ * used to re-check the value against that list, and the second check is what
+ * made a settled paper vanish from both the queue and the record whenever the
+ * two readings of the field disagreed. One reading, in one place, stops that.
  */
 export function outcomeOf(note: NoteState): Outcome | null {
 	if (!note.isPaper || taskOf(note) !== null) return null;

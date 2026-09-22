@@ -14,38 +14,16 @@ import { sortKeys } from './frontmatter';
  *
  * An HTML comment rather than Obsidian's `%%`. Both are invisible in a
  * rendered note, but only `html` is a section type Obsidian documents;
- * `comment` appears nowhere in its API. That mattered a great deal when the
- * stage rules read the prose under a heading: the marker sits directly under
- * the assessment heading, Obsidian called it prose, and every paper promoted to
- * a third pass looked like its assessment was already written.
- *
- * Nothing reads the prose any more, so this no longer decides anything. It
- * stays because a delimiter the editor is documented to understand is the one
- * to have, and because going back would mean rewriting every note again.
+ * `comment` appears nowhere in its API, so the metadata cache calls a `%%` line
+ * prose. Nothing reads the prose any more, but a delimiter the editor is
+ * documented to understand is still the one to have.
  */
 export const REGION_START = '<!--paper-trail-->';
 export const REGION_END = '<!--/paper-trail-->';
 
-/**
- * What the markers used to be, still recognised so a note made under them is
- * found rather than given a second region.
- *
- * Read in the old spelling, written in the new, exactly as `RENAMED` handles a
- * renamed reading value. A note converts on its next sync and nothing has to be
- * edited by hand.
- */
-const LEGACY_START = '%%paper-trail%%';
-const LEGACY_END = '%%/paper-trail%%';
-
-/** Marker pairs to look for, newest first. */
-const MARKERS = [
-	{ start: REGION_START, end: REGION_END },
-	{ start: LEGACY_START, end: LEGACY_END },
-];
-
-/** Whether a line opens the managed region, in either spelling of the markers. */
+/** Whether a line opens the managed region. */
 export function isRegionStart(line: string): boolean {
-	return MARKERS.some(({ start }) => line.includes(start));
+	return line.includes(REGION_START);
 }
 
 /**
@@ -55,18 +33,6 @@ export function isRegionStart(line: string): boolean {
  * gave, and a refresh from Zotero has no business resetting them.
  */
 export const MANAGED_KEYS = ['title', 'aliases', 'authors', 'year', 'citekey', 'zotero'] as const;
-
-/**
- * Keys the plugin writes no more and takes back out, so a note made under an
- * older version tidies itself on its next sync rather than carrying a dead
- * field for the rest of its life.
- *
- * `attachment` held a Zotero attachment key: an opaque identifier in every
- * note's properties panel, saving one request, and preferred over whatever
- * Zotero offered now, so replacing a PDF left the note reading annotations off
- * an attachment that had gone.
- */
-const RETIRED_KEYS = ['attachment'] as const;
 
 export interface PaperFrontmatter {
 	title: string;
@@ -179,16 +145,13 @@ export function replaceRegion(body: string, contents: string): string {
 	// sits flush against the marker in source view.
 	const region = `${REGION_START}\n${contents}\n\n${REGION_END}`;
 
-	// Either spelling of the markers, so a note written under the old ones is
-	// found and rewritten rather than handed a second region below the first.
-	for (const { start, end } of MARKERS) {
-		const from = body.indexOf(start);
-		const to = body.indexOf(end);
-		if (from === -1 || to === -1 || to < from) continue;
-		return body.slice(0, from) + region + body.slice(to + end.length);
+	const from = body.indexOf(REGION_START);
+	const to = body.indexOf(REGION_END);
+	if (from === -1 || to === -1 || to < from) {
+		return `${body.replace(/\s*$/, '')}\n\n${region}\n`;
 	}
 
-	return `${body.replace(/\s*$/, '')}\n\n${region}\n`;
+	return body.slice(0, from) + region + body.slice(to + REGION_END.length);
 }
 
 /**
@@ -229,10 +192,6 @@ export function managedDiffers(current: Record<string, unknown> | undefined, man
 	applyPaperFrontmatter(after, managed, null, keyField);
 
 	const same = (key: string) => JSON.stringify(before[key]) === JSON.stringify(after[key]);
-
-	// A retired key still on the note counts as a difference, or the sync that
-	// would remove it is the sync that decides nothing needs doing.
-	if (RETIRED_KEYS.some((key) => key in before)) return true;
 
 	return !same(keyField) || MANAGED_KEYS.some((key) => !same(key));
 }
@@ -275,10 +234,6 @@ export function applyPaperFrontmatter(
 		if (value === null || (Array.isArray(value) && value.length === 0)) delete frontmatter[key];
 		else frontmatter[key] = value;
 	}
-
-	// Anything the plugin has stopped writing goes on being removed, so a note
-	// made under an older version catches up the next time it is synced.
-	for (const key of RETIRED_KEYS) delete frontmatter[key];
 
 	// The one managed key whose name is not fixed. Everything that decides
 	// whether a note is a paper reads this property, so the writer has to use

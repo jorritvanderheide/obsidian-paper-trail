@@ -216,10 +216,9 @@ one delimited region:
 
 The markers are HTML comments, so they are invisible in a rendered note and
 Obsidian's metadata cache calls them `html` rather than prose. That matters
-because the region opens directly under the assessment heading, and what the
-cache calls that line is what decides whether a paper is still owed a third
-pass. Notes written under the older `%%paper-trail%%` markers are recognised
-and converted the next time they sync.
+because the region follows the assessment heading once there is one, and what
+the cache calls that line is what decides whether a paper is still owed a
+third pass.
 
 A sync may overwrite those and nothing else. Every other key, every heading and
 every word you wrote is yours. Highlight anchors come from Zotero's annotation

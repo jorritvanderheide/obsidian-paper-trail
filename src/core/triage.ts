@@ -43,27 +43,6 @@ export const PROGRESS_KEY = 'reading-progress';
 export const READING_ORDER: readonly Reading[] = ['untriaged', 'queued', 'promoted', 'deferred', 'dropped'];
 export const PROGRESS_ORDER: readonly Progress[] = ['read', 'summarised', 'assessed'];
 
-/**
- * Values `reading` used to hold on its own, and the pair each one means.
- *
- * For one release the field carried both axes, and before that a finished pass
- * was read off the prose under a heading. None of these is a verdict, so a note
- * holding one was written before the split and says so by saying it: no dated
- * migration, no sweep of the vault, and a note that is never touched again goes
- * on being read correctly forever. The same bargain `RENAMED` struck for a
- * renamed value, one axis up.
- */
-const MERGED: Record<string, State> = {
-	// Two spellings deep: `finished` became `read`, and `read` was the merged
-	// value meaning the second pass had happened.
-	finished: { reading: 'queued', progress: 'read' },
-	read: { reading: 'queued', progress: 'read' },
-	summarised: { reading: 'queued', progress: 'summarised' },
-	'pass-three': { reading: 'promoted', progress: 'read' },
-	assessing: { reading: 'promoted', progress: 'summarised' },
-	assessed: { reading: 'promoted', progress: 'assessed' },
-};
-
 /** A stored progress value, or null for a paper that has not got there. */
 export function progressOf(value: unknown): Progress | null {
 	if (typeof value !== 'string') return null;
@@ -71,29 +50,25 @@ export function progressOf(value: unknown): Progress | null {
 }
 
 /**
- * Where a paper is, however its note was written.
+ * Where a paper is, read off its frontmatter.
  *
- * The one reading of the frontmatter, so nothing downstream has to know which
- * era a note came from. A value it does not recognise at all reads as
- * untriaged: no opinion it can read has been formed, and that is the answer
- * that puts the paper back in front of you, which is the only way it gets fixed.
+ * The one reading of the two keys, so nothing downstream has to do it twice or
+ * differently. A value it does not recognise reads as untriaged: no opinion it
+ * can read has been formed, and that is the answer that puts the paper back in
+ * front of you, which is the only way it gets fixed.
  *
- * `promoted` is the one value that is both a verdict now and a merged value
- * before, so it is the one that could be ambiguous. It is not, because
- * promoting a paper to a third pass is a thing you decide at the end of reading
- * it: `promoted` implies `read`, and a note saying promoted with no progress
- * means the same thing whichever era wrote it.
+ * `promoted` with nothing recorded against it counts as read, because promoting
+ * a paper to a third pass is something you decide at the end of reading it. It
+ * saves the queue offering you a paper to read that you have said is worth
+ * arguing with.
  */
 export function stateOf(frontmatter: Record<string, unknown> | undefined): State {
 	const stored = typeof frontmatter?.reading === 'string' ? frontmatter.reading.trim() : '';
-	const explicit = progressOf(frontmatter?.[PROGRESS_KEY]);
-
-	const merged = MERGED[stored];
-	if (merged) return { reading: merged.reading, progress: explicit ?? merged.progress };
+	const progress = progressOf(frontmatter?.[PROGRESS_KEY]);
 
 	const reading = READING_ORDER.find((known) => known === stored) ?? 'untriaged';
-	if (reading === 'promoted' && explicit === null) return { reading, progress: 'read' };
-	return { reading, progress: explicit };
+	if (reading === 'promoted' && progress === null) return { reading, progress: 'read' };
+	return { reading, progress };
 }
 
 /**

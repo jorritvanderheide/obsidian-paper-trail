@@ -357,34 +357,6 @@ describe('what a queued paper still owes', () => {
 	});
 });
 
-describe('a note written under the old spelling', () => {
-	// `pass-three` was the value when the section was called Third pass. Nothing
-	// says that any more, so the value is `promoted` now and old notes are read
-	// rather than rewritten: a paper you finished last year goes on behaving
-	// exactly as it did, without the plugin touching it.
-	const old = { path: 'Literature/a.md', basename: 'a', created: 0 };
-	const cached = (reading: string) =>
-		noteState({ frontmatter: { 'zotero-key': 'ABCD2345', reading } }, old, KEY_FIELD);
-
-	it('reads pass-three as promoted, with the reading already done', () => {
-		expect(cached('pass-three').state).toEqual({ reading: 'promoted', progress: 'read' });
-	});
-
-	it('puts it in the same place a newly promoted paper goes', () => {
-		expect(taskOf(cached('pass-three'))).toBe('claim');
-		expect(taskOf(cached('pass-three'))).toBe('claim');
-	});
-
-	it('leaves a verdict exactly as it was written', () => {
-		for (const value of ['untriaged', 'queued', 'deferred', 'dropped']) {
-			expect(cached(value).state.reading, value).toBe(value);
-		}
-	});
-
-	it('reads a value it does not know at all as untriaged', () => {
-		expect(cached('something-of-your-own').state).toEqual({ reading: 'untriaged', progress: null });
-	});
-});
 
 describe('outcomeOf', () => {
 	it('names the state a paper came to rest in', () => {
@@ -770,9 +742,6 @@ describe('headingSlot', () => {
 		expect(headingSlot(note, null)).toBe(4);
 	});
 
-	it('recognises the older markers too, for a note not yet synced', () => {
-		expect(headingSlot(['# A paper', '', '%%paper-trail%%'], null)).toBe(2);
-	});
 
 	// A claim must read above an assessment, whichever was written first.
 	it('puts a claim above an assessment the note already has', () => {

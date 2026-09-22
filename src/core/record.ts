@@ -54,10 +54,10 @@ export interface Decided {
  *
  * Here rather than in the command that sweeps the vault, because every line of
  * it is an interpretation: which property makes a note a paper, that a missing
- * `reading` means untriaged rather than nothing, that an old spelling is read
- * as what it is called now, and that a note with no `title` is called by its
- * filename. `noteState` makes the same calls for the queue, and the two have
- * to agree or the record is a table of papers the queue never showed you.
+ * `reading` means untriaged rather than nothing, and that a note with no
+ * `title` is called by its filename. `noteState` makes the same calls for the
+ * queue, and the two have to agree or the record is a table of papers the queue
+ * never showed you.
  */
 export function decidedOf(
 	frontmatter: Record<string, unknown> | undefined,
@@ -72,9 +72,9 @@ export function decidedOf(
 		title: text('title') ?? file.basename,
 		authors: text('authors') ?? '',
 		year: typeof frontmatter.year === 'number' ? frontmatter.year : null,
-		// The judgement half, through `stateOf`, so a note written under any older
-		// spelling is read as the verdict it means. A paper with no reading field
-		// has not been assessed, which is exactly what untriaged means.
+		// The judgement half, through `stateOf`, so the record and the queue read
+		// the field the same way. A paper with no reading field has not been
+		// assessed, which is exactly what untriaged means.
 		reading: stateOf(frontmatter).reading,
 		triaged: text('triaged-date'),
 		reason: text('reading-reason'),

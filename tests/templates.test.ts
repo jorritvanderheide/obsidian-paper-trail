@@ -78,9 +78,6 @@ describe('the paper template', () => {
 	});
 });
 
-describe('what the template does not carry', () => {
-});
-
 /**
  * The prompts moved out of the note and into the moment.
  *
@@ -89,14 +86,6 @@ describe('what the template does not carry', () => {
  * queue now puts the cursor under the heading and asks there.
  */
 describe('the prompts the template no longer carries', () => {
-	it('leaves both headings empty, so nothing has to be deleted before writing', () => {
-		// The region markers are HTML comments now, so this asks what it means:
-		// nothing sits under either heading but the region that follows them.
-		const body = PAPER.slice(PAPER.indexOf('## {{CLAIM}}'), PAPER.indexOf(REGION_START));
-		expect(body.replace('## {{CLAIM}}', '').replace('## {{ASSESSMENT}}', '').trim()).toBe('');
-	});
-
-
 	it('is asked by the task instead, which is where it can be kept current', () => {
 		expect(TASKS.claim.prompt).toBeTruthy();
 		expect(TASKS.assessment.prompt).toBeTruthy();

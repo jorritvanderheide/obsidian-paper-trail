@@ -57,9 +57,9 @@ const DECISIONS: { reading: Reading; progress?: Progress; label: string; hint: s
 		progress: 'read',
 		label: 'Already read',
 		// Not "this one is done", which is what it used to say and what the paper
-		// then was not: `finished` skips the reading list and lands in Claim,
-		// still owing a summary. `landing` says so a second later, and a hint
-		// disagreeing with it is the wrong one of the two.
+		// then was not: it skips the reading list and lands in Claim, still owing
+		// a summary. `landing` says so a second later, and a hint disagreeing with
+		// it is the wrong one of the two.
 		hint: 'Read already, so it skips the reading list. Goes to Claim, to be summarised.',
 	},
 ];
