@@ -418,11 +418,12 @@ function folder(root: HTMLElement, { label, icon, hint, count, open, toggle }: F
 		attr: empty ? { 'aria-label': hint } : { 'aria-label': hint, tabindex: '0' },
 	});
 
-	// Both marks, in one slot. The section's own icon is what you see; the
-	// chevron takes its place under the cursor, on a header that folds. Drawn
-	// in this order because that is the order the file explorer uses, and the
-	// stylesheet is what decides which of them is showing.
-	setIcon(header.createDiv({ cls: 'tree-item-icon collapse-icon' }), 'chevron-down');
+	// One mark, and it stays. A chevron used to take the slot over on hover, on
+	// the grounds that a section icon and a chevron side by side are two glyphs
+	// competing in a four-row list. Swapping them was worse: the icon is how you
+	// find a section without reading it, and the one under the cursor is the one
+	// you are about to act on, so it was the row being pointed at that stopped
+	// saying what it was.
 	setIcon(header.createDiv({ cls: 'tree-item-icon paper-trail-stage-icon' }), icon);
 	header.createDiv({ cls: 'tree-item-inner nav-folder-title-content', text: label });
 	header.createDiv({ cls: 'tree-item-flair-outer' }).createSpan({ cls: 'tree-item-flair', text: String(count) });

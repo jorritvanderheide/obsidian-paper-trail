@@ -272,67 +272,14 @@
 	min-width: 0;
 }
 
-/* Obsidian rotates this for its own trees but not for one built here. */
-.paper-trail .tree-item.is-collapsed .collapse-icon svg {
-	transform: rotate(-90deg);
-}
-
-/*
- * One mark per section, not two.
- *
- * A chevron and a section icon side by side read as a mistake: two glyphs
- * competing in a four-row list, and the one that says what the section *is* is
- * the second of them. So the section's own icon holds the slot, and the chevron
- * takes it over when you reach for the header. Same slot, same size, so nothing
- * moves as it swaps.
- *
- * It is the pattern the rows already use: their action buttons are invisible
- * until hovered, for the same reason, which is that the list is for reading
- * titles and the controls are for when you have stopped reading them.
- */
-.paper-trail .nav-folder-title .collapse-icon {
-	display: none;
-}
-
-/*
- * Only in the stages, and only on a header that folds.
- *
- * `mod-collapsible` is the class the markup gives exactly those, so an empty
- * section keeps its own icon and never offers a chevron with nothing behind
- * it. Scoping to `paper-trail-stages` leaves the record out, which is the
- * other case where the swap buys nothing: it is one section rather than a
- * list, it is the only thing down there, and its box is the one mark saying
- * what it is. A chevron arriving over it is a flicker on the way past.
- */
-.paper-trail-stages .nav-folder-title.mod-collapsible:hover .collapse-icon,
-.paper-trail-stages .nav-folder-title.mod-collapsible:focus-visible .collapse-icon {
-	display: flex;
-}
-
-.paper-trail-stages .nav-folder-title.mod-collapsible:hover .paper-trail-stage-icon,
-.paper-trail-stages .nav-folder-title.mod-collapsible:focus-visible .paper-trail-stage-icon {
-	display: none;
-}
-
-/* A touch screen has no hover, so the chevron would never arrive. */
-@media (hover: none) {
-	.paper-trail-stages .nav-folder-title.mod-collapsible .collapse-icon {
-		display: flex;
-	}
-
-	.paper-trail-stages .nav-folder-title.mod-collapsible .paper-trail-stage-icon {
-		display: none;
-	}
-}
-
 /*
  * A stage with nothing in it keeps its place in the list, so the sections do
  * not move under the cursor as you work them, and a zero is worth reading: it
  * says there is nothing to write up rather than not saying anything.
  *
- * Quiet, and it keeps its own icon under the cursor rather than swapping in a
- * chevron, which the rule above arranges by only ever swapping on a header
- * marked collapsible. There is nothing behind one to open.
+ * Quiet, so it reads as a section holding nothing rather than one waiting for
+ * you. The markup leaves off `mod-collapsible` as well, so it takes no hover
+ * treatment and is not focusable: there is nothing behind it to open.
  */
 .paper-trail-stage-empty .tree-item-inner,
 .paper-trail-stage-empty .paper-trail-stage-icon {
