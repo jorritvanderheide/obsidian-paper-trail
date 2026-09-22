@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CachedMetadata } from 'obsidian';
+import { PASS_PROGRESS, PROGRESS_ORDER } from '../src/core/triage';
 import {
 	byStage,
 	headingCoverage,
@@ -500,17 +501,21 @@ describe('the order of the sections', () => {
 });
 
 /**
- * The two passes that end by themselves, with nothing pressed and so nothing
- * answering. Every other end comes back with `landing`.
+ * What the tick on each written pass records.
+ *
+ * Where the paper lands afterwards is `landing`, read off the pair, so the
+ * message distinguishes a paper that is finished with from one that has just
+ * acquired an assessment to write. There is no fixed sentence per pass any
+ * more: the one there was congratulated you on being able to summarise a paper,
+ * which is not something a tick can know.
  */
-describe('completion messages', () => {
-	it('belong to the two that end when prose appears under a heading', () => {
-		expect(Object.entries(TASKS).filter(([, t]) => t.completed).map(([name]) => name)).toEqual(['claim', 'assessment']);
+describe('PASS_PROGRESS', () => {
+	it('records the claim as summarised and the assessment as assessed', () => {
+		expect(PASS_PROGRESS).toEqual({ claim: 'summarised', assessment: 'assessed' });
 	});
 
-	it('are absent where a chooser has already said what happened', () => {
-		expect(TASKS.triage.completed).toBeUndefined();
-		expect(TASKS.reading.completed).toBeUndefined();
+	it('names a step the order knows, or a tick would file a paper nowhere', () => {
+		for (const progress of Object.values(PASS_PROGRESS)) expect(PROGRESS_ORDER).toContain(progress);
 	});
 });
 

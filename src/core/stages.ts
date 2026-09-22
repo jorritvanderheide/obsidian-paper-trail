@@ -168,8 +168,6 @@ export interface TaskDefinition {
 	 * which may not even be running, so nothing here would say anything at all.
 	 */
 	announces: boolean;
-	/** What to say when the tick is pressed, for the two tasks that have one. */
-	completed?: string;
 	/**
 	 * The question to put when you arrive at the heading, for the two tasks that
 	 * are answered by writing under one.
@@ -218,7 +216,6 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		doneIcon: 'check',
 		inNote: false,
 		announces: true,
-		completed: 'The second pass is done: you can say what it argues.',
 		prompt: 'What does this paper argue? One or two sentences, in your own words. Tick it off when you are done.',
 	},
 	assessment: {
@@ -234,7 +231,6 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		doneIcon: 'check',
 		inNote: false,
 		announces: true,
-		completed: 'The third pass is done.',
 		prompt: 'Where does it strain? What is it assuming? What is the evidence actually doing? Tick it off when you are done.',
 	},
 };

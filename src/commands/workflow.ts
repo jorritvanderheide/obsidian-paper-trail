@@ -188,8 +188,13 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 		progress: PASS_PROGRESS[pass],
 	});
 
-	const said = TASKS[pass].completed;
-	if (said) say(context, `${rowTitle(row)}\n${said}`);
+	// Where it landed, like every other write. It used to be a fixed sentence per
+	// pass, saying the second pass was done and that you could now say what the
+	// paper argues. That congratulated you on a capability nothing checks, since
+	// the tick can be pressed over an empty heading, and it said the same thing
+	// whether the paper was finished with or had just acquired an assessment to
+	// write. `landing` knows the difference because it reads the pair.
+	say(context, `${rowTitle(row)}\n${landing({ reading: row.note.state.reading, progress: PASS_PROGRESS[pass] })}`);
 }
 
 /**
