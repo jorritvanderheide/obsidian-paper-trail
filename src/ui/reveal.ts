@@ -5,8 +5,7 @@
 // click it again, and there are three. The triage pane had the right behaviour
 // and kept it to itself.
 import { MarkdownView, type App, type Editor, type TFile, type WorkspaceLeaf } from 'obsidian';
-import { headingLine, insertHeading, roomUnder } from '../core/stages';
-import { indexed } from './editing';
+import { headingLineIn, insertHeading, roomUnder } from '../core/stages';
 
 /** The pane a file is already open in, if any. */
 function leafShowing(app: App, file: TFile): WorkspaceLeaf | null {
@@ -62,13 +61,6 @@ export async function openAtHeading(
 ): Promise<boolean> {
 	await reveal(app, file);
 
-	// A note the decision just wrote is on disk before Obsidian has parsed it,
-	// and the headings come from that parse. Finishing a paper the vault had no
-	// note for created one and then asked it where its Claim heading was: the
-	// cache was empty, so the answer was none, and the paper that had just been
-	// read was told it had no heading to write under.
-	await indexed(app, file);
-
 	const view = app.workspace.getActiveViewOfType(MarkdownView);
 	if (!view || view.file !== file) return false;
 
@@ -83,8 +75,14 @@ export async function openAtHeading(
 	const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 	if (!editor) return false;
 
-	const found = headingLine(app.metadataCache.getFileCache(file), heading);
-	const target = found === null ? writeHeading(editor, heading, precedes) : makeRoom(editor, found);
+	// The editor's own text, never the metadata cache. The cache is a parse of
+	// what was on disk a moment ago, so a heading the decision that sent you here
+	// has only just written is not in it: asking the cache answers "no such
+	// heading" and puts a second one in. It also means a note created a moment
+	// ago needs no waiting, because opening it is what loaded the text.
+	const lines = Array.from({ length: editor.lastLine() + 1 }, (_, n) => editor.getLine(n));
+	const found = headingLineIn(lines, heading);
+	const target = found === null ? writeHeading(editor, lines, heading, precedes) : makeRoom(editor, found);
 
 	editor.setCursor({ line: target, ch: 0 });
 	editor.scrollIntoView({ from: { line: Math.max(0, target - 2), ch: 0 }, to: { line: target, ch: 0 } }, true);
@@ -95,14 +93,16 @@ export async function openAtHeading(
 /**
  * Write the heading the note has not got, and say which line to write under.
  *
- * A paper is made with neither heading in it, so the first time you go to write
- * one this is what puts it there. Through the editor like the blank lines are,
- * which is the distinction that makes writing into somebody's note allowable at
- * all: it joins your undo history, so a heading you did not want costs one
- * Ctrl+Z.
+ * A decision puts the heading in when the paper comes to owe it, so ordinarily
+ * there is one here already and this does nothing. It is what is left for the
+ * note whose heading was deleted, and for a Claim or Assessment heading setting
+ * changed after the paper was decided on.
+ *
+ * Through the editor like the blank lines are, which is the distinction that
+ * makes writing into somebody's note allowable at all: it joins your undo
+ * history, so a heading you did not want costs one Ctrl+Z.
  */
-function writeHeading(editor: Editor, heading: string, precedes: string | null): number {
-	const lines = Array.from({ length: editor.lastLine() + 1 }, (_, n) => editor.getLine(n));
+function writeHeading(editor: Editor, lines: readonly string[], heading: string, precedes: string | null): number {
 	const { at, text, cursor } = insertHeading(lines, heading, precedes);
 
 	editor.replaceRange(text, { line: at, ch: 0 });

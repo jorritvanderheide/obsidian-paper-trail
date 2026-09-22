@@ -31,7 +31,7 @@ import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
 import { prompt, suggest } from '../ui/prompt';
 import { fileOf, nextTriage } from '../outstanding';
-import type { Row } from '../core/stages';
+import { taskFor, withHeading, type Row } from '../core/stages';
 import type { Context } from '../context';
 
 /** ISO date, which is what the Linter and every Dataview query want. */
@@ -40,10 +40,12 @@ export function today(): string {
 }
 
 /**
- * Record a decision. Nothing else: the annotations arrive when the note is
- * opened, which for a paper that has just been read is the next thing that
- * happens anyway, and for one that has just been dropped is never, which is
- * right.
+ * Record a decision, and give the note the heading the decision leaves it
+ * owing.
+ *
+ * Nothing else: the annotations arrive when the note is opened, which for a
+ * paper that has just been read is the next thing that happens anyway, and for
+ * one that has just been dropped is never, which is right.
  */
 export async function writeTriage(context: Context, file: TFile, triage: Triage): Promise<void> {
 	// What you have typed goes to disk before this does, so the two are never
@@ -51,9 +53,43 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
 	await settle(context.app, file);
 
 	const date = today();
+	// The state as written, read back out of the object that was just written,
+	// rather than assembled from the decision. `applyTriage` is what decides
+	// which half of the pair a decision moves, and this has to agree with it.
+	let after: State = { reading: 'untriaged', progress: null };
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
 		applyTriage(frontmatter, triage, date, statusTagsOf(context.settings));
+		after = stateOf(frontmatter);
 	});
+
+	await writeHeadingFor(context, file, after);
+}
+
+/**
+ * Put the heading for the pass a paper now owes into its note.
+ *
+ * Here rather than at the point of writing, so that a paper waiting on a claim
+ * has somewhere to put one however you arrive at it: through the queue, through
+ * the note you already had open, through search a week later. The section being
+ * there is what the state means.
+ *
+ * Through the vault rather than the editor, unlike the blank lines, because the
+ * note is usually not open at the moment a decision is made. `process` rather
+ * than `modify`, so it edits what is on disk now rather than a copy read before
+ * the call, and `withHeading` returns the note untouched when it has the
+ * heading already, so nothing is written and no modified time moves.
+ */
+async function writeHeadingFor(context: Context, file: TFile, state: State): Promise<void> {
+	const task = taskFor(state);
+	if (task !== 'claim' && task !== 'assessment') return;
+
+	const claim = task === 'claim';
+	const heading = claim ? context.settings.claimHeading : context.settings.assessmentHeading;
+	// A claim must read above an assessment, so a paper that somehow has the
+	// second and not the first gets the first put in above it.
+	const precedes = claim ? context.settings.assessmentHeading : null;
+
+	await context.app.vault.process(file, (current) => withHeading(current, heading, precedes));
 }
 
 /**

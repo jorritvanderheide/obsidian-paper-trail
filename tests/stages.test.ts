@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { CachedMetadata } from 'obsidian';
-import { PASS_PROGRESS, PROGRESS_ORDER } from '../src/core/triage';
+import { PASS_PROGRESS, PROGRESS_ORDER, READING_ORDER } from '../src/core/triage';
 import {
 	byStage,
 	headingCoverage,
 	headingLine,
+	headingLineIn,
 	headingSlot,
 	insertHeading,
 	nextAfter,
@@ -17,9 +18,11 @@ import {
 	settled,
 	outcomeOf,
 	STAGES,
+	taskFor,
 	taskOf,
 	TASKS,
 	visibleStages,
+	withHeading,
 	type NoteState,
 	type Row,
 } from '../src/core/stages';
@@ -636,11 +639,9 @@ describe('a reading value nothing here recognises', () => {
 	});
 });
 
-describe('a note written under the old pass-three spelling', () => {
-	const old = (over: Partial<NoteState> = {}) => paper({ state: { reading: 'promoted', progress: 'read' }, ...over });
-
-	it('owes a claim, like any promoted paper', () => {
-		expect(taskOf(old())).toBe('claim');
+describe('a promoted paper, through both of the passes it earned', () => {
+	it('owes a claim first, because a claim must read above an assessment', () => {
+		expect(taskOf(paper({ state: { reading: 'promoted', progress: 'read' } }))).toBe('claim');
 	});
 
 	it('owes an assessment once the claim is ticked off', () => {
@@ -784,5 +785,93 @@ describe('insertHeading', () => {
 
 	it('writes the heading the setting names, trimmed', () => {
 		expect(insertHeading(['<!--paper-trail-->'], '  Argument ', null).text).toContain('## Argument\n');
+	});
+});
+
+/**
+ * The rules asked of a state on its own, which is what a decision has: it
+ * wrote the frontmatter and the metadata cache has not caught up.
+ */
+describe('taskFor', () => {
+	it('answers exactly as taskOf does for a paper', () => {
+		for (const reading of READING_ORDER) {
+			for (const progress of [null, ...PROGRESS_ORDER]) {
+				const state = { reading, progress };
+				expect(taskFor(state), `${reading}/${progress}`).toBe(taskOf(paper({ state })));
+			}
+		}
+	});
+
+	it('knows a paper that has been read owes a claim', () => {
+		expect(taskFor({ reading: 'queued', progress: 'read' })).toBe('claim');
+	});
+
+	it('knows only a promoted paper is ever owed an assessment', () => {
+		expect(taskFor({ reading: 'promoted', progress: 'summarised' })).toBe('assessment');
+		expect(taskFor({ reading: 'queued', progress: 'summarised' })).toBeNull();
+	});
+
+	// The two headings are written because a paper is waiting on one. A paper
+	// nobody is waiting on must not acquire a section for work not asked for.
+	it('asks nothing of a paper that has been ruled out', () => {
+		expect(taskFor({ reading: 'dropped', progress: null })).toBeNull();
+		expect(taskFor({ reading: 'deferred', progress: 'read' })).toBeNull();
+	});
+});
+
+describe('headingLineIn', () => {
+	it('finds the heading in the note it was handed', () => {
+		expect(headingLineIn(['# A paper', '', '## Claim', ''], 'Claim')).toBe(2);
+	});
+
+	it('matches the heading loosely, as the setting may be padded or cased', () => {
+		expect(headingLineIn(['### claim '], '  Claim')).toBe(0);
+	});
+
+	it('is not fooled by the word appearing in prose', () => {
+		expect(headingLineIn(['The claim is that', 'Claim'], 'Claim')).toBeNull();
+	});
+});
+
+/**
+ * The note as a decision leaves it, which is where the heading now comes from.
+ * It used to arrive when you first went to write under it, so a paper you were
+ * told to summarise had nowhere to summarise it until you pressed the button
+ * in the queue a second time.
+ */
+describe('withHeading', () => {
+	const note = ['# A paper', '', '[Zotero](x)', '', '<!--paper-trail-->', '<!--/paper-trail-->', ''].join('\n');
+
+	it('puts the heading above the region, where a note\'s own shape lives', () => {
+		expect(withHeading(note, 'Claim', null)).toBe(
+			['# A paper', '', '[Zotero](x)', '', '## Claim', '', '', '', '<!--paper-trail-->', '<!--/paper-trail-->', ''].join(
+				'\n',
+			),
+		);
+	});
+
+	// Which is what keeps a decision from moving a modified time for nothing,
+	// and what makes writing it on every decision cost nothing after the first.
+	it('returns the note untouched when the heading is already there', () => {
+		const once = withHeading(note, 'Claim', null);
+		expect(withHeading(once, 'Claim', null)).toBe(once);
+	});
+
+	it('leaves a line to write on, so arriving at it needs no second edit', () => {
+		const lines = withHeading(note, 'Claim', null).split('\n');
+		const at = headingLineIn(lines, 'Claim') ?? -1;
+		expect(roomUnder(lines.slice(at + 1, at + 4))).toBeNull();
+	});
+
+	it('puts a claim above an assessment the note already has', () => {
+		const assessed = withHeading(note, 'Assessment', null);
+		const lines = withHeading(assessed, 'Claim', 'Assessment').split('\n');
+		expect(headingLineIn(lines, 'Claim')).toBeLessThan(headingLineIn(lines, 'Assessment') ?? -1);
+	});
+
+	// A note somebody has taken the region out of. Appending is the one answer
+	// that cannot be wrong, and losing the heading is not an option.
+	it('appends to a note with no region to go above', () => {
+		expect(withHeading('# A paper\n', 'Claim', null)).toContain('## Claim');
 	});
 });

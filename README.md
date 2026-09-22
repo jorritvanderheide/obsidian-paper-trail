@@ -130,13 +130,15 @@ back up returns it to where it was rather than to the start.
 It is also why **Set reading status** offers five things rather than nine. You
 pick from the judgements; the reports are ticked off on the row that owes them.
 
-The plugin writes none of it. The heading is not even there until you go to
-write under it: a new paper is a title, its links and the highlights region,
-and the Claim heading is written in above the highlights the first time you ask
-for it. A paper you drop on its abstract stays three lines long rather than
-carrying an outline of work that was never going to happen. The question is put
-in the moment you arrive, rather than left lying in the file as a comment you
-would have to type around and then delete.
+The plugin writes none of it, only the heading it goes under. A new paper is a
+title, its links and the highlights region; the Claim heading is written in
+above the highlights at the moment the paper comes to owe a claim, and the
+Assessment heading when the claim is ticked off. So the section is there
+whenever you open the note, however you got to it, and a paper you drop on its
+abstract stays three lines long rather than carrying an outline of work that
+was never going to happen. The question is put in the moment you arrive, rather
+than left lying in the file as a comment you would have to type around and then
+delete.
 
 **Assessment** is for the few papers you promote, and ends the same way. It is
 Keshav's third pass: arguing with a paper you can already summarise.

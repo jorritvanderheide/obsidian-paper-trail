@@ -283,9 +283,20 @@ export function headingCoverage(papers: (CachedMetadata | null)[], heading: stri
  * you stop typing, and the plugin has no business having an opinion about it.
  */
 export function taskOf(note: NoteState): Task | null {
-	if (!note.isPaper) return null;
+	return note.isPaper ? taskFor(note.state) : null;
+}
 
-	const { reading, progress } = note.state;
+/**
+ * The same question asked of a state on its own.
+ *
+ * Split out because a decision knows the state it just wrote and has no note
+ * to hand: the frontmatter is written, the metadata cache has not caught up,
+ * and what the paper is now waiting on decides whether its note is owed a
+ * heading. Reading it back off a stale cache would answer for the state before
+ * the decision.
+ */
+export function taskFor(state: State): Task | null {
+	const { reading, progress } = state;
 
 	// A missing or unreadable `reading` counts as untriaged rather than as
 	// nothing at all. A note brought in from somewhere else, or written before
@@ -459,6 +470,44 @@ export function roomUnder(following: readonly string[]): Room | null {
 	if (!blank(1)) return { newlines: 2, below: 1 };
 	if (!blank(2)) return { newlines: 1, below: 2 };
 	return null;
+}
+
+/**
+ * The line a heading is on in a note's text, or null.
+ *
+ * The text rather than the cache, for anything about to write to the note. The
+ * cache is a parse of what was on disk a moment ago, so a heading written by
+ * the decision you just made is not in it yet, and asking it where the Claim
+ * heading is answers "nowhere" and writes a second one.
+ */
+export function headingLineIn(lines: readonly string[], heading: string): number | null {
+	const at = lines.findIndex((line) => isHeading(line, heading));
+	return at === -1 ? null : at;
+}
+
+/**
+ * The note with the heading it is waiting on, or the note unchanged when it
+ * already has one.
+ *
+ * A paper gets the heading for the pass it owes at the moment it comes to owe
+ * it, rather than the first time you go to write under it. The old moment was
+ * the safer one and read as a plugin that had not done its half: you open a
+ * paper you were told to summarise and there is nowhere to summarise it, until
+ * you go back to the queue and press the button that puts the section in.
+ *
+ * Still one at a time, which is what keeps the original argument intact: the
+ * headings left the template because every paper dropped on its abstract
+ * carried an outline of work that was never going to happen. A dropped paper
+ * is never waiting on a claim, so it never gets the heading, and an assessment
+ * arrives only when the claim is ticked off.
+ */
+export function withHeading(content: string, heading: string, precedes: string | null): string {
+	const lines = content.split('\n');
+	if (headingLineIn(lines, heading) !== null) return content;
+
+	const { at, text } = insertHeading(lines, heading, precedes);
+	const tail = lines.slice(at).join('\n');
+	return at === 0 ? text + tail : `${lines.slice(0, at).join('\n')}\n${text}${tail}`;
 }
 
 /** Where a heading is in the cache's list, or -1. Matched loosely on case and padding. */

@@ -544,15 +544,21 @@ function sectionRows(
 		if (!task) continue;
 		const { action, icon, done, doneIcon } = TASKS[task];
 
-		// Clicking a row shows you the paper. Always the same thing, in every
-		// section, so the click is safe: it opens a note or focuses the tab one
-		// is already in, and never leaves Obsidian or writes anything.
+		// Clicking a row shows you the paper, and never leaves Obsidian or writes
+		// anything.
 		//
-		// It did carry the task for a while, so a queued row opened Zotero and a
-		// claim row opened at a heading. That made the sections legible at the
-		// cost of the one gesture you make most: you could not look at a paper
-		// without starting its next step, and the two are not the same wish.
-		// The task is on the button at the trailing edge, where it is a choice.
+		// It carried the task once, so a queued row opened Zotero, and that cost
+		// the one gesture you make most: you could not look at a paper without
+		// starting its next step. The reading row still does not, for that reason
+		// and because Zotero is not somewhere a click on a list should send you.
+		//
+		// A claim or an assessment row does, because for those two the difference
+		// went away. The section the paper is waiting on is in the note from the
+		// moment it comes to be waiting on it, so opening at the heading writes
+		// nothing that showing the note would not: it is the same note, scrolled
+		// to the part of it the row is about. Landing at the top of a note whose
+		// whole reason for being in the list is four screens down was a scroll
+		// you had to make every time.
 		//
 		// A paper Zotero holds and the vault does not has no note to show, so
 		// showing it means writing it. That is still the same promise kept: the
@@ -561,10 +567,13 @@ function sectionRows(
 		//
 		// Triage is the one row that cannot: deciding is what writes its note,
 		// and writing one first would be answering the question on your behalf.
+		const writes = task === 'claim' || task === 'assessment';
 		const row = treeRow(children, rowTitle(entry), () => {
-			if (entry.kind === 'note') void openNote(context.app, entry.note);
-			else if (task === 'triage') void act(context, task, entry);
-			else void showPending(context, entry.item);
+			if (entry.kind !== 'note') {
+				if (task === 'triage') void act(context, task, entry);
+				else void showPending(context, entry.item);
+			} else if (writes) void act(context, task, entry);
+			else void openNote(context.app, entry.note);
 		});
 
 		if (entry.kind === 'note') row.dataset.path = entry.note.path;
@@ -584,6 +593,11 @@ function sectionRows(
 		if (done && doneIcon) {
 			iconButton(actions, doneIcon, done, () => void finish(context, task, entry));
 		}
+		// Still drawn on a claim or an assessment row, where the row click now
+		// does the same thing. Not a duplicate to remove: it is the only visible
+		// sign that those two rows go somewhere different from the rest, and a row
+		// that behaves unlike its neighbours without showing it is a row nobody
+		// finds.
 		if (icon) iconButton(actions, icon, action, () => void act(context, task, entry));
 	}
 
