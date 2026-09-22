@@ -182,6 +182,10 @@ export interface TaskDefinition {
 	 * instruction belongs to it: asked once, always current, and gone the
 	 * instant it is answered, rather than sitting in every paper you ever made
 	 * including the ones you dropped.
+	 *
+	 * Being current is what lets one of them name a command. A prompt in a
+	 * template could not, because a template is written once and read for years
+	 * after the command it named was renamed.
 	 */
 	prompt?: string;
 }
@@ -220,7 +224,23 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		doneIcon: 'check',
 		inNote: false,
 		announces: true,
-		prompt: 'What does this paper argue? One or two sentences, in your own words. Tick it off when you are done.',
+		// Two questions, because the second is only answerable here. A literature
+		// review is a claim about a field rather than a list of papers: who agrees
+		// with whom, what is assumed in common, where the gap is. Those are edges
+		// between papers, and nothing in the workflow used to ask for one.
+		//
+		// This is the moment it can be asked at. Having just said what a paper
+		// claims is exactly when you know whether it contradicts something you read
+		// in March, and it is the last such moment: a week later the paper is filed
+		// and you are reading the next one.
+		//
+		// It names `Insert citation` because the link is not a thing you would
+		// guess your way to. With Better BibTeX a note is named for its citation
+		// key, so typing `[[` finds papers by key and not by title, which is the
+		// half you remember. Without it a note is named for author, title and year,
+		// `[[` finds them perfectly, and there is no key to link to anyway.
+		prompt:
+			'What does this paper argue, and what does it sit with or against? One or two sentences, in your own words. Insert citation makes the link. Tick it off when you are done.',
 	},
 	assessment: {
 		task: 'assessment',

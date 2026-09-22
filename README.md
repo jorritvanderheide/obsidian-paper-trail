@@ -80,6 +80,59 @@ palette.
 Nothing here refuses: there is no order you have to work in and no stage that
 locks until an earlier one is clear.
 
+## What a note is for
+
+A literature note that says what a paper says has already lost. The abstract is
+better written, it is in Zotero, and it is one click away. So the note has to be
+the thing the paper cannot be: the smallest thing that can stand in for the
+paper in your argument.
+
+The test is unkind. If you would still open the PDF to write the paragraph, the
+note failed. Not to check a quote, which is what the page anchors are for, but
+to remember what the thing was and what you thought of it.
+
+Over five years the adversary is not comprehension, it is forgetting. In two
+years you are a stranger to your own reading, and a note that needs you to have
+read the paper recently is a note that has expired.
+
+Which is why the two headings are separate and named. **Claim** is what the
+paper argues, in your words, because a paraphrase you cannot produce now is one
+you will not produce at writing time either; in one or two sentences, because a
+page-long summary is a thing you have to re-read, which is the same failure one
+level up. **Assessment** is your quarrel with it: what strains, what it is
+assuming, what the evidence is actually doing. That half cannot be got anywhere
+else, and a note with no friction in it will only ever be cited for background,
+which is the cheapest thing in a thesis.
+
+Keeping the two apart is the point of naming them. At writing time you always
+know whose sentence you are holding, and blurring that is not a tidiness
+problem.
+
+The arithmetic decides the rest. Four hundred papers at twenty minutes a note is
+a hundred and thirty hours, so the twenty seconds on an abstract, the two
+sentence cap, and the assessment asked only of papers you promoted are not
+minimalism. They are the budget, and anything else a note might carry has to be
+paid for out of it.
+
+One thing is worth the price. A literature review is not a list of papers, it is
+a claim about a field: who agrees with whom, what is assumed in common, where
+the gap is. Those are edges between papers, and the edges are where a
+contribution lives. So the claim asks for both, what the paper argues and what
+it argues with or against, and it asks at the only moment the second question
+is cheap: having just said what a paper claims is exactly when you know whether
+it contradicts something you read in March.
+
+**Insert citation** writes the link, and it is one thing doing three jobs. The
+link is a wikilink to the citation key, so `against [[jones2021sampling]]` in a
+claim reads as a citation, exports as one through pandoc, and puts this paper
+in Jones's backlinks. Which papers spoke to which is the question a thesis asks
+of its own corpus, and the backlinks pane is where it gets answered.
+
+Without Better BibTeX there is no citation key and none is wanted: notes are
+named for author, title and year, so Obsidian’s own `[[` finds them by what you
+would type. With it, a note is named for its key, `[[` finds papers by key
+rather than by title, and **Insert citation** is what closes that gap.
+
 ## The passes
 
 The reading model is S. Keshav's *How to Read a Paper*: increasingly expensive
@@ -120,9 +173,11 @@ can. This is where you make good on it.
 
 Saying so takes you straight to the note, cursor on an empty line under the
 Claim heading, with the highlights Zotero synced sitting right below. Write what
-the paper argues, in your own words, and tick it off. The pencil on the row puts
-you back in the same place whenever you come back to it, and the tick beside it
-is what ends the pass.
+the paper argues, in your own words, and what it sits with or against, and tick
+it off. The pencil on the row puts you back in the same place whenever you come
+back to it, and the tick beside it is what ends the pass. Arrive at a claim you
+have already written and nothing is moved and nothing is asked: you are taken
+to it and left alone.
 
 The tick asks once, when there is nothing under the heading at all: an empty
 section is a tick pressed on the wrong row or before the work rather than a
