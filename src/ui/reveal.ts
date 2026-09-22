@@ -5,7 +5,7 @@
 // click it again, and there are three. The triage pane had the right behaviour
 // and kept it to itself.
 import { MarkdownView, type App, type Editor, type TFile, type WorkspaceLeaf } from 'obsidian';
-import { headingLineIn, insertHeading, roomUnder } from '../core/stages';
+import { headingLineIn, insertHeading, roomUnder, writtenUnder } from '../core/stages';
 
 /** The pane a file is already open in, if any. */
 function leafShowing(app: App, file: TFile): WorkspaceLeaf | null {
@@ -70,19 +70,27 @@ export async function readingView(app: App, file: TFile): Promise<void> {
  * and a claim composed in a modal cannot see the evidence it is supposed to
  * summarise.
  *
- * False means the heading was not found, which is worth saying out loud: it is
- * the one failure that otherwise shows up as a paper that never leaves.
+ * Which of the three happened is the answer, because the caller has something
+ * different to say about each.
  */
+export type Arrival =
+	/** The cursor is on an empty line under the heading, waiting for the work. */
+	| 'ready'
+	/** Something was already written there. You were taken to it and nothing moved. */
+	| 'written'
+	/** The note could not be opened, so nothing happened at all. */
+	| 'shut';
+
 export async function openAtHeading(
 	app: App,
 	file: TFile,
 	heading: string,
 	precedes: string | null = null,
-): Promise<boolean> {
+): Promise<Arrival> {
 	await reveal(app, file);
 
 	const view = app.workspace.getActiveViewOfType(MarkdownView);
-	if (!view || view.file !== file) return false;
+	if (!view || view.file !== file) return 'shut';
 
 	// Reading view has no cursor to place. Switching is the right intrusion
 	// here and nowhere else: the action you just took was "write the claim".
@@ -93,7 +101,7 @@ export async function openAtHeading(
 	// Re-read the editor: changing the mode rebuilds it, so the one captured
 	// above belongs to a view that no longer exists.
 	const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
-	if (!editor) return false;
+	if (!editor) return 'shut';
 
 	// The editor's own text, never the metadata cache. The cache is a parse of
 	// what was on disk a moment ago, so a heading the decision that sent you here
@@ -102,12 +110,32 @@ export async function openAtHeading(
 	// ago needs no waiting, because opening it is what loaded the text.
 	const lines = Array.from({ length: editor.lastLine() + 1 }, (_, n) => editor.getLine(n));
 	const found = headingLineIn(lines, heading);
+
+	// Already written, so this is a visit rather than a seat. Nothing is
+	// inserted and the cursor is left exactly where it was, which is the whole
+	// of the difference: `makeRoom` opens a gap under the heading, and under a
+	// heading with prose under it that gap goes in above the prose. Pressing the
+	// button on a claim you had already written pushed it down two lines and put
+	// the cursor in the space it made.
+	//
+	// Scrolled to all the same, because going to the work is what was asked for,
+	// and a scroll moves nothing.
+	if (found !== null && writtenUnder(lines, heading)) {
+		scrollTo(editor, found);
+		return 'written';
+	}
+
 	const target = found === null ? writeHeading(editor, lines, heading, precedes) : makeRoom(editor, found);
 
 	editor.setCursor({ line: target, ch: 0 });
-	editor.scrollIntoView({ from: { line: Math.max(0, target - 2), ch: 0 }, to: { line: target, ch: 0 } }, true);
+	scrollTo(editor, target);
 	editor.focus();
-	return true;
+	return 'ready';
+}
+
+/** Put a line on screen, with a little of what is above it for context. */
+function scrollTo(editor: Editor, line: number): void {
+	editor.scrollIntoView({ from: { line: Math.max(0, line - 2), ch: 0 }, to: { line, ch: 0 } }, true);
 }
 
 /**

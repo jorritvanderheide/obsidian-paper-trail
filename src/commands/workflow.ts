@@ -168,9 +168,8 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
  * on arrival it is asked once, in the current wording, and is gone as soon as
  * it is answered.
  *
- * A heading the note does not have falls back to the note and says so. The
- * paper can still be ticked off from the row, so this no longer traps it; it
- * is a setting disagreeing with the vault, and worth a word either way.
+ * What is said depends on what was found there, because a question already
+ * answered is not a question.
  */
 async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assessment', lead?: string): Promise<void> {
 	const claim = task === 'claim';
@@ -180,29 +179,31 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
 	// claim the heading goes in above it rather than at the region.
 	const precedes = claim ? context.settings.assessmentHeading : null;
 
-	if (await openAtHeading(context.app, file, heading, precedes)) {
-		// One notice rather than two. A caller that has something to say about
-		// how the paper got here says it on the same slip as the question, which
-		// is where you are about to be looking anyway. Finishing a reading used
-		// to raise both, and they largely said the same thing twice.
-		//
-		// The prompt is never silenced: it is the question that replaced the ones
-		// the template used to carry, and a heading with no question is the state
-		// this plugin moved away from. The lead is an answer and can be.
-		const answer = context.settings.quietNotices ? undefined : lead;
-		const said = [answer, TASKS[task].prompt].filter(Boolean).join('\n');
-		if (said) new Notice(said);
+	const arrival = await openAtHeading(context.app, file, heading, precedes);
+	if (arrival === 'shut') {
+		// The pass can still be ended from the tick beside this button, so this is
+		// not a paper that can never leave. It is still worth saying, because the
+		// press did nothing and nothing else would account for that.
+		new Notice(`${file.basename} would not open, so the cursor went nowhere.`);
 		return;
 	}
 
-	// The pass can still be ended from the tick beside this button, so this is
-	// no longer a paper that can never leave. It is still worth saying: the
-	// cursor went nowhere, and a heading the note has not got is a setting that
-	// disagrees with the vault.
-	new Notice(
-		`${file.basename} has no "${heading}" heading, so there is nowhere to put the cursor.\n` +
-			`Add it to the note, or change the ${claim ? 'Claim' : 'Assessment'} heading in settings.`,
-	);
+	// One notice rather than two. A caller that has something to say about how
+	// the paper got here says it on the same slip as the question, which is
+	// where you are about to be looking anyway. Finishing a reading used to
+	// raise both, and they largely said the same thing twice.
+	//
+	// The prompt is never silenced by the quiet setting: it is the question that
+	// replaced the ones the template used to carry, and a heading with no
+	// question is the state this plugin moved away from. The lead is an answer
+	// and can be.
+	//
+	// It is silenced by an answer, though. Arriving at a claim you have already
+	// written and being asked what the paper argues is the template's old fault
+	// in a new place: a prompt sitting over work already done.
+	const answer = context.settings.quietNotices ? undefined : lead;
+	const said = [answer, arrival === 'ready' ? TASKS[task].prompt : undefined].filter(Boolean).join('\n');
+	if (said) new Notice(said);
 }
 
 /**
