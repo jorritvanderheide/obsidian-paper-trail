@@ -16,8 +16,11 @@ import {
 	taskOf,
 	TASKS,
 	visibleStages,
+	writtenOf,
+	finishedByWriting,
 	type NoteState,
 	type Row,
+	type Written,
 } from '../src/core/stages';
 
 const paper = (over: Partial<NoteState> = {}): NoteState => ({
@@ -682,5 +685,78 @@ describe('a note written under the old pass-three spelling', () => {
 		expect(taskOf(done)).toBeNull();
 		expect(settledOf(done)).toBe('promoted');
 		expect(settled([done])).toHaveLength(1);
+	});
+});
+
+/**
+ * What counts as finishing a pass by writing it.
+ *
+ * The two passes that end this way are the only ones with nothing else to
+ * announce them, so telling that apart from every other reason a paper stops
+ * owing something is the whole job.
+ */
+describe('finishedByWriting', () => {
+	const owing = (task: 'claim' | 'assessment', over: Partial<Written> = {}): Written => ({
+		task,
+		hasClaim: task === 'assessment',
+		hasAssessment: false,
+		...over,
+	});
+
+	it('announces a claim written on a paper that owed one', () => {
+		expect(finishedByWriting(owing('claim'), { task: null, hasClaim: true, hasAssessment: false })).toBe('claim');
+	});
+
+	// The task goes from claim to assessment rather than to nothing, which is
+	// why asking "is there no task now" said nothing about the one completion
+	// the message exists for.
+	it('announces a claim written on a paper promoted to a third pass', () => {
+		expect(finishedByWriting(owing('claim'), { task: 'assessment', hasClaim: true, hasAssessment: false })).toBe('claim');
+	});
+
+	it('announces an assessment written on a paper that owed one', () => {
+		expect(finishedByWriting(owing('assessment'), { task: null, hasClaim: true, hasAssessment: true })).toBe('assessment');
+	});
+
+	// Dropping a paper that owed a claim used to congratulate you on the second
+	// pass you had not written.
+	it('says nothing when a decision takes the paper out of Claim', () => {
+		expect(finishedByWriting(owing('claim'), { task: null, hasClaim: false, hasAssessment: false })).toBeNull();
+	});
+
+	it('says nothing when a decision takes the paper out of Assessment', () => {
+		expect(finishedByWriting(owing('assessment'), { task: null, hasClaim: true, hasAssessment: false })).toBeNull();
+	});
+
+	it('says nothing about a paper that was owing neither', () => {
+		expect(finishedByWriting({ task: 'read', hasClaim: false, hasAssessment: false }, { task: null, hasClaim: false, hasAssessment: false })).toBeNull();
+		expect(finishedByWriting({ task: 'triage', hasClaim: false, hasAssessment: false }, { task: null, hasClaim: false, hasAssessment: false })).toBeNull();
+	});
+
+	it('says nothing twice for one claim, however often the note changes after', () => {
+		const written = { task: null, hasClaim: true, hasAssessment: false };
+		expect(finishedByWriting(written, written)).toBeNull();
+	});
+
+	it('says nothing when the claim was already there', () => {
+		expect(finishedByWriting({ task: 'assessment', hasClaim: true, hasAssessment: false }, { task: 'assessment', hasClaim: true, hasAssessment: false })).toBeNull();
+	});
+});
+
+describe('writtenOf', () => {
+	it('carries what the comparison needs and nothing else', () => {
+		expect(writtenOf(paper({ reading: 'finished', hasClaim: false }))).toEqual({
+			task: 'claim',
+			hasClaim: false,
+			hasAssessment: false,
+		});
+	});
+});
+
+describe('TASKS announces', () => {
+	// `next` speaks only for the task that leaves Obsidian, because the other
+	// three answer for themselves and a second slip is noise.
+	it('is false only for reading, which goes to Zotero', () => {
+		expect(Object.values(TASKS).filter((task) => !task.announces).map((task) => task.task)).toEqual(['read']);
 	});
 });

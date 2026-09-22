@@ -12,19 +12,19 @@
 //
 // What counts as finished is core's to say. This watches and speaks.
 import { Notice } from 'obsidian';
-import { noteState, taskOf, TASKS, type Task } from '../core/stages';
+import { finishedByWriting, noteState, TASKS, writtenOf, type Written } from '../core/stages';
 import type { Context } from '../context';
 import type { TFile } from 'obsidian';
 
 /**
- * What each paper was waiting on when this session last looked.
+ * What each paper owed and had when this session last looked.
  *
  * Session-scoped and never written anywhere, like the queue's fold state. It
  * starts empty on purpose: a paper whose claim was written in another vault, or
  * before Obsidian opened, was not finished in front of you, and announcing it
  * on startup would be congratulating you for something you did last week.
  */
-const before = new Map<string, Task | null>();
+const before = new Map<string, Written>();
 
 /**
  * Watch one note across a metadata change, and say so if it just finished.
@@ -41,15 +41,17 @@ export function announce(context: Context, file: TFile): void {
 	);
 
 	const was = before.get(file.path);
-	const now = taskOf(note);
+	const now = writtenOf(note);
 	before.set(file.path, now);
 
 	// Nothing to compare against yet, so nothing was watched happening.
-	if (was === undefined || was === null || now !== null) return;
+	if (was === undefined) return;
 
-	// Only the two that have nothing else to announce them. A paper leaving
-	// Triage or Reading was already answered by the chooser that sent it there.
-	const said = TASKS[was].completed;
+	// What counts as finishing a pass is core's. Only the two that have nothing
+	// else to announce them have anything to say: a paper leaving Triage or
+	// Reading was already answered by the chooser that sent it there.
+	const done = finishedByWriting(was, now);
+	const said = done && TASKS[done].completed;
 	if (said) new Notice(`${note.title}\n${said}`);
 }
 

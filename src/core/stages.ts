@@ -143,6 +143,17 @@ export interface TaskDefinition {
 	 */
 	inNote: boolean;
 	/**
+	 * Whether acting on this task shows you, in Obsidian, which paper it was.
+	 *
+	 * `next` chooses for you, so it says what it picked. That is worth a notice
+	 * only where nothing else answers: triage opens a dialog with the title on
+	 * it, and a claim or an assessment puts the cursor in the note and names the
+	 * work, so a slip announcing the same paper a beat earlier is the second of
+	 * two notices for one keypress. Reading is the one that leaves for Zotero,
+	 * which may not even be running, so nothing here would say anything at all.
+	 */
+	announces: boolean;
+	/**
 	 * What to say when this task ends by itself, for the two that do.
 	 *
 	 * A triage decision and the end of a reading both announce themselves,
@@ -176,6 +187,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		action: 'Triage',
 		icon: 'scan-eye',
 		inNote: true,
+		announces: true,
 	},
 	read: {
 		task: 'read',
@@ -187,6 +199,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		done: 'Finished',
 		doneIcon: 'check',
 		inNote: true,
+		announces: false,
 	},
 	claim: {
 		task: 'claim',
@@ -196,6 +209,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		action: 'Write the claim',
 		icon: 'pencil',
 		inNote: false,
+		announces: true,
 		completed: 'The second pass is done: you can say what it argues.',
 		prompt: 'What does this paper argue? One or two sentences, in your own words.',
 	},
@@ -209,6 +223,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		// under a heading and write. Which heading is what the section says.
 		icon: 'pencil',
 		inNote: false,
+		announces: true,
 		completed: 'The third pass is done.',
 		prompt: 'Where does it strain? What is it assuming? What is the evidence actually doing?',
 	},
@@ -427,6 +442,43 @@ export function noteState(
 		created: file.created,
 		decided: typeof frontmatter?.['reading-date'] === 'string' ? frontmatter['reading-date'] : null,
 	};
+}
+
+/**
+ * What a note owed and what it had, for comparing one reading of it against
+ * the next.
+ */
+export interface Written {
+	task: Task | null;
+	hasClaim: boolean;
+	hasAssessment: boolean;
+}
+
+export function writtenOf(note: NoteState): Written {
+	return { task: taskOf(note), hasClaim: note.hasClaim, hasAssessment: note.hasAssessment };
+}
+
+/**
+ * Which pass was just finished by writing under its heading, or null.
+ *
+ * The two passes that end this way are the only ones with nothing else to
+ * announce them, and telling that apart from every other reason a paper stops
+ * owing something is the whole of this.
+ *
+ * It used to ask whether the task had gone from claim to nothing, which was
+ * wrong twice. Drop a paper that owed a claim and it congratulated you on the
+ * second pass you had not written. Write the claim on a paper promoted to a
+ * third pass and it said nothing, because the task went from claim to
+ * assessment rather than to nothing, and that is exactly the completion the
+ * message exists for.
+ *
+ * So it asks what it means: did the heading this paper was waiting on go from
+ * empty to written.
+ */
+export function finishedByWriting(was: Written, now: Written): Task | null {
+	if (was.task === 'claim' && !was.hasClaim && now.hasClaim) return 'claim';
+	if (was.task === 'assessment' && !was.hasAssessment && now.hasAssessment) return 'assessment';
+	return null;
 }
 
 /**

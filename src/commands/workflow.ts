@@ -127,13 +127,17 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
  * the one failure in this workflow that is otherwise completely silent: the
  * paper never leaves its section and nothing anywhere explains why.
  */
-async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assessment'): Promise<void> {
+async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assessment', lead?: string): Promise<void> {
 	const claim = task === 'claim';
 	const heading = claim ? context.settings.claimHeading : context.settings.assessmentHeading;
 
 	if (await openAtHeading(context.app, file, heading)) {
-		const asked = TASKS[task].prompt;
-		if (asked) new Notice(asked);
+		// One notice rather than two. A caller that has something to say about
+		// how the paper got here says it on the same slip as the question, which
+		// is where you are about to be looking anyway. Finishing a reading used
+		// to raise both, and they largely said the same thing twice.
+		const said = [lead, TASKS[task].prompt].filter(Boolean).join('\n');
+		if (said) new Notice(said);
 		return;
 	}
 
@@ -177,18 +181,24 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	const file = await decideOn(context, target, choice.reading);
 	if (!file) return;
 
-	new Notice(`${title}\n${landing(choice.reading)}`);
+	const landed = `${title}\n${landing(choice.reading)}`;
 
 	// Both of the outcomes that mean you engaged with the paper leave it owing a
 	// claim, so this goes straight there rather than leaving you to find it.
 	// It is the moment the summary is cheapest to write: you have just closed
 	// the PDF, and the highlights are already in the note below the cursor.
 	//
+	// Where it lands and what it now owes go on one notice, because they are one
+	// answer to one press and were two slips saying nearly the same thing.
+	//
 	// The two that end the paper are not followed anywhere. A drop and a
 	// deferral have already been answered, and there is nothing left to type.
 	if (choice.reading === 'finished' || choice.reading === 'promoted') {
-		await writeUnder(context, file, 'claim');
+		await writeUnder(context, file, 'claim', landed);
+		return;
 	}
+
+	new Notice(landed);
 }
 
 /**
@@ -206,7 +216,14 @@ export async function next(context: Context): Promise<void> {
 		// asking to be read whatever the section it was filed under is called.
 		const task = first ? rowTask(first, context.settings.triage) : null;
 		if (!first || !task) continue;
-		new Notice(`${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} outstanding` : ''}`);
+
+		// Only where the action will not say it itself. Triage opens a dialog
+		// with the title on it and writing a pass lands the cursor in the note,
+		// so announcing the paper a beat before either of those was the first of
+		// two notices for one keypress.
+		if (!TASKS[task].announces) {
+			new Notice(`${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} outstanding` : ''}`);
+		}
 		await act(context, task, first);
 		return;
 	}

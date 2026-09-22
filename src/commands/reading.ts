@@ -289,20 +289,28 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 
 	const loaded = { title, brief, problem };
 
+	// Rebuilt for every paper, because it is what closes over the one being
+	// decided. Handing the dialog a new paper to show and leaving it the handler
+	// it was built with is how a sitting came to write its answers to whichever
+	// paper opened it.
+	//
+	// The notice comes before `advance` rather than after the whole thing, so
+	// the answer to what you pressed arrives before the news that the pile is
+	// empty. The other way round read as a conclusion before its premise.
+	const decide = async (reading: Reading) => {
+		const file = await decideOn(context, target, reading);
+		if (!file) return;
+		new Notice(`${title}\n${landing(reading)}`);
+		await advance(context, file, key);
+	};
+
 	// One dialog for the whole sitting. Pointing the open one at the next paper
 	// rather than opening another is what makes forty decisions forty answers
 	// instead of forty dialogs.
 	if (open) {
-		open.show(loaded);
+		open.show(loaded, decide);
 		return;
 	}
-
-	const decide = async (reading: Reading) => {
-		const file = await decideOn(context, target, reading);
-		if (!file) return false;
-		await advance(context, file, key);
-		return true;
-	};
 
 	open = new TriageModal(app, loaded, decide, () => (open = null));
 	open.open();

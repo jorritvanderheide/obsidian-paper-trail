@@ -18,8 +18,8 @@
 // all: Zotero's own record. The abstract here is the publisher's, off the item,
 // and title, venue and year come with it. That is what Keshav's first pass is
 // mostly made of, and it is what the twenty seconds are actually spent on.
-import { Modal, Notice, setIcon, type App } from 'obsidian';
-import { iconOf, landing, type Reading } from '../core/triage';
+import { Modal, setIcon, type App } from 'obsidian';
+import { iconOf, type Reading } from '../core/triage';
 import { notify } from './notify';
 
 /** What Zotero hands over without anything being opened. */
@@ -79,15 +79,24 @@ export class TriageModal extends Modal {
 	constructor(
 		app: App,
 		private loaded: Triaged,
-		private readonly decide: (reading: Reading) => Promise<boolean>,
+		private decide: (reading: Reading) => Promise<void>,
 		private readonly onClosed: () => void,
 	) {
 		super(app);
 	}
 
-	/** Point the open dialog at the next paper, without it ever having shut. */
-	show(loaded: Triaged): void {
+	/**
+	 * Point the open dialog at the next paper, without it ever having shut.
+	 *
+	 * Both halves, and that is the whole of it. This used to take the paper to
+	 * show and keep the handler it was built with, which was bound to the first
+	 * paper of the sitting: from the second decision on, the dialog displayed one
+	 * paper and wrote to another, and the queue never moved past the second.
+	 * Whatever a sitting shows and whatever it writes are one thing.
+	 */
+	show(loaded: Triaged, decide: (reading: Reading) => Promise<void>): void {
 		this.loaded = loaded;
+		this.decide = decide;
 		this.render();
 	}
 
@@ -142,20 +151,20 @@ export class TriageModal extends Modal {
 		}
 	}
 
+	/**
+	 * Hand the decision over and do nothing else.
+	 *
+	 * Whether a decision owes an answer before it can be written, what to ask for
+	 * it, what to say afterwards and which paper comes next all belong to the
+	 * command. The dialog used to say what had happened itself, which put its
+	 * notice after the one announcing the end of the sitting: the conclusion
+	 * arrived before the thing it was concluding.
+	 *
+	 * A drop asks why in a prompt of its own, which stacks on top of this one
+	 * rather than replacing it. That is why the reason dialog can be escaped
+	 * without losing your place in the pile.
+	 */
 	private async answer(decision: (typeof DECISIONS)[number]): Promise<void> {
-		const loaded = this.loaded;
-
-		// Whether a decision owes an answer before it can be written, and what to
-		// ask for it, belongs to core rather than to a dialog: three places record
-		// decisions, and a rule known in one of them is a rule the other two
-		// forget. False here means the question went unanswered, so nothing was
-		// written and this stays open on the paper.
-		//
-		// A drop asks why in a prompt of its own, which stacks on top of this one
-		// rather than replacing it. That is why the reason dialog can be escaped
-		// without losing your place in the pile.
-		if (!(await this.decide(decision.reading))) return;
-
-		new Notice(`${loaded.title}\n${landing(decision.reading)}`);
+		await this.decide(decision.reading);
 	}
 }
