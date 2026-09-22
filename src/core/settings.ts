@@ -9,6 +9,8 @@
 // opinionated workflow into a rules engine that asks the user to invent one,
 // which is what Dataview already is.
 
+import type { StatusTags } from './triage';
+
 /**
  * Bumped when a saved key is renamed or its meaning changes, never for adding
  * or removing one: an absent key already falls back to its default, and a key
@@ -97,6 +99,23 @@ export interface Settings {
 	 * colliding with a `status/` a vault already uses for something else.
 	 */
 	statusTag: string;
+	/**
+	 * Namespaces `statusTag` has held before, so the tags written under them can
+	 * be taken back out.
+	 *
+	 * Not shown in the settings tab, because it is not a thing to set: it is the
+	 * plugin remembering what it wrote. Without it the mirror is only honest
+	 * while the setting never changes, and a paper decided under `literature`
+	 * and later dropped under `status` goes on saying `literature/queued`, which
+	 * is not stale but false.
+	 *
+	 * Written when the setting changes, and read on every decision, so a paper
+	 * sheds the old namespace the next time you rule on it. That is the same
+	 * promise `RENAMED` makes about a renamed reading value, and it has the same
+	 * gap: a paper you never decide on again keeps what it has. The settings tab
+	 * says how many those are rather than pretending the rename was complete.
+	 */
+	retiredStatusTags: string[];
 	/** Where the paper template is kept, and seeded to when it is missing. */
 	templateFolder: string;
 	/**
@@ -121,6 +140,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	collection: '',
 	papersFolder: 'Literature',
 	statusTag: '',
+	retiredStatusTags: [],
 	templateFolder: 'Templates',
 	claimHeading: 'Claim',
 	assessmentHeading: 'Assessment',
@@ -146,6 +166,7 @@ export function loadSettings(raw: unknown): Settings {
 		collection: typeof data.collection === 'string' ? data.collection.trim() : DEFAULT_SETTINGS.collection,
 		papersFolder: text(data.papersFolder, DEFAULT_SETTINGS.papersFolder),
 		statusTag: typeof data.statusTag === 'string' ? data.statusTag.trim() : DEFAULT_SETTINGS.statusTag,
+		retiredStatusTags: namespaces(data.retiredStatusTags),
 		templateFolder: text(data.templateFolder, DEFAULT_SETTINGS.templateFolder),
 		claimHeading: text(data.claimHeading, DEFAULT_SETTINGS.claimHeading),
 		assessmentHeading: text(data.assessmentHeading, DEFAULT_SETTINGS.assessmentHeading),
@@ -171,4 +192,33 @@ export function migrate(data: Record<string, unknown>): Record<string, unknown> 
 	// for (let v = from; v < SETTINGS_VERSION; v++) { ... }
 	out.version = SETTINGS_VERSION;
 	return out;
+}
+
+/** A saved list of namespaces, trimmed and deduplicated, blanks dropped. */
+function namespaces(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	const cleaned = value.filter((entry): entry is string => typeof entry === 'string').map((entry) => entry.trim());
+	return [...new Set(cleaned.filter((entry) => entry.length > 0))].sort();
+}
+
+/** The namespaces to write and to take back out, as `applyStatusTag` wants them. */
+export function statusTagsOf(settings: Settings): StatusTags {
+	return { current: settings.statusTag, retired: settings.retiredStatusTags };
+}
+
+/**
+ * The retired list after changing the status tag to `next`.
+ *
+ * The namespace being left behind joins the list, and the one being taken up
+ * leaves it: picking `literature` again after a spell on `status` means those
+ * tags are wanted, not owed a removal.
+ *
+ * Called before the new value is stored, because it is the old one it needs.
+ */
+export function retireStatusTag(settings: Settings, next: string): string[] {
+	const retired = new Set(settings.retiredStatusTags);
+	retired.add(settings.statusTag);
+	retired.delete(next.trim());
+	retired.delete('');
+	return [...retired].sort();
 }

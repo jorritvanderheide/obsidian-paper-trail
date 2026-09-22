@@ -24,6 +24,7 @@ import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } fr
 import { arrivalReading, type Reading } from '../core/triage';
 import { attachmentAnnotations, itemChildren, itemMetadata, SourceError } from '../source';
 import { notify } from '../ui/notify';
+import { statusTagsOf } from '../core/settings';
 import { ensureFolder, templateBody } from './seed';
 import type { Context } from '../context';
 
@@ -46,7 +47,7 @@ async function writePaperFrontmatter(
 ): Promise<void> {
 	const managed = paperFrontmatter(item, ref, file.basename);
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-		applyPaperFrontmatter(frontmatter, managed, arriving, context.settings.keyField, context.settings.statusTag);
+		applyPaperFrontmatter(frontmatter, managed, arriving, context.settings.keyField, statusTagsOf(context.settings));
 	});
 }
 

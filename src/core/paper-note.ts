@@ -5,7 +5,7 @@
 // frontmatter keys listed below and the region between the markers. Everything
 // else in the file belongs to whoever wrote it, and losing a word of that is
 // the one unforgivable failure for a plugin like this.
-import { applyStatusTag, type Reading } from './triage';
+import { applyStatusTag, NO_STATUS_TAGS, type Reading, type StatusTags } from './triage';
 import { authorNames, itemYear, readerUrl, type ApiItem, type Highlight, type ItemRef } from './zotero';
 import { sortKeys } from './frontmatter';
 
@@ -227,7 +227,7 @@ export function applyPaperFrontmatter(
 	managed: PaperFrontmatter,
 	arriving: Reading | null,
 	keyField: string,
-	statusTag = '',
+	tags: StatusTags = NO_STATUS_TAGS,
 ): void {
 	for (const key of MANAGED_KEYS) {
 		const value = managed[key];
@@ -251,7 +251,7 @@ export function applyPaperFrontmatter(
 	// pile the queue exists to work through.
 	if (arriving !== null) {
 		frontmatter.reading = arriving;
-		applyStatusTag(frontmatter, arriving, statusTag);
+		applyStatusTag(frontmatter, arriving, tags);
 	}
 
 	sortKeys(frontmatter);

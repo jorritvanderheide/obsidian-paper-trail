@@ -13,6 +13,7 @@ import { itemMetadata, SourceError } from '../source';
 import { messageOf } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
 import { applyTriage, asks, iconOf, landing, READING_ORDER, type Reading, type Triage } from '../core/triage';
+import { statusTagsOf } from '../core/settings';
 import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
@@ -35,7 +36,7 @@ export function today(): string {
 export async function writeTriage(context: Context, file: TFile, triage: Triage): Promise<void> {
 	const date = today();
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-		applyTriage(frontmatter, triage, date, context.settings.statusTag);
+		applyTriage(frontmatter, triage, date, statusTagsOf(context.settings));
 	});
 }
 

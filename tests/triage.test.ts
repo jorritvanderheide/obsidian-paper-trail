@@ -7,9 +7,11 @@ import {
 	iconOf,
 	label,
 	landing,
+	NO_STATUS_TAGS,
 	PASS_TWO,
 	readingOf,
 	readTags,
+	retiredTagCount,
 	READING_ORDER,
 	setTag,
 	type Reading,
@@ -182,13 +184,13 @@ describe('landing', () => {
 describe('applyStatusTag', () => {
 	it('writes nothing at all when no namespace is set', () => {
 		const frontmatter: Record<string, unknown> = {};
-		applyStatusTag(frontmatter, 'dropped', '');
+		applyStatusTag(frontmatter, 'dropped', NO_STATUS_TAGS);
 		expect('tags' in frontmatter).toBe(false);
 	});
 
 	it('mirrors the reading status under the namespace it is given', () => {
 		const frontmatter: Record<string, unknown> = {};
-		applyStatusTag(frontmatter, 'dropped', 'status');
+		applyStatusTag(frontmatter, 'dropped', { current: 'status', retired: [] });
 		expect(frontmatter.tags).toEqual(['status/dropped']);
 	});
 
@@ -196,13 +198,13 @@ describe('applyStatusTag', () => {
 	// uses, which is only worth anything if it is actually honoured.
 	it('uses a namespace of your own choosing', () => {
 		const frontmatter: Record<string, unknown> = {};
-		applyStatusTag(frontmatter, 'queued', 'reading-state');
+		applyStatusTag(frontmatter, 'queued', { current: 'reading-state', retired: [] });
 		expect(frontmatter.tags).toEqual(['reading-state/queued']);
 	});
 
 	it('replaces the old status rather than collecting them', () => {
 		const frontmatter: Record<string, unknown> = { tags: ['status/untriaged'] };
-		applyStatusTag(frontmatter, 'queued', 'status');
+		applyStatusTag(frontmatter, 'queued', { current: 'status', retired: [] });
 		expect(frontmatter.tags).toEqual(['status/queued']);
 	});
 
@@ -210,13 +212,13 @@ describe('applyStatusTag', () => {
 	// it there.
 	it('leaves every tag outside its namespace alone', () => {
 		const frontmatter: Record<string, unknown> = { tags: ['project/wp1', 'topic/heat-pumps', 'status/untriaged'] };
-		applyStatusTag(frontmatter, 'dropped', 'status');
+		applyStatusTag(frontmatter, 'dropped', { current: 'status', retired: [] });
 		expect(frontmatter.tags).toEqual(['project/wp1', 'status/dropped', 'topic/heat-pumps']);
 	});
 
 	it('reads tags written as a string, which is a shape Obsidian allows', () => {
 		const frontmatter: Record<string, unknown> = { tags: 'topic/heat-pumps status/untriaged' };
-		applyStatusTag(frontmatter, 'finished', 'status');
+		applyStatusTag(frontmatter, 'finished', { current: 'status', retired: [] });
 		expect(frontmatter.tags).toEqual(['status/finished', 'topic/heat-pumps']);
 	});
 });
@@ -224,7 +226,7 @@ describe('applyStatusTag', () => {
 describe('applyTriage with a status tag', () => {
 	it('keeps the frontmatter and the tag saying the same thing', () => {
 		const frontmatter: Record<string, unknown> = {};
-		applyTriage(frontmatter, { reading: 'dropped', reason: 'Out of scope' }, '2026-09-21', 'status');
+		applyTriage(frontmatter, { reading: 'dropped', reason: 'Out of scope' }, '2026-09-21', { current: 'status', retired: [] });
 		expect(frontmatter.reading).toBe('dropped');
 		expect(frontmatter.tags).toEqual(['status/dropped']);
 	});
@@ -238,7 +240,7 @@ describe('applyTriage with a status tag', () => {
 	// Retriaging must not leave the previous answer behind in the tag either.
 	it('moves the tag with the decision', () => {
 		const frontmatter: Record<string, unknown> = { tags: ['status/dropped'] };
-		applyTriage(frontmatter, { reading: 'queued', reason: null }, '2026-09-22', 'status');
+		applyTriage(frontmatter, { reading: 'queued', reason: null }, '2026-09-22', { current: 'status', retired: [] });
 		expect(frontmatter.tags).toEqual(['status/queued']);
 	});
 });
@@ -397,5 +399,80 @@ describe('readingOf', () => {
 		expect(readingOf(undefined)).toBe('untriaged');
 		expect(readingOf(null)).toBe('untriaged');
 		expect(readingOf(42)).toBe('untriaged');
+	});
+});
+
+/**
+ * The namespace is a name somebody chose, so it can be changed or cleared, and
+ * a tag the plugin has stopped maintaining does not stop being read. Renaming
+ * `literature` to `status` used to leave a paper you later dropped still saying
+ * `literature/queued`, which is not stale but false.
+ */
+describe('a status tag written under an older setting', () => {
+	it('is taken back out as the new one is written', () => {
+		const frontmatter: Record<string, unknown> = { tags: ['literature/queued', 'topic/heat-pumps'] };
+		applyTriage(frontmatter, { reading: 'dropped', reason: 'out of scope' }, '2026-02-01', {
+			current: 'status',
+			retired: ['literature'],
+		});
+		expect(frontmatter.tags).toEqual(['status/dropped', 'topic/heat-pumps']);
+	});
+
+	it('is taken back out when the setting has been cleared, leaving no status tag at all', () => {
+		const frontmatter: Record<string, unknown> = { tags: ['literature/queued', 'topic/heat-pumps'] };
+		applyTriage(frontmatter, { reading: 'dropped', reason: 'out of scope' }, '2026-02-01', {
+			current: '',
+			retired: ['literature'],
+		});
+		expect(frontmatter.tags).toEqual(['topic/heat-pumps']);
+	});
+
+	// The setting can be changed more than once, and the papers carrying the
+	// first name do not heal when you pick a third.
+	it('sheds every namespace the setting has held, not just the last', () => {
+		const frontmatter: Record<string, unknown> = { tags: ['literature/queued', 'reading/queued'] };
+		applyStatusTag(frontmatter, 'dropped', { current: 'status', retired: ['literature', 'reading'] });
+		expect(frontmatter.tags).toEqual(['status/dropped']);
+	});
+
+	it('leaves the note with no tags key rather than an empty list', () => {
+		const frontmatter: Record<string, unknown> = { tags: ['literature/queued'] };
+		applyStatusTag(frontmatter, 'dropped', { current: '', retired: ['literature'] });
+		expect('tags' in frontmatter).toBe(false);
+	});
+
+	// Out before in: renaming onto a namespace the note already carries must not
+	// drop what was just written.
+	it('keeps the new tag when the old namespace is the new one', () => {
+		const frontmatter: Record<string, unknown> = { tags: ['status/queued'] };
+		applyStatusTag(frontmatter, 'dropped', { current: 'status', retired: ['status'] });
+		expect(frontmatter.tags).toEqual(['status/dropped']);
+	});
+
+	it('touches a note carrying nothing of ours not at all', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyStatusTag(frontmatter, 'dropped', NO_STATUS_TAGS);
+		expect('tags' in frontmatter).toBe(false);
+	});
+});
+
+describe('retiredTagCount', () => {
+	it('counts the notes still carrying a namespace no longer written', () => {
+		const notes = [['literature/queued'], ['status/dropped'], ['literature/dropped', 'topic/x'], []];
+		expect(retiredTagCount(notes, ['literature'])).toBe(2);
+	});
+
+	it('counts a note once however many retired tags it carries', () => {
+		expect(retiredTagCount([['literature/queued', 'reading/queued']], ['literature', 'reading'])).toBe(1);
+	});
+
+	it('is nothing at all when no namespace has been retired', () => {
+		expect(retiredTagCount([['literature/queued']], [])).toBe(0);
+	});
+
+	// `literature` must not match `literature-review/x`, or a rename would
+	// report notes it is never going to touch.
+	it('matches the namespace rather than the start of a word', () => {
+		expect(retiredTagCount([['literature-review/methods']], ['literature'])).toBe(0);
 	});
 });

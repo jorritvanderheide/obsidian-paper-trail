@@ -222,6 +222,41 @@ export function setTag(tags: string[], namespace: string, value: string | null):
 }
 
 /**
+ * Which tag namespaces the plugin writes, and which it used to.
+ *
+ * `retired` is what makes the mirror honest across a change of setting. The
+ * namespace is a name someone chose, so it can be changed or cleared, and a
+ * tag the plugin has stopped maintaining does not stop being read: rename
+ * `literature` to `status` and a paper you later drop still says
+ * `literature/queued`, which is no longer stale, it is false.
+ *
+ * A list rather than one previous name, because the setting can be changed
+ * more than once and the papers carrying the first name do not heal when you
+ * pick a third.
+ */
+export interface StatusTags {
+	/** The namespace to write, or empty for none. */
+	current: string;
+	/** Namespaces written under an older setting, to be taken back out. */
+	retired: readonly string[];
+}
+
+/** A vault that has never had the status tag turned on. */
+export const NO_STATUS_TAGS: StatusTags = { current: '', retired: [] };
+
+/**
+ * How many of these notes carry a tag in a namespace no longer written.
+ *
+ * For the settings tab to say so. A paper heals on its next decision, and a
+ * paper you settled two years ago will not get one, so the honest thing is to
+ * report the number rather than to claim the rename was complete.
+ */
+export function retiredTagCount(noteTags: string[][], retired: readonly string[]): number {
+	if (retired.length === 0) return 0;
+	return noteTags.filter((tags) => tags.some((tag) => retired.some((namespace) => tag.startsWith(`${namespace}/`)))).length;
+}
+
+/**
  * Mirror the reading status into a tag, for a vault navigated by tag rather
  * than by folder.
  *
@@ -242,9 +277,21 @@ export function setTag(tags: string[], namespace: string, value: string | null):
  * Only values in this namespace are touched. Every other tag on the note
  * belongs to whoever put it there and is passed through.
  */
-export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Reading, namespace: string): void {
-	if (namespace.length === 0) return;
-	frontmatter.tags = setTag(readTags(frontmatter.tags), namespace, reading);
+export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Reading, tags: StatusTags): void {
+	// A vault that never turned this on, and has nothing to take back out. It
+	// must leave the note exactly as found, including having no `tags` key.
+	if (tags.current === '' && tags.retired.length === 0) return;
+
+	let list = readTags(frontmatter.tags);
+	// Out before in, so renaming a namespace onto one the note already carries
+	// cannot drop what was just written.
+	for (const namespace of tags.retired) list = setTag(list, namespace, null);
+	if (tags.current !== '') list = setTag(list, tags.current, reading);
+
+	// An empty list is no tags rather than `tags: []`, which is a key somebody
+	// then has to look at and wonder about.
+	if (list.length === 0) delete frontmatter.tags;
+	else frontmatter.tags = list;
 }
 
 /**
@@ -258,10 +305,15 @@ export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Re
  * and is passed through: stamping one on every decision would overwrite what
  * you had set by hand, a write that buys nothing and costs an edit.
  */
-export function applyTriage(frontmatter: Record<string, unknown>, triage: Triage, date: string, statusTag = ''): void {
+export function applyTriage(
+	frontmatter: Record<string, unknown>,
+	triage: Triage,
+	date: string,
+	tags: StatusTags = NO_STATUS_TAGS,
+): void {
 	frontmatter.reading = triage.reading;
 	frontmatter['reading-date'] = date;
-	applyStatusTag(frontmatter, triage.reading, statusTag);
+	applyStatusTag(frontmatter, triage.reading, tags);
 
 	// When the first opinion was formed, written once and never again.
 	// `reading-date` moves with the status, so on its own it cannot answer "when

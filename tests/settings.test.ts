@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, SETTINGS_VERSION, loadSettings, migrate } from '../src/core/settings';
+import { DEFAULT_SETTINGS, SETTINGS_VERSION, loadSettings, migrate, retireStatusTag } from '../src/core/settings';
 
 describe('loadSettings', () => {
 	it('fills in defaults', () => {
@@ -96,5 +96,54 @@ describe('the toggles', () => {
 	it('takes only a boolean as an answer, on either of them', () => {
 		expect(loadSettings({ statusPill: 'no' }).statusPill).toBe(true);
 		expect(loadSettings({ triage: 'yes' }).triage).toBe(false);
+	});
+});
+
+/**
+ * The plugin remembering what it wrote, so a renamed namespace can be taken
+ * back out. Not a thing anyone sets: it is written when the setting changes.
+ */
+describe('retireStatusTag', () => {
+	const at = (statusTag: string, retiredStatusTags: string[] = []) =>
+		loadSettings({ ...DEFAULT_SETTINGS, statusTag, retiredStatusTags });
+
+	it('retires the namespace being left behind', () => {
+		expect(retireStatusTag(at('literature'), 'status')).toEqual(['literature']);
+	});
+
+	it('retires it when the setting is cleared, which is when it matters most', () => {
+		expect(retireStatusTag(at('literature'), '')).toEqual(['literature']);
+	});
+
+	it('keeps the ones retired earlier, because a paper may still carry any of them', () => {
+		expect(retireStatusTag(at('reading', ['literature']), 'status')).toEqual(['literature', 'reading']);
+	});
+
+	// Those tags are wanted again, not owed a removal.
+	it('un-retires a namespace you go back to', () => {
+		expect(retireStatusTag(at('status', ['literature']), 'literature')).toEqual(['status']);
+	});
+
+	it('retires nothing when the setting was empty to begin with', () => {
+		expect(retireStatusTag(at(''), 'status')).toEqual([]);
+	});
+
+	it('ignores the padding a text box leaves on what was typed', () => {
+		expect(retireStatusTag(at('literature'), '  literature  ')).toEqual([]);
+	});
+});
+
+describe('the retired list as it is loaded', () => {
+	it('defaults to nothing', () => {
+		expect(loadSettings(null).retiredStatusTags).toEqual([]);
+	});
+
+	it('drops blanks, duplicates and anything that is not a string', () => {
+		const saved = { retiredStatusTags: ['status', ' status ', '', 42, null, 'literature'] };
+		expect(loadSettings(saved).retiredStatusTags).toEqual(['literature', 'status']);
+	});
+
+	it('survives a saved value of the wrong shape entirely', () => {
+		expect(loadSettings({ retiredStatusTags: 'status' }).retiredStatusTags).toEqual([]);
 	});
 });

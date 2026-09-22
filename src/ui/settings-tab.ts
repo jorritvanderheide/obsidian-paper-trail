@@ -1,7 +1,8 @@
 import { PluginSettingTab, type App, type SettingDefinitionItem } from 'obsidian';
 import { headingCoverage } from '../core/stages';
 import { collectionPaths } from '../core/collections';
-import { loadSettings } from '../core/settings';
+import { loadSettings, retireStatusTag } from '../core/settings';
+import { readTags, retiredTagCount } from '../core/triage';
 import { collections, forgetLibrary, refreshCollections } from '../library';
 import { lastContact } from '../source';
 import { decorate } from './view-actions';
@@ -65,6 +66,13 @@ export class SettingsTab extends PluginSettingTab {
 	 * settings appear to name.
 	 */
 	async setControlValue(key: string, value: unknown): Promise<void> {
+		// Worked out before the new value lands, because it is the old namespace
+		// it needs: the tags already written under it are the ones a later
+		// decision has to take back out.
+		if (key === 'statusTag') {
+			this.plugin.settings.retiredStatusTags = retireStatusTag(this.plugin.settings, String(value));
+		}
+
 		(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
 		this.plugin.settings = loadSettings(this.plugin.settings);
 
@@ -134,6 +142,32 @@ export class SettingsTab extends PluginSettingTab {
 		return ` ⚠ Found in only ${found} of ${total} papers.`;
 	}
 
+	/**
+	 * What the vault still carries from a namespace that has been changed.
+	 *
+	 * A paper sheds the old tag on its next decision, and a paper you settled
+	 * two years ago will not get one, so this says how many are left rather than
+	 * letting the rename look complete. The same voice as the heading and scope
+	 * checks, for the same reason: a setting that disagrees with the vault should
+	 * say so where it is fixed.
+	 */
+	private statusTagStatus(): string {
+		const { keyField, retiredStatusTags } = this.plugin.settings;
+		if (retiredStatusTags.length === 0) return '';
+
+		const papers = this.app.vault
+			.getMarkdownFiles()
+			.map((file) => this.app.metadataCache.getFileCache(file)?.frontmatter)
+			.filter((frontmatter) => typeof frontmatter?.[keyField] === 'string')
+			.map((frontmatter) => readTags(frontmatter?.tags));
+
+		const left = retiredTagCount(papers, retiredStatusTags);
+		if (left === 0) return '';
+
+		const names = retiredStatusTags.map((namespace) => `${namespace}/`).join(', ');
+		return ` ⚠ ${left} ${left === 1 ? 'paper' : 'papers'} still ${left === 1 ? 'carries' : 'carry'} ${names}. Each one sheds it the next time you decide anything about that paper.`;
+	}
+
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		this.askZotero();
 		return [
@@ -175,7 +209,9 @@ export class SettingsTab extends PluginSettingTab {
 					},
 					{
 						name: 'Status tag',
-						desc: 'Mirror each paper’s reading status into a tag, for browsing by tag rather than by folder. "status" gives status/queued, status/dropped and so on. Empty writes no tags. The frontmatter stays the real value either way, so this changes nothing except what a tag explorer can see.',
+						desc:
+							'Mirror each paper’s reading status into a tag, for browsing by tag rather than by folder. "status" gives status/queued, status/dropped and so on. Empty writes no tags. The frontmatter stays the real value either way, so this changes nothing except what a tag explorer can see.' +
+							this.statusTagStatus(),
 						control: { type: 'text', key: 'statusTag' },
 					},
 				],
