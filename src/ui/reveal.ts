@@ -6,6 +6,7 @@
 // and kept it to itself.
 import { MarkdownView, type App, type Editor, type TFile, type WorkspaceLeaf } from 'obsidian';
 import { headingLine } from '../core/stages';
+import { indexed } from './editing';
 
 /** The pane a file is already open in, if any. */
 function leafShowing(app: App, file: TFile): WorkspaceLeaf | null {
@@ -55,6 +56,13 @@ export async function reveal(app: App, file: TFile): Promise<WorkspaceLeaf | nul
  */
 export async function openAtHeading(app: App, file: TFile, heading: string): Promise<boolean> {
 	await reveal(app, file);
+
+	// A note the decision just wrote is on disk before Obsidian has parsed it,
+	// and the headings come from that parse. Finishing a paper the vault had no
+	// note for created one and then asked it where its Claim heading was: the
+	// cache was empty, so the answer was none, and the paper that had just been
+	// read was told it had no heading to write under.
+	await indexed(app, file);
 
 	const line = headingLine(app.metadataCache.getFileCache(file), heading);
 	if (line === null) return false;

@@ -1,5 +1,9 @@
-// Holding back what a note's own change would do to the rest of the interface,
-// for as long as you are the one writing it.
+// Waiting for Obsidian, which does several things on its own schedule.
+//
+// It saves an editor on a delay, it parses a file into the metadata cache after
+// the file exists, and it redraws nothing in particular when either happens.
+// Everything here is the plugin arranging to be in step with that rather than
+// racing it.
 //
 // The queue redraws whenever the metadata cache moves, and the cache moves
 // while you type. A redraw reads every note in the vault and rebuilds the pane
@@ -95,4 +99,31 @@ export async function settle(app: App, file: TFile): Promise<void> {
 		const view = leaf.view;
 		if (view instanceof MarkdownView && view.file === file) await view.save();
 	}
+}
+
+/**
+ * Wait until Obsidian has read a file, or give up.
+ *
+ * A note written a moment ago is on disk before the metadata cache knows
+ * anything about it, and everything the plugin reads about a note it reads from
+ * that cache. A decision that writes a note and then asks where its headings
+ * are gets no answer at all unless it waits.
+ *
+ * The timeout is the point: a note that never arrives should cost a second, not
+ * a promise that never settles.
+ */
+export function indexed(app: App, file: TFile, wait = 1000): Promise<void> {
+	if (app.metadataCache.getFileCache(file)) return Promise.resolve();
+
+	return new Promise((resolve) => {
+		const done = () => {
+			app.metadataCache.offref(ref);
+			window.clearTimeout(timer);
+			resolve();
+		};
+		const ref = app.metadataCache.on('changed', (changed) => {
+			if (changed.path === file.path) done();
+		});
+		const timer = window.setTimeout(done, wait);
+	});
 }

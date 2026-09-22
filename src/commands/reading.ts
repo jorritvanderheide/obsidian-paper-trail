@@ -10,7 +10,7 @@
 import { Notice, type App, type TFile } from 'obsidian';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, SourceError } from '../source';
-import { settle } from '../ui/editing';
+import { indexed, settle } from '../ui/editing';
 import { messageOf, say } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
 import {
@@ -240,28 +240,6 @@ async function advance(context: Context, decided: TFile, key: string | null): Pr
 	say(context, 'Nothing left to triage.');
 }
 
-/**
- * Wait until Obsidian has read a file, or give up.
- *
- * A note written a moment ago is on disk before the metadata cache knows
- * anything about it. The timeout is the point: a note that never arrives should
- * cost a second, not a promise that never settles.
- */
-function indexed(app: App, file: TFile, wait = 1000): Promise<void> {
-	if (app.metadataCache.getFileCache(file)) return Promise.resolve();
-
-	return new Promise((resolve) => {
-		const done = () => {
-			app.metadataCache.offref(ref);
-			window.clearTimeout(timer);
-			resolve();
-		};
-		const ref = app.metadataCache.on('changed', (changed) => {
-			if (changed.path === file.path) done();
-		});
-		const timer = window.setTimeout(done, wait);
-	});
-}
 
 /**
  * Show a paper in the triage dialog.
