@@ -309,15 +309,20 @@
 }
 
 /*
- * Quiet, header and rows alike. It is drawn by the same function the stages
- * are, so this is the only thing that distinguishes it: the stages are the
- * work, and the record sits under them without competing for attention.
+ * Nothing here dims the record.
+ *
+ * Its header and its rows used to be faint whatever it held, on the grounds
+ * that the stages are the work and the record sits under them without
+ * competing for attention. That made the one section holding something look
+ * like the sections holding nothing, which is the opposite of what faint means
+ * everywhere else in this pane: a stage goes quiet when it is empty, and comes
+ * back when something lands in it.
+ *
+ * So the record follows the same rule, which it gets for free from being drawn
+ * by the same function: `folder` marks any section of nothing, the record
+ * included. The auto margin above is all that still sets it apart, and where it
+ * sits is the thing that should.
  */
-.paper-trail-decided .nav-folder-title-content,
-.paper-trail-decided .paper-trail-stage-icon,
-.paper-trail-decided-icon {
-	color: var(--text-faint);
-}
 
 /*
  * The reading status, in a paper's own title bar.
