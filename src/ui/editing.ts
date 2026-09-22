@@ -70,3 +70,29 @@ export class WhileWriting {
 		return view?.file === file && view.getMode() === 'source';
 	}
 }
+
+/**
+ * Flush any unsaved edits in a note before the plugin writes to it.
+ *
+ * Obsidian shows "has been modified externally, merging changes automatically"
+ * when a file on disk changes while its editor holds unsaved edits. The check
+ * is exactly that: the disk content moved, the view is dirty, and what you have
+ * typed differs from what was last saved. It then three-way merges and tells
+ * you so.
+ *
+ * Which is the plugin's own workflow, most of the time. You write a claim, and
+ * the tick that ends it is in the title bar an inch away, so it is pressed
+ * seconds later while the editor is still holding what you typed: the write
+ * lands on a dirty view and Obsidian quite reasonably reports it.
+ *
+ * Saving first is not a trick to silence a warning. The warning is correct, and
+ * this removes what it is correct about: the editor's content is on disk before
+ * anything else writes, so there is one version rather than two to merge. It
+ * writes only what you typed, a moment earlier than Obsidian would have.
+ */
+export async function settle(app: App, file: TFile): Promise<void> {
+	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
+		const view = leaf.view;
+		if (view instanceof MarkdownView && view.file === file) await view.save();
+	}
+}

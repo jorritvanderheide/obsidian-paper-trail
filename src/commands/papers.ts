@@ -23,6 +23,7 @@ import {
 import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
 import { arrivalReading, type Reading } from '../core/triage';
 import { attachmentAnnotations, itemChildren, itemMetadata, SourceError } from '../source';
+import { settle } from '../ui/editing';
 import { notify } from '../ui/notify';
 import { statusTagsOf } from '../core/settings';
 import { ensureFolder, templateBody } from './seed';
@@ -133,6 +134,7 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
  */
 async function syncPaper(context: Context, file: TFile): Promise<void> {
 	const app = context.app;
+	await settle(app, file);
 	const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 	const ref = parseItemRef(frontmatter?.[context.settings.keyField]);
 	if (!ref) return;

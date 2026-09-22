@@ -7,6 +7,7 @@
 import { Notice, normalizePath, type TFile } from 'obsidian';
 import { decidedOf, excluded, isReport, renderReport, type Decided } from '../core/record';
 import { today } from './reading';
+import { settle } from '../ui/editing';
 import { reveal } from '../ui/reveal';
 import type { Context } from '../context';
 
@@ -55,6 +56,7 @@ export async function writeReport(context: Context): Promise<void> {
 		);
 	}
 
+	if (existing) await settle(app, existing);
 	const file: TFile = existing ?? (await app.vault.create(path, markdown));
 	if (existing) await app.vault.process(existing, () => markdown);
 

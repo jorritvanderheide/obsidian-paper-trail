@@ -10,6 +10,7 @@
 import { Notice, type App, type TFile } from 'obsidian';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, SourceError } from '../source';
+import { settle } from '../ui/editing';
 import { messageOf, say } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
 import {
@@ -45,6 +46,10 @@ export function today(): string {
  * right.
  */
 export async function writeTriage(context: Context, file: TFile, triage: Triage): Promise<void> {
+	// What you have typed goes to disk before this does, so the two are never
+	// two versions of the note for Obsidian to merge and report.
+	await settle(context.app, file);
+
 	const date = today();
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
 		applyTriage(frontmatter, triage, date, statusTagsOf(context.settings));
