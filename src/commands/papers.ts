@@ -129,7 +129,6 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
  */
 async function syncPaper(context: Context, file: TFile): Promise<void> {
 	const app = context.app;
-	await settle(app, file);
 	const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 	const ref = parseItemRef(frontmatter?.[context.settings.keyField]);
 	if (!ref) return;
@@ -143,6 +142,17 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 	const attachment = attachmentKeys(await itemChildren(ref))[0] ?? null;
 
 	const highlights = attachment ? await attachmentAnnotations(ref, attachment) : [];
+
+	// Everything above asks Zotero and writes nothing; everything below writes.
+	// So the flush belongs here rather than at the top, where it used to be: up
+	// there it was separated from its own writes by three round trips, and a
+	// note that went dirty during them got the write on top of unsaved edits and
+	// the "modified externally" notice that says so. The window is not
+	// hypothetical, because this sync is started by opening a note and the thing
+	// that opens a paper's note is usually about to type in it: finishing a
+	// reading reveals the note, which fires this, and then writes the Claim
+	// heading into the editor while Zotero is still answering.
+	await settle(app, file);
 
 	const managed = paperFrontmatter(item, ref, file.basename);
 	if (managedDiffers(frontmatter, managed, context.settings.keyField)) {
@@ -158,6 +168,8 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 	// the call, so a note you were typing into when a sync landed had the sync's
 	// idea of the body written over yours, and Obsidian reported the file as
 	// modified externally because from the editor's side it was.
+	// Read after the flush, or the comparison is against a version of the note
+	// that no longer exists and can skip a write that was needed.
 	const rendered = renderHighlights(highlights);
 	const body = await app.vault.cachedRead(file);
 	if (replaceRegion(body, rendered) === body) return;
