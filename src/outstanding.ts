@@ -8,7 +8,7 @@
 // folder, so keying off the frontmatter rather than the path keeps the rules
 // independent of the vault's layout.
 import { TFile, type App } from 'obsidian';
-import { noteState, rowKey, rowsByStage, type NoteState, type Row, type Stage } from './core/stages';
+import { noteState, rowKey, rowsByStage, settled, type NoteState, type Row, type Settled, type Stage } from './core/stages';
 import { pendingOf } from './core/pending';
 import { library } from './library';
 import type { Context } from './context';
@@ -34,11 +34,18 @@ export function fileOf(app: App, note: NoteState): TFile | null {
 	return file instanceof TFile ? file : null;
 }
 
-/** Every row, by stage: the vault's, plus the papers Zotero holds that it has no note for. */
-export function queue(context: Context): { notes: NoteState[]; rows: Map<Stage, Row[]> } {
+/**
+ * What the queue draws: every row by stage, and everything already decided.
+ *
+ * `done` is worked out here rather than by the pane because it is the same
+ * sweep of the vault. Reading every note is the expensive half, and doing it
+ * twice to answer two halves of one question would double the cost of a redraw
+ * that already fires on every metadata change.
+ */
+export function queue(context: Context): { notes: NoteState[]; rows: Map<Stage, Row[]>; done: Settled[] } {
 	const notes = collect(context);
 	const keys = notes.flatMap((note) => (note.key === null ? [] : [note.key]));
-	return { notes, rows: rowsByStage(notes, pendingOf(library(), keys)) };
+	return { notes, rows: rowsByStage(notes, pendingOf(library(), keys), context.settings.triage), done: settled(notes) };
 }
 
 /**

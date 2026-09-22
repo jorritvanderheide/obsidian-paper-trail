@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PAPER, PAPER_TEMPLATE } from '../src/core/templates';
 import { readTags } from '../src/core/vocabulary';
+import { TASKS } from '../src/core/stages';
 
 /** The tag list out of a template's frontmatter, without a YAML parser. */
 function tagsOf(content: string): string[] {
@@ -65,5 +66,38 @@ describe('what the template does not carry', () => {
 	it('has only the two headings a stage ends at', () => {
 		const headings = PAPER.split('\n').filter((line) => line.startsWith('## '));
 		expect(headings).toEqual(['## {{CLAIM}}', '## {{ASSESSMENT}}']);
+	});
+});
+
+/**
+ * The prompts moved out of the note and into the moment.
+ *
+ * They were HTML comments under each heading, which was the only way to ask at
+ * the point of use back when reaching the point of use meant scrolling. The
+ * queue now puts the cursor under the heading and asks there.
+ */
+describe('the prompts the template no longer carries', () => {
+	it('leaves both headings empty, so nothing has to be deleted before writing', () => {
+		expect(PAPER).not.toContain('<!--');
+	});
+
+	// `hasContentUnder` ignores comments, so they never satisfied the gate. The
+	// cost was elsewhere: one in every paper ever made, including the dropped
+	// ones, going stale the moment the wording changed anywhere else.
+	it('puts nothing between the two headings but a blank line', () => {
+		const lines = PAPER.split('\n');
+		const claim = lines.indexOf('## {{CLAIM}}');
+		const assessment = lines.indexOf('## {{ASSESSMENT}}');
+		expect(lines.slice(claim + 1, assessment).every((line) => line.trim() === '')).toBe(true);
+	});
+
+	it('is asked by the task instead, which is where it can be kept current', () => {
+		expect(TASKS.claim.prompt).toBeTruthy();
+		expect(TASKS.assessment.prompt).toBeTruthy();
+	});
+
+	it('asks nothing of the tasks that are not answered by typing under a heading', () => {
+		expect(TASKS.triage.prompt).toBeUndefined();
+		expect(TASKS.read.prompt).toBeUndefined();
 	});
 });

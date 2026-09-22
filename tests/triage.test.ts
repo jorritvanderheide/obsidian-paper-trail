@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyStatusTag, applyTriage, asks, iconOf, landing, PASS_TWO, type Reading } from '../src/core/triage';
+import { applyStatusTag, applyTriage, arrivalReading, asks, iconOf, landing, PASS_TWO, READING_ORDER, type Reading } from '../src/core/triage';
 
 /** A literature note as it is created, before any decision. */
 const untriaged = () => ({
@@ -144,6 +144,18 @@ describe('PASS_TWO', () => {
 		expect(PASS_TWO.map((entry) => entry.reading)).not.toContain('queued');
 		expect(PASS_TWO.map((entry) => entry.reading)).not.toContain('untriaged');
 	});
+
+	// Keshav's own test for the end of a second pass is that you can summarise
+	// the paper to someone else, so the button claims exactly that and the next
+	// screen asks you to make good on it. It used to say "Enough: I have what I
+	// need", which is completion language for a paper that then does not leave.
+	it('words the first as the test it is, not as a completion', () => {
+		expect(PASS_TWO[0]?.label).toBe('I can summarise it');
+	});
+
+	it('gives every option a label', () => {
+		for (const entry of PASS_TWO) expect(entry.label, entry.reading).toBeTruthy();
+	});
 });
 
 describe('landing', () => {
@@ -226,5 +238,48 @@ describe('iconOf', () => {
 	it('gives each state its own, or two decisions would look like one', () => {
 		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
 		expect(new Set(states.map(iconOf)).size).toBe(states.length);
+	});
+});
+
+/**
+ * One order for the six states, so a chooser and the pane behind it agree.
+ */
+describe('READING_ORDER', () => {
+	it('holds every state exactly once', () => {
+		const all: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
+		expect([...READING_ORDER].sort()).toEqual([...all].sort());
+	});
+
+	// Untriaged is Triage, queued is Reading, finished and promoted are Claim
+	// and then Assessment, and the last two are the ways out.
+	it('reads as the queue does, downwards', () => {
+		expect(READING_ORDER).toEqual(['untriaged', 'queued', 'finished', 'promoted', 'deferred', 'dropped']);
+	});
+
+	// PASS_TWO is a subset: the four a second pass can end in. It was written
+	// in Keshav's order and happens to agree, which is worth keeping true.
+	it('agrees with the order the second pass offers its four', () => {
+		const second = PASS_TWO.map((entry) => entry.reading);
+		expect(second).toEqual(READING_ORDER.filter((reading) => second.includes(reading)));
+	});
+});
+
+/**
+ * What putting an item in Zotero meant, which is the one thing the plugin
+ * cannot work out for itself.
+ */
+describe('arrivalReading', () => {
+	it('arrives untriaged when the queue is to ask first', () => {
+		expect(arrivalReading(true)).toBe('untriaged');
+	});
+
+	// Recording it as untriaged would be asking for a judgement already made:
+	// the abstract was on the page, and the connector button was the answer.
+	it('arrives queued when saving it to Zotero already was the first pass', () => {
+		expect(arrivalReading(false)).toBe('queued');
+	});
+
+	it('never arrives anywhere a paper cannot come back from', () => {
+		for (const triage of [true, false]) expect(asks(arrivalReading(triage))).toBeNull();
 	});
 });

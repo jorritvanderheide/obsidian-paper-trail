@@ -3,10 +3,7 @@ import {
 	abstractOf,
 	venueOf,
 	attachmentKeys,
-	dataDirFromPrefs,
-	formatItemRef,
 	libraryPath,
-	linkedKeys,
 	authorNames,
 	highlights,
 	itemYear,
@@ -29,41 +26,11 @@ describe('parseItemRef', () => {
 		expect(parseItemRef(42)).toBeNull();
 		expect(parseItemRef(undefined)).toBeNull();
 	});
-	it('round-trips', () => {
-		for (const value of ['ABCD2345', 'ABCD2345g12']) {
-			const ref = parseItemRef(value);
-			expect(ref && formatItemRef(ref)).toBe(value);
-		}
-	});
 });
 describe('libraryPath', () => {
 	it('maps the personal library to users/0', () => {
 		expect(libraryPath({ key: 'ABCD2345', groupID: null })).toBe('users/0');
 		expect(libraryPath({ key: 'ABCD2345', groupID: 7 })).toBe('groups/7');
-	});
-});
-describe('linkedKeys', () => {
-	it('collects linked keys in order, without the item itself or duplicates', () => {
-		const body = [
-			'[Zotero](zotero://select/library/items/PARENT23)',
-			'[paper.pdf](zotero://open/library/items/ATTACH23)',
-			'[again](zotero://open-pdf/library/items/ATTACH23?page=2)',
-			'[group](zotero://open/groups/5/items/GROUP234)',
-		].join(' ');
-		expect(linkedKeys(body, 'PARENT23')).toEqual(['ATTACH23', 'GROUP234']);
-	});
-});
-describe('dataDirFromPrefs', () => {
-	it('reads the data directory', () => {
-		const prefs = 'user_pref("a", 1);\nuser_pref("extensions.zotero.dataDir", "/home/me/Zotero");\n';
-		expect(dataDirFromPrefs(prefs)).toBe('/home/me/Zotero');
-	});
-	it('unescapes Windows paths', () => {
-		const prefs = 'user_pref("extensions.zotero.dataDir", "C:\\\\Users\\\\me\\\\Zotero");';
-		expect(dataDirFromPrefs(prefs)).toBe('C:\\Users\\me\\Zotero');
-	});
-	it('returns null when unset', () => {
-		expect(dataDirFromPrefs('user_pref("a", 1);')).toBeNull();
 	});
 });
 describe('attachmentKeys', () => {

@@ -34,6 +34,33 @@ export function currentReading(value: string): string {
 
 export type Reading = 'untriaged' | 'dropped' | 'queued' | 'deferred' | 'finished' | 'promoted';
 
+/**
+ * The reading values in the order a paper passes through them, which is the
+ * order any list of all six is shown in.
+ *
+ * It is the queue read downwards: untriaged is Triage, queued is Reading,
+ * finished and promoted are Claim and then Assessment, and the last two are
+ * the ways out. A chooser offering the same six states in some other order
+ * than the pane you were just looking at makes you read all six every time,
+ * which for a list you reach for to correct a mistake is the whole cost of it.
+ *
+ * Declaration order on the type above is not it, and cannot be: that order is
+ * arbitrary and nothing can depend on it. This is the one that is meant.
+ */
+export const READING_ORDER: readonly Reading[] = ['untriaged', 'queued', 'finished', 'promoted', 'deferred', 'dropped'];
+
+/**
+ * The state a paper arrives in, which is what putting it in Zotero meant.
+ *
+ * `untriaged` when the queue is to ask first. `queued` when it is not, because
+ * then the first pass already happened: on the publisher's page, on the
+ * abstract, with the connector button as the answer. Recording that as
+ * untriaged would ask for a judgement that has been made.
+ */
+export function arrivalReading(triage: boolean): Reading {
+	return triage ? 'untriaged' : 'queued';
+}
+
 export interface Triage {
 	reading: Reading;
 	reason: string | null;
@@ -104,9 +131,9 @@ export function landing(reading: Reading): string {
 		case 'deferred':
 			return 'Parked, with the condition on the note.';
 		case 'finished':
-			return 'Finished. It owes a claim.';
+			return 'Read. Write what it argues and it is done.';
 		case 'promoted':
-			return 'Worth an assessment. The claim comes first.';
+			return 'Worth a third pass. The claim comes first.';
 	}
 }
 
@@ -118,10 +145,18 @@ export function landing(reading: Reading): string {
  * not optional: an hour in, you sometimes know the paper is not worth
  * finishing, and the honest thing is to record that rather than leave it queued
  * forever or mark it read when it was not.
+ *
+ * The first is worded as his test rather than as an outcome. "You should be
+ * able to summarize the main thrust of the paper, with supporting evidence, to
+ * someone else" is what ends a second pass, so the button claims exactly that
+ * and the next screen asks you to make good on it. The label it replaced said
+ * "Enough: I have what I need", which is completion language for a paper that
+ * then does not leave, and the difference is the whole reason this stage was
+ * confusing.
  */
 export const PASS_TWO: { reading: Reading; label: string }[] = [
-	{ reading: 'finished', label: 'Enough: I have what I need' },
-	{ reading: 'promoted', label: 'Worth assessing closely' },
+	{ reading: 'finished', label: 'I can summarise it' },
+	{ reading: 'promoted', label: 'Worth a third pass' },
 	{ reading: 'deferred', label: 'Come back to it later' },
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];

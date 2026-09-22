@@ -33,8 +33,52 @@ export interface Settings {
 	 * find them either.
 	 */
 	keyField: string;
-	/** Zotero data directory. Empty means: ask Zotero's prefs.js, then ~/Zotero. */
-	dataDir: string;
+	/**
+	 * Whether a paper's reading state is shown in its own title bar.
+	 *
+	 * On, and the one thing here that is a preference about chrome rather than
+	 * about the workflow. It changes nothing the plugin does and nothing it
+	 * writes: the frontmatter is the record either way, and this is a second
+	 * place to read it for anyone who keeps the properties panel shut.
+	 *
+	 * Off if you keep properties open, where it would be the same word twice.
+	 */
+	statusPill: boolean;
+	/**
+	 * Whether a paper Zotero holds and the vault has no note for arrives to be
+	 * triaged, or arrives already queued to read.
+	 *
+	 * Off, so it arrives queued. This is the one setting here with an opinion in
+	 * it rather than an address, and it earns the exception the same way
+	 * `domains` does: it records something only you can know, which is what
+	 * putting an item in Zotero means to you.
+	 *
+	 * For a lot of people it means "I have read the abstract and I want this",
+	 * because the abstract was on the page in front of them and the connector
+	 * button was the decision. Making those people re-take it, one paper at a
+	 * time, in a dialog, is asking them to record a judgement they have already
+	 * made. Turn this on and the queue asks first; leave it off and Zotero's
+	 * save button is the first pass.
+	 *
+	 * Nothing about the stage changes either way. Triage still exists, still
+	 * holds anything you send back to it, and still writes the same record.
+	 */
+	triage: boolean;
+	/**
+	 * Zotero collection key the queue draws papers from, or empty for the whole
+	 * library.
+	 *
+	 * An address, and the one that decides whether this is usable by anybody
+	 * whose Zotero predates the thesis: a library carried through a masters and
+	 * two side projects is not one corpus, and a Triage list opening with three
+	 * thousand rows is not a queue.
+	 *
+	 * It scopes what turns up and nothing else, and copies nothing. A note that
+	 * already exists for a paper outside the collection is still a paper, still
+	 * refreshes, and still sits in whatever stage it reached, so moving
+	 * something out of a collection in Zotero cannot strand its note here.
+	 */
+	collection: string;
 
 	/** Flat folder holding one note per paper, named for its citation key. */
 	papersFolder: string;
@@ -56,7 +100,7 @@ export interface Settings {
 	statusTag: string;
 	/** Values on the `domain/` axis. Per-person by definition, so not in code. */
 	domains: string[];
-	/** Where the note templates are kept, and seeded to when they are missing. */
+	/** Where the paper template is kept, and seeded to when it is missing. */
 	templateFolder: string;
 	/**
 	 * The heading a literature note is finished under. A paper leaves Reading
@@ -71,29 +115,21 @@ export interface Settings {
 	 */
 	assessmentHeading: string;
 
-	/** Item ref to the attachment its text was last read from, to skip the API next time. */
-	attachments: Record<string, string>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
 	version: SETTINGS_VERSION,
 	keyField: 'zotero-key',
-	dataDir: '',
+	statusPill: true,
+	triage: false,
+	collection: '',
 	papersFolder: 'Literature',
 	statusTag: '',
 	domains: [...DOMAIN],
-	templateFolder: 'Templates/Notes',
+	templateFolder: 'Templates',
 	claimHeading: 'Claim',
 	assessmentHeading: 'Assessment',
-	attachments: {},
 };
-
-function record<T>(value: unknown, isValue: (entry: unknown) => entry is T): Record<string, T> {
-	if (typeof value !== 'object' || value === null) return {};
-	return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, T] => isValue(entry[1])));
-}
-
-const isString = (value: unknown): value is string => typeof value === 'string';
 
 /** A saved string, trimmed, or the default when it is missing or blank. */
 function text(value: unknown, fallback: string): string {
@@ -107,16 +143,18 @@ export function loadSettings(raw: unknown): Settings {
 	return {
 		version: SETTINGS_VERSION,
 		keyField: text(data.keyField, DEFAULT_SETTINGS.keyField),
-		// The one field where empty is meaningful: it means "ask Zotero".
-		dataDir: typeof data.dataDir === 'string' ? data.dataDir.trim() : DEFAULT_SETTINGS.dataDir,
+		statusPill: typeof data.statusPill === 'boolean' ? data.statusPill : DEFAULT_SETTINGS.statusPill,
+		triage: typeof data.triage === 'boolean' ? data.triage : DEFAULT_SETTINGS.triage,
+		// Two fields where empty is meaningful rather than missing, so neither can
+		// go through `text`: an empty collection means the whole library, and an
+		// empty status tag means write no tags.
+		collection: typeof data.collection === 'string' ? data.collection.trim() : DEFAULT_SETTINGS.collection,
 		papersFolder: text(data.papersFolder, DEFAULT_SETTINGS.papersFolder),
-		// The one other field where empty is meaningful: it means "write no tags".
 		statusTag: typeof data.statusTag === 'string' ? data.statusTag.trim() : DEFAULT_SETTINGS.statusTag,
 		domains: parseValues(data.domains, DOMAIN),
 		templateFolder: text(data.templateFolder, DEFAULT_SETTINGS.templateFolder),
 		claimHeading: text(data.claimHeading, DEFAULT_SETTINGS.claimHeading),
 		assessmentHeading: text(data.assessmentHeading, DEFAULT_SETTINGS.assessmentHeading),
-		attachments: record(data.attachments, isString),
 	};
 }
 

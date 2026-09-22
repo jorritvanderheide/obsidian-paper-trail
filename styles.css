@@ -3,86 +3,44 @@
 	width: 100%;
 }
 
-/* Pass one: a document to read, so it gets reading measure rather than pane width. */
-.paper-trail-pass-one {
-	padding: var(--size-4-4);
-	overflow-y: auto;
+/*
+ * Triage: one paper's record, and three buttons.
+ *
+ * This replaced a pane that read the PDF and showed its outline, introduction
+ * and conclusion. What is left is Zotero's own record, which is the half that
+ * never fails because it is not extracted from anything.
+ */
+.paper-trail-triage-meta {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin-top: 0;
+}
+
+/* Reading measure, not dialog width: an abstract is a paragraph to read. */
+.paper-trail-triage-abstract {
+	max-width: 34em;
 	user-select: text;
 }
 
-.paper-trail-pass-one p {
-	max-width: 34em;
-}
-
-.paper-trail-pass-one-meta {
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
-}
-
-.paper-trail-pass-one-problem {
+.paper-trail-triage-problem {
 	border-left: var(--size-2-1) solid var(--text-warning);
 	padding-left: var(--size-4-2);
 	color: var(--text-muted);
 }
 
-.paper-trail-pass-one-empty {
+.paper-trail-triage-empty {
 	color: var(--text-faint);
 	font-style: italic;
 }
 
-.paper-trail-pass-one-outline {
-	list-style: none;
-	padding-left: 0;
-}
-
-.paper-trail-pass-one-seen {
-	padding-left: var(--size-4-4);
-}
-
-.paper-trail-pass-one-status {
-	color: var(--text-faint);
-	font-size: var(--font-ui-smaller);
-	margin-left: var(--size-4-2);
-}
-
-.paper-trail-pass-one-outline li {
-	padding-left: calc((var(--level) - 1) * var(--size-4-4));
-	border-left: 2px solid var(--background-modifier-border);
-	margin-left: var(--size-2-2);
-}
-
-.paper-trail-pass-one-outline li[data-level='1'] {
-	--level: 1;
-	font-weight: var(--font-semibold);
-}
-
-.paper-trail-pass-one-outline li[data-level='2'] {
-	--level: 2;
-}
-
-.paper-trail-pass-one-outline li[data-level='3'] {
-	--level: 3;
-	color: var(--text-muted);
-}
-
-.paper-trail-pass-one-outline li[data-level='4'],
-.paper-trail-pass-one-outline li[data-level='5'],
-.paper-trail-pass-one-outline li[data-level='6'] {
-	--level: 4;
-	color: var(--text-muted);
-}
-
-/* The decision is the point of the pane, so it does not hide at the bottom. */
-.paper-trail-pass-one-decisions {
+/* The decision is the point of the dialog, so it does not hide at the bottom. */
+.paper-trail-triage-decisions {
 	display: flex;
 	gap: var(--size-4-2);
-	position: sticky;
-	bottom: 0;
-	padding: var(--size-4-2) 0;
-	background: var(--background-primary);
+	margin-top: var(--size-4-4);
 }
 
-.paper-trail-pass-one-decisions button {
+.paper-trail-triage-decisions button {
 	display: flex;
 	align-items: center;
 	gap: var(--size-2-2);
@@ -122,36 +80,87 @@
 	min-height: 0;
 }
 
-.paper-trail .nav-files-container {
+/*
+ * The list is a `nav-files-container`, because that is the class a theme hangs
+ * a section's indent and side padding on. Its foot padding is kept: it is the
+ * air under the last row, and with the record pinned there it is the air under
+ * the record.
+ *
+ * In a note it is not. A block is only as tall as what it holds, so there is no
+ * bottom of a pane for that padding to sit above and it reads as a couple of
+ * dozen pixels of nothing at the end of the list.
+ */
+.paper-trail-stages {
 	flex: 1;
 	min-height: 0;
 	overflow-y: auto;
 }
 
-/* Sits where the explorer keeps its sort and collapse buttons, so the count
-   reads as pane chrome rather than as the first row of the list. */
-.paper-trail-outstanding {
-	margin-inline-end: auto;
-	align-self: center;
-	padding-inline-start: var(--size-4-2);
-	font-size: var(--font-ui-smaller);
-	color: var(--text-faint);
+.paper-trail-block .paper-trail-stages {
+	padding-bottom: var(--size-4-1);
 }
 
+/*
+ * An empty queue takes the space a full one would have, rather than sitting at
+ * the top of an otherwise blank pane.
+ *
+ * Two things follow from it, and the second is the reason. The message centres,
+ * which is what a pane with one sentence in it should do; and the record below
+ * stays at the foot of the pane, because with nothing outstanding there is no
+ * list claiming the space and the record would otherwise ride up under the
+ * message and read as the contents of the queue rather than as what has left
+ * it.
+ *
+ * Scoped to the sidebar, like every other rule that assumes a column with a
+ * height. In a note the block is as tall as its contents and there is no spare
+ * space to take.
+ */
+.workspace-leaf-content[data-type='paper-trail-queue'] .paper-trail .pane-empty {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	align-items: center;
+	justify-content: center;
+	padding: var(--size-4-4);
+	text-align: center;
+}
+
+/*
+ * Centred, not baselined. `tree-item-self` is `align-items: baseline`, which is
+ * what keeps a row's text sitting on one line with its count. A box of icon
+ * buttons has no text to take a baseline from, so it takes the bottom of its
+ * own margin edge instead and hangs low, and the row grows to fit it.
+ */
 .paper-trail-workflow-actions {
 	display: flex;
+	align-self: center;
 	flex-shrink: 0;
 	gap: var(--size-2-1);
 	margin-inline-start: auto;
 }
 
 /*
- * Quiet until the row is under the cursor: the list is for reading titles.
+ * As tall as the row, not as tall as the row's text.
  *
+ * `clickable-icon` in flow was the tallest thing in a nav row and stretched it,
+ * because it is four pixels of padding round an 18px glyph and a row is one
+ * line of `--nav-item-size` at `--line-height-tight`, about seventeen.
+ *
+ * Shrinking it fixed that and made a small target out of a button you have to
+ * hit on a row you are hovering. So instead it keeps its padding and takes it
+ * back off again as negative margin: the painted box grows into the row's own
+ * vertical padding, where nothing else is, while the margin box the row
+ * measures stays inside the line. Same four pixels, in and out, so a theme
+ * that gives rows more air gives it to these too.
+ *
+ * Quiet until the row is under the cursor: the list is for reading titles.
  * Transparent rather than unrendered, so the title keeps the same width either
  * way. Collapsing the icons would reflow every row you moved the mouse over.
  */
 .paper-trail-workflow-actions .clickable-icon {
+	--icon-size: var(--icon-s);
+	padding-block: var(--size-4-1);
+	margin-block: calc(-1 * var(--size-4-1));
 	opacity: 0;
 }
 
@@ -193,13 +202,29 @@
 	color: var(--text-normal);
 }
 
-.paper-trail-welcome-steps {
-	padding-left: var(--size-4-4);
+.paper-trail-welcome-body {
 	color: var(--text-muted);
 }
 
-.paper-trail-welcome-steps li {
-	margin-bottom: var(--size-2-2);
+/*
+ * The answer Zotero gave, which is the point of the dialog.
+ *
+ * Boxed rather than set in italics, because it is the one line here that
+ * changes: it says "asking", then either a count or the switch that is off,
+ * and a line that moves under you should look like a place where answers
+ * appear rather than like the paragraph above it having been rewritten.
+ */
+.paper-trail-welcome-status {
+	padding: var(--size-4-2);
+	border-left: var(--size-2-1) solid var(--background-modifier-border);
+	background-color: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+/* The same mark the queue's offline banner uses, because it is the same news. */
+.paper-trail-welcome-warning {
+	border-left-color: var(--text-warning);
 }
 
 .paper-trail-orphans {
@@ -258,18 +283,223 @@
 }
 
 /*
+ * One mark per section, not two.
+ *
+ * A chevron and a section icon side by side read as a mistake: two glyphs
+ * competing in a four-row list, and the one that says what the section *is* is
+ * the second of them. So the section's own icon holds the slot, and the chevron
+ * takes it over when you reach for the header. Same slot, same size, so nothing
+ * moves as it swaps.
+ *
+ * It is the pattern the rows already use: their action buttons are invisible
+ * until hovered, for the same reason, which is that the list is for reading
+ * titles and the controls are for when you have stopped reading them.
+ */
+.paper-trail .nav-folder-title .collapse-icon {
+	display: none;
+}
+
+/*
+ * Only in the stages, and only on a header that folds.
+ *
+ * `mod-collapsible` is the class the markup gives exactly those, so an empty
+ * section keeps its own icon and never offers a chevron with nothing behind
+ * it. Scoping to `paper-trail-stages` leaves the record out, which is the
+ * other case where the swap buys nothing: it is one section rather than a
+ * list, it is the only thing down there, and its box is the one mark saying
+ * what it is. A chevron arriving over it is a flicker on the way past.
+ */
+.paper-trail-stages .nav-folder-title.mod-collapsible:hover .collapse-icon,
+.paper-trail-stages .nav-folder-title.mod-collapsible:focus-visible .collapse-icon {
+	display: flex;
+}
+
+.paper-trail-stages .nav-folder-title.mod-collapsible:hover .paper-trail-stage-icon,
+.paper-trail-stages .nav-folder-title.mod-collapsible:focus-visible .paper-trail-stage-icon {
+	display: none;
+}
+
+/* A touch screen has no hover, so the chevron would never arrive. */
+@media (hover: none) {
+	.paper-trail-stages .nav-folder-title.mod-collapsible .collapse-icon {
+		display: flex;
+	}
+
+	.paper-trail-stages .nav-folder-title.mod-collapsible .paper-trail-stage-icon {
+		display: none;
+	}
+}
+
+/*
  * A stage with nothing in it keeps its place in the list, so the sections do
  * not move under the cursor as you work them, and a zero is worth reading: it
  * says there is nothing to write up rather than not saying anything.
  *
- * Quiet, and with the chevron hidden rather than removed: hidden keeps the
- * stage icons on one column, and there is nothing behind it to open.
+ * Quiet, and it keeps its own icon under the cursor rather than swapping in a
+ * chevron, which the rule above arranges by only ever swapping on a header
+ * marked collapsible. There is nothing behind one to open.
  */
 .paper-trail-stage-empty .tree-item-inner,
 .paper-trail-stage-empty .paper-trail-stage-icon {
 	color: var(--text-faint);
 }
 
-.paper-trail-stage-empty .collapse-icon {
-	visibility: hidden;
+/*
+ * The record, at the foot of the pane.
+ *
+ * It takes whatever height the list leaves over, so with room it sits
+ * on the floor of the pane and without it it scrolls along at the end.
+ *
+ * One auto margin, and nothing else. It replaced a second scrolling box with a
+ * height of its own, pinned below the list: that kept the record on screen at
+ * the cost of a wheel that stopped working halfway down the pane, and of a cap
+ * you could not read past. The tree above is stretched to the pane's height,
+ * which is what gives this margin something to take.
+ */
+.workspace-leaf-content[data-type='paper-trail-queue'] .paper-trail-tree {
+	display: flex;
+	flex-direction: column;
+	min-height: 100%;
 }
+
+.paper-trail-tree > .paper-trail-decided {
+	margin-top: auto;
+}
+
+/*
+ * Quiet, header and rows alike. It is drawn by the same function the stages
+ * are, so this is the only thing that distinguishes it: the stages are the
+ * work, and the record sits under them without competing for attention.
+ */
+.paper-trail-decided .nav-folder-title-content,
+.paper-trail-decided .paper-trail-stage-icon,
+.paper-trail-decided-icon {
+	color: var(--text-faint);
+}
+
+/*
+ * The reading status, in a paper's own title bar.
+ *
+ * A pill rather than another icon, because it is the one thing up there that
+ * is read rather than pressed: six states cannot be told apart by a glyph, and
+ * the people this is for are the ones who cannot see the frontmatter either.
+ *
+ * `view-action` is the class Obsidian gives everything in that bar, sized for
+ * a square icon. This takes back the square and nothing else, so the hover,
+ * the focus ring and the theme's own colours still arrive from there.
+ */
+.view-action.paper-trail-status {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	width: auto;
+	padding: 0 var(--size-4-2);
+	border-radius: var(--radius-s);
+	background-color: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
+/*
+ * The icon keeps a glyph's size while the words set their own. Without this it
+ * inherits the smaller type and the mark shrinks below the text beside it.
+ */
+.paper-trail-status-icon {
+	display: flex;
+	align-items: center;
+}
+
+.paper-trail-status-icon svg {
+	width: var(--icon-s);
+	height: var(--icon-s);
+}
+
+/*
+ * The word does not hide on a narrow pane, and cannot without help. Obsidian
+ * declares a CSS container on the tab header, the settings pane and the
+ * properties block, but not on `.view-header`, so a container query here would
+ * have nothing to resolve against and would never fire. Declaring one on their
+ * element to get it would be changing the layout semantics of somebody else's
+ * chrome to save forty pixels.
+ *
+ * It costs little. `.view-header` is a flex row whose title container shrinks,
+ * so a short pill crowds nothing: the note's name gives way first, which is
+ * what it already does for the buttons beside it.
+ */
+
+/*
+ * Rows run to the edge of the pane, the way the file explorer's do.
+ *
+ * Obsidian indents a nested row by putting margin, padding and an indentation
+ * guide on the container around it, so the row's own box starts twelve-odd
+ * pixels in. That is right for a file tree that nests six deep and wrong for
+ * one that nests once: the hover and active highlights start at the indent, so
+ * a paper under a section reads as something filed deep inside it rather than
+ * a line in a list.
+ *
+ * The fix is Tag Explorer's. Pull the row back by exactly what the container
+ * put in, then push its contents in again with a transparent border. The box
+ * is full width, the text stays indented, and nothing moves.
+ *
+ * Every term is Obsidian's own variable, so a theme that indents differently
+ * moves this with it rather than fighting it. The `-left` fallbacks are for
+ * themes still setting the pre-logical-property names.
+ */
+.paper-trail .nav-folder-children > .tree-item > .tree-item-self {
+	--paper-trail-indent: calc(
+		var(--nav-item-children-margin-start, var(--nav-item-children-margin-left, 0px)) +
+			var(--nav-item-children-padding-start, var(--nav-item-children-padding-left, 0px)) +
+			var(--nav-indentation-guide-width, 0px)
+	);
+	margin-inline-start: calc(-1 * var(--paper-trail-indent));
+	border-inline-start: var(--paper-trail-indent) solid transparent;
+}
+
+/*
+ * Room at the foot of the list for the status bar to sit over.
+ *
+ * The number is measured in `queue.ts`, because nothing in CSS can see where
+ * Obsidian has floated that bar or whether a theme has hidden it. It answers
+ * zero whenever the bar is not actually over the list, and zero here is no
+ * padding at all rather than a gap kept open for nothing.
+ *
+ * On the tree rather than the scrolling box around it, so it is inside the
+ * scroll: the record is pushed up off the bar when the list is short, and the
+ * last row can still be scrolled clear of it when the list is long.
+ */
+.paper-trail-tree {
+	padding-bottom: var(--paper-trail-clearance, 0px);
+}
+
+/*
+ * The same pill, at the top of a rendered paper.
+ *
+ * It is the one that shows up in a hover preview, because a preview renders the
+ * file afresh and cannot see anything the pane it came from added. Chrome
+ * cannot travel; a post-processor's output can.
+ *
+ * Set in the interface's own type rather than the note's, because it is not
+ * part of what you wrote. The frontmatter is still the record and this still
+ * only reads it.
+ */
+.paper-trail-note-status {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	margin-block: var(--size-4-1) var(--size-4-2);
+	padding: var(--size-2-1) var(--size-4-2);
+	border-radius: var(--radius-s);
+	background-color: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-smaller);
+	line-height: var(--line-height-tight);
+	cursor: var(--cursor);
+	user-select: none;
+}
+
+.paper-trail-note-status:hover {
+	color: var(--text-normal);
+}
+

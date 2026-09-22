@@ -76,12 +76,32 @@ export async function insertCitation(context: Context): Promise<void> {
 		// enough for the cursor to have moved, or the pane to have changed.
 		const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 		if (!editor) {
-			new Notice(`Nowhere to put it. The citation was: [@${key}]`);
+			new Notice(`Nowhere to put it. The citation was: ${wikilink(key)}`);
 			return;
 		}
-		editor.replaceSelection(`[@${key}]`);
+		editor.replaceSelection(wikilink(key));
 	} catch (error) {
 		if (!(error instanceof SourceError)) console.error(error);
 		new Notice(error instanceof Error ? error.message : String(error));
 	}
+}
+
+/**
+ * A citation as a link to the paper, rather than as pandoc syntax.
+ *
+ * `[@key]` is inert in Obsidian: the right thing to hand a bibliography
+ * processor and nothing at all to the vault. A wikilink is both. It resolves,
+ * because a paper is named for its citation key and carries it as an alias
+ * either way; it opens the paper; it shows the paper on hover, status and all;
+ * and every place you cited something turns up in that paper's backlinks, which
+ * is the question a thesis actually asks of its own corpus.
+ *
+ * It stays exportable, and that is why it is the bare key rather than a
+ * prettier label: a link whose target is a citation key is something a pandoc
+ * filter can turn into a real citation without knowing anything about this
+ * vault. Better BibTeX's own dialog still writes `[@key, p. 45]`, because a
+ * locator is not a thing a wikilink can say, and pandoc reads that natively.
+ */
+function wikilink(key: string): string {
+	return `[[${key}]]`;
 }

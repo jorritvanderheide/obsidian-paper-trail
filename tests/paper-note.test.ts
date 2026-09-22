@@ -47,28 +47,54 @@ const highlight = (over: Partial<Highlight> = {}): Highlight => ({
 });
 
 describe('paperFrontmatter', () => {
-	it('prefers the short title and keeps the full one findable', () => {
-		const fm = paperFrontmatter(item, ref);
-		expect(fm.title).toBe('Reframing heat pump transitions');
-		expect(fm.aliases).toEqual(['Reframing heat pump transitions: a care perspective']);
+	it('prefers the short title', () => {
+		expect(paperFrontmatter(item, ref, 'some-old-name').title).toBe('Reframing heat pump transitions');
 	});
 
-	it('does not alias a title to itself', () => {
-		const fm = paperFrontmatter({ ...item, data: { ...item.data, shortTitle: undefined } }, ref);
-		expect(fm.aliases).toEqual([]);
+	// It used to be, and only when Zotero's short title differed from its long
+	// one. That split the library arbitrarily: the papers findable by title were
+	// the ones whose link came out a hundred characters long, and the rest could
+	// not be found that way at all. One way to reach a paper is worth more.
+	it('does not alias the full title, whether or not a short one exists', () => {
+		const long = 'Reframing heat pump transitions: a care perspective';
+		expect(paperFrontmatter(item, ref, 'some-old-name').aliases).not.toContain(long);
+
+		const same = { ...item, data: { ...item.data, shortTitle: undefined } };
+		expect(paperFrontmatter(same, ref, 'some-old-name').aliases).not.toContain(long);
+	});
+
+	// A citation is written as `[[key]]`, so the key has to find the paper. It
+	// usually does by filename, because a paper with a key is named for it. A
+	// note made before Better BibTeX was installed is not, and learns its key
+	// later from a sync: the alias is what covers those.
+	it('aliases the citation key when the file is called something else', () => {
+		expect(paperFrontmatter(item, ref, 'some-old-name').aliases).toContain('vanderhaerReframingHeatPump2026');
+	});
+
+	// Aliasing a note to its own name lists it twice in the link suggester: once
+	// as a file, once as an alias pointing at that file.
+	it('does not alias the citation key when the file is already called that', () => {
+		expect(paperFrontmatter(item, ref, 'vanderhaerReframingHeatPump2026').aliases).toEqual([]);
+	});
+
+	// Without Better BibTeX there is no key, so there is nothing to alias and
+	// nothing to cite with either.
+	it('aliases nothing at all when Zotero has no key to give', () => {
+		const none = { ...item, data: { ...item.data, citationKey: undefined } };
+		expect(paperFrontmatter(none, ref, 'some-old-name').aliases).toEqual([]);
 	});
 
 	it('keeps compound surnames whole', () => {
-		expect(paperFrontmatter(item, ref).authors).toBe('Jeltje Van Der Haer, Freek De Haan');
+		expect(paperFrontmatter(item, ref, 'some-old-name').authors).toBe('Jeltje Van Der Haer, Freek De Haan');
 	});
 
 	it('is null rather than empty when Better BibTeX is absent', () => {
-		const fm = paperFrontmatter({ ...item, data: { ...item.data, citationKey: undefined } }, ref);
+		const fm = paperFrontmatter({ ...item, data: { ...item.data, citationKey: undefined } }, ref, 'some-old-name');
 		expect(fm.citekey).toBeNull();
 	});
 
 	it('writes only keys it declares as managed, plus the item key', () => {
-		const fm = paperFrontmatter(item, ref);
+		const fm = paperFrontmatter(item, ref, 'some-old-name');
 		expect(Object.keys(fm).sort()).toEqual([...MANAGED_KEYS, 'itemKey'].sort());
 	});
 
@@ -236,7 +262,7 @@ describe('the shipped paper template', () => {
  * knows nothing about what the user decided or wrote.
  */
 describe('applyPaperFrontmatter', () => {
-	const managed = () => paperFrontmatter(item, ref);
+	const managed = () => paperFrontmatter(item, ref, 'some-old-name');
 
 	/** A note that has been lived in: triaged, tagged, and annotated by hand. */
 	const lived = (): Record<string, unknown> => ({
@@ -251,7 +277,7 @@ describe('applyPaperFrontmatter', () => {
 
 	it('refreshes the managed keys', () => {
 		const fm = lived();
-		applyPaperFrontmatter(fm, managed(), false, 'zotero-key');
+		applyPaperFrontmatter(fm, managed(), null, 'zotero-key');
 		expect(fm.title).toBe('Reframing heat pump transitions');
 		expect(fm.citekey).toBe('vanderhaerReframingHeatPump2026');
 		expect(fm['zotero-key']).toBe('5UPN73EU');
@@ -259,7 +285,7 @@ describe('applyPaperFrontmatter', () => {
 
 	it('does not reset the reading decision', () => {
 		const fm = lived();
-		applyPaperFrontmatter(fm, managed(), false, 'zotero-key');
+		applyPaperFrontmatter(fm, managed(), null, 'zotero-key');
 		expect(fm.reading).toBe('finished');
 		expect(fm['reading-date']).toBe('2026-11-14');
 		expect(fm['triaged-date']).toBe('2026-09-20');
@@ -268,13 +294,13 @@ describe('applyPaperFrontmatter', () => {
 
 	it('does not touch a field it never heard of', () => {
 		const fm = lived();
-		applyPaperFrontmatter(fm, managed(), false, 'zotero-key');
+		applyPaperFrontmatter(fm, managed(), null, 'zotero-key');
 		expect(fm['my-own-field']).toBe('do not touch');
 	});
 
 	it('does not restamp the tags on a sync', () => {
 		const fm = lived();
-		applyPaperFrontmatter(fm, managed(), false, 'zotero-key');
+		applyPaperFrontmatter(fm, managed(), null, 'zotero-key');
 		expect(fm.tags).toEqual(['domain/phd', 'type/filed']);
 	});
 
@@ -283,20 +309,20 @@ describe('applyPaperFrontmatter', () => {
 		// it looks at their type, so one tagged as waiting to be filed would never
 		// appear under File.
 		const fm: Record<string, unknown> = {};
-		applyPaperFrontmatter(fm, managed(), true, 'zotero-key');
+		applyPaperFrontmatter(fm, managed(), 'untriaged', 'zotero-key');
 		expect(fm.reading).toBe('untriaged');
 		expect('tags' in fm).toBe(false);
 	});
 
 	it('leaves tags you added yourself alone on creation', () => {
 		const fm: Record<string, unknown> = { tags: ['domain/teaching'] };
-		applyPaperFrontmatter(fm, managed(), true, 'zotero-key');
+		applyPaperFrontmatter(fm, managed(), 'untriaged', 'zotero-key');
 		expect(fm.tags).toEqual(['domain/teaching']);
 	});
 
 	it('removes a citation key that Better BibTeX no longer provides', () => {
 		const fm: Record<string, unknown> = { citekey: 'oldKey2020' };
-		applyPaperFrontmatter(fm, paperFrontmatter({ ...item, data: { ...item.data, citationKey: undefined } }, ref), false, 'zotero-key');
+		applyPaperFrontmatter(fm, paperFrontmatter({ ...item, data: { ...item.data, citationKey: undefined } }, ref, 'some-old-name'), null, 'zotero-key');
 		expect('citekey' in fm).toBe(false);
 	});
 
@@ -306,16 +332,16 @@ describe('applyPaperFrontmatter', () => {
 		// Zotero offered now, so a replaced PDF left the note reading annotations
 		// off an attachment that had gone.
 		const fm: Record<string, unknown> = { attachment: '4VV8LYJ2', reading: 'finished' };
-		applyPaperFrontmatter(fm, paperFrontmatter(item, ref), false, 'zotero-key');
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'some-old-name'), null, 'zotero-key');
 		expect('attachment' in fm).toBe(false);
 		expect(fm.reading).toBe('finished');
 	});
 
 	it('is stable: syncing twice changes nothing the second time', () => {
 		const once = lived();
-		applyPaperFrontmatter(once, managed(), false, 'zotero-key');
+		applyPaperFrontmatter(once, managed(), null, 'zotero-key');
 		const twice = { ...once };
-		applyPaperFrontmatter(twice, managed(), false, 'zotero-key');
+		applyPaperFrontmatter(twice, managed(), null, 'zotero-key');
 		expect(twice).toEqual(once);
 	});
 });
@@ -341,21 +367,21 @@ describe('the region breathes', () => {
 describe('the item key property is configurable at both ends', () => {
 	it('writes the key under the configured name', () => {
 		const fm: Record<string, unknown> = {};
-		applyPaperFrontmatter(fm, paperFrontmatter(item, ref), false, 'citekey-zotero');
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'some-old-name'), null, 'citekey-zotero');
 		expect(fm['citekey-zotero']).toBe('5UPN73EU');
 		expect('zotero-key' in fm).toBe(false);
 	});
 
 	it('defaults to the name everything else reads', () => {
 		const fm: Record<string, unknown> = {};
-		applyPaperFrontmatter(fm, paperFrontmatter(item, ref), false, 'zotero-key');
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'some-old-name'), null, 'zotero-key');
 		expect(fm['zotero-key']).toBe('5UPN73EU');
 	});
 
 	it('never leaves the internal name in the note', () => {
 		// `itemKey` is how the value travels, not what it is called on disk.
 		const fm: Record<string, unknown> = {};
-		applyPaperFrontmatter(fm, paperFrontmatter(item, ref), false, 'zotero-key');
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'some-old-name'), null, 'zotero-key');
 		expect('itemKey' in fm).toBe(false);
 	});
 });
@@ -363,13 +389,13 @@ describe('the item key property is configurable at both ends', () => {
 describe('the frontmatter a paper ends up with', () => {
 	it('is in alphabetical order', () => {
 		const fm: Record<string, unknown> = {};
-		applyPaperFrontmatter(fm, paperFrontmatter(item, ref), true, 'zotero-key');
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'some-old-name'), 'untriaged', 'zotero-key');
 		expect(Object.keys(fm)).toEqual([...Object.keys(fm)].sort());
 	});
 
 	it('sorts a user own keys in with the managed ones', () => {
 		const fm: Record<string, unknown> = { supervisor: 'Hanna', 'my-own-field': 'x' };
-		applyPaperFrontmatter(fm, paperFrontmatter(item, ref), false, 'zotero-key');
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'some-old-name'), null, 'zotero-key');
 		expect(Object.keys(fm)).toEqual([...Object.keys(fm)].sort());
 		expect(fm.supervisor).toBe('Hanna');
 	});
@@ -381,12 +407,12 @@ describe('the frontmatter a paper ends up with', () => {
  * note becomes a modification and two machines start fighting over it.
  */
 describe('managedDiffers', () => {
-	const managed = () => paperFrontmatter(item, ref);
+	const managed = () => paperFrontmatter(item, ref, 'some-old-name');
 
 	/** What a synced note's frontmatter looks like: managed keys, plus the user's. */
 	const synced = (): Record<string, unknown> => {
 		const out: Record<string, unknown> = {};
-		applyPaperFrontmatter(out, managed(), false, 'zotero-key');
+		applyPaperFrontmatter(out, managed(), null, 'zotero-key');
 		return out;
 	};
 
@@ -421,7 +447,7 @@ describe('managedDiffers', () => {
 	it('sees a managed key that should be gone but is not', () => {
 		// The citation key disappears when Better BibTeX is uninstalled.
 		const stale = { ...synced(), citekey: 'leftBehind2020' };
-		expect(managedDiffers(stale, paperFrontmatter({ ...item, data: { ...item.data, citationKey: undefined } }, ref), 'zotero-key')).toBe(true);
+		expect(managedDiffers(stale, paperFrontmatter({ ...item, data: { ...item.data, citationKey: undefined } }, ref, 'some-old-name'), 'zotero-key')).toBe(true);
 	});
 
 	it('sees a retired key still on the note, or the sync that removes it never runs', () => {

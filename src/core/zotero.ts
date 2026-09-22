@@ -16,42 +16,9 @@ export function parseItemRef(value: unknown): ItemRef | null {
 	return { key: match[1], groupID: match[2] ? Number(match[2]) : null };
 }
 
-export function formatItemRef(ref: ItemRef): string {
-	return ref.groupID === null ? ref.key : `${ref.key}g${ref.groupID}`;
-}
-
 /** Path prefix of the library in the Zotero API. */
 export function libraryPath(ref: ItemRef): string {
 	return ref.groupID === null ? 'users/0' : `groups/${ref.groupID}`;
-}
-
-/**
- * Item keys linked from a note body with a zotero:// URL, in order of
- * appearance, without the item itself. A template that links the PDF with
- * `zotero://open/library/items/<key>` makes these the attachment keys, which
- * saves asking the Zotero API. Other keys (a parent's select link, a related
- * item) are harmless: the caller keeps only keys with extracted text on disk.
- */
-export function linkedKeys(body: string, exclude: string): string[] {
-	const keys: string[] = [];
-	const pattern = /zotero:\/\/[a-z-]+\/(?:library|groups\/\d+)\/items\/([A-Z0-9]{8})/g;
-	for (const match of body.matchAll(pattern)) {
-		const key = match[1];
-		if (key && key !== exclude && !keys.includes(key)) keys.push(key);
-	}
-	return keys;
-}
-
-/** The data directory Zotero records in its profile's prefs.js, if it records one. */
-export function dataDirFromPrefs(prefs: string): string | null {
-	const match = /^user_pref\("extensions\.zotero\.dataDir", "((?:[^"\\]|\\.)*)"\);$/m.exec(prefs);
-	if (!match?.[1]) return null;
-	try {
-		// prefs.js escapes like JSON, which matters for Windows paths.
-		return JSON.parse(`"${match[1]}"`) as string;
-	} catch {
-		return null;
-	}
 }
 
 /**

@@ -19,7 +19,13 @@ const PORT = 23119;
 export interface Headers {
 	/** The library version this answer reflects, for asking what changed after it. */
 	version: number;
-	/** How many items are in the whole set, not just this page of it. */
+	/**
+	 * How many objects match the request, not how many this page holds.
+	 *
+	 * Scoped to the query and not to the library, which is easy to read the
+	 * wrong way round: on a `?since=` request this counts what has changed, and
+	 * is nothing like the number of items Zotero holds.
+	 */
 	total: number;
 }
 

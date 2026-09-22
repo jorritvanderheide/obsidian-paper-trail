@@ -1,8 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadSettings } from '../src/core/settings';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getJson = vi.fn<(path: string) => Promise<unknown>>();
 const getText = vi.fn<(path: string, timeout?: number) => Promise<unknown>>();
@@ -14,9 +10,9 @@ vi.mock('../src/http', () => ({
 const {
 	attachmentAnnotations,
 	changedSince,
+	libraryState,
 	itemMetadata,
 	lastContact,
-	loadFulltext,
 	pickCitation,
 	recentItems,
 	searchItems,
@@ -30,82 +26,11 @@ const answer = (json: unknown, over: { version?: number; total?: number } = {}) 
 	headers: { version: over.version ?? 1, total: over.total ?? (Array.isArray(json) ? json.length : 0) },
 });
 
-let dataDir: string;
-
-function cache(key: string, text: string) {
-	mkdirSync(join(dataDir, 'storage', key), { recursive: true });
-	writeFileSync(join(dataDir, 'storage', key, '.zotero-ft-cache'), text);
-}
-
-function settings() {
-	return loadSettings({ dataDir });
-}
-
 const parent = { key: 'PARENT23', groupID: null };
 
 beforeEach(() => {
-	dataDir = mkdtempSync(join(tmpdir(), 'zsr-'));
 	getJson.mockReset();
 	getText.mockReset();
-});
-
-afterEach(() => {
-	rmSync(dataDir, { recursive: true, force: true });
-});
-
-describe('loadFulltext', () => {
-	it('reads an attachment linked from the note without asking Zotero', async () => {
-		cache('ATTACH23', 'linked text');
-		const s = settings();
-		const result = await loadFulltext(s, parent, '[pdf](zotero://open/library/items/ATTACH23)');
-		expect(result).toEqual({ attachmentKey: 'ATTACH23', text: 'linked text' });
-		expect(s.attachments.PARENT23).toBe('ATTACH23');
-		expect(getJson).not.toHaveBeenCalled();
-	});
-
-	it('asks the local API for attachments, and remembers the answer', async () => {
-		cache('PDF23456', 'api text');
-		getJson.mockResolvedValue({
-			status: 200,
-			json: [{ key: 'PDF23456', data: { itemType: 'attachment', contentType: 'application/pdf', linkMode: 'imported_file' } }],
-		});
-		const s = settings();
-		expect(await loadFulltext(s, parent)).toEqual({ attachmentKey: 'PDF23456', text: 'api text' });
-		expect(getJson).toHaveBeenCalledWith('/api/users/0/items/PARENT23/children');
-
-		getJson.mockClear();
-		await loadFulltext(s, parent);
-		expect(getJson).not.toHaveBeenCalled();
-	});
-
-	it('uses the group library path for group items', async () => {
-		getJson.mockResolvedValue(answer([]));
-		await expect(loadFulltext(settings(), { key: 'PARENT23', groupID: 9 })).rejects.toThrow('no file attachment');
-		expect(getJson).toHaveBeenCalledWith('/api/groups/9/items/PARENT23/children');
-	});
-
-	it('reads a standalone attachment as its own item', async () => {
-		cache('PARENT23', 'standalone');
-		expect((await loadFulltext(settings(), parent)).text).toBe('standalone');
-	});
-
-	it('explains an unreachable Zotero', async () => {
-		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(loadFulltext(settings(), parent)).rejects.toThrow(/not answering/);
-	});
-
-	it('explains a disabled local API', async () => {
-		getJson.mockResolvedValue({ status: 403, json: null });
-		await expect(loadFulltext(settings(), parent)).rejects.toBeInstanceOf(SourceError);
-	});
-
-	it('explains an attachment Zotero has not indexed yet', async () => {
-		getJson.mockResolvedValue({
-			status: 200,
-			json: [{ key: 'PDF23456', data: { itemType: 'attachment', contentType: 'application/pdf' } }],
-		});
-		await expect(loadFulltext(settings(), parent)).rejects.toThrow(/no extracted text/);
-	});
 });
 
 describe('attachmentAnnotations', () => {
@@ -249,50 +174,58 @@ describe('changedSince', () => {
 
 	it('asks from the version it was given', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await changedSince(79);
+		await changedSince(79, '');
 		expect(getJson.mock.calls[0]?.[0]).toContain('since=79');
 	});
 
 	it('hands back the version to ask with next time', async () => {
 		getJson.mockResolvedValue(answer([], { version: 80 }));
-		expect((await changedSince(79)).version).toBe(80);
+		expect((await changedSince(79, '')).version).toBe(80);
 	});
 
 	it('answers with nothing when nothing has changed, which is the usual case', async () => {
-		getJson.mockResolvedValue(answer([], { version: 79, total: 6 }));
-		const changes = await changedSince(79);
+		getJson.mockResolvedValue(answer([], { version: 79, total: 0 }));
+		const changes = await changedSince(79, '');
 		expect(changes.items).toEqual([]);
-		expect(changes.total).toBe(6);
+		expect(changes.version).toBe(79);
+	});
+
+	// The count on this response is the count of what changed, not of what the
+	// library holds, so it is deliberately not handed back: reading it as the
+	// library size is the mistake `libraryState` exists to make impossible.
+	it('hands back no count, because the count here would be the wrong one', async () => {
+		getJson.mockResolvedValue(answer([], { version: 79, total: 0 }));
+		expect(Object.keys(await changedSince(79, '')).sort()).toEqual(['items', 'version']);
 	});
 
 	it('reads the whole library when asked from nothing', async () => {
 		getJson.mockResolvedValue(answer([item('AAAA1111'), item('BBBB2222')]));
-		expect((await changedSince(0)).items).toHaveLength(2);
+		expect((await changedSince(0, '')).items).toHaveLength(2);
 		expect(getJson.mock.calls[0]?.[0]).toContain('since=0');
 	});
 
 	it('asks only top-level items, so attachments never reach the queue', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await changedSince(0);
+		await changedSince(0, '');
 		expect(getJson.mock.calls[0]?.[0]).toContain('/items/top');
 	});
 
 	it('pages when a full page comes back, because one is not always enough', async () => {
 		const full = Array.from({ length: 100 }, (_, n) => item(`K${n}`));
 		getJson.mockResolvedValueOnce(answer(full)).mockResolvedValueOnce(answer([item('LAST')]));
-		expect((await changedSince(0)).items).toHaveLength(101);
+		expect((await changedSince(0, '')).items).toHaveLength(101);
 		expect(getJson.mock.calls[1]?.[0]).toContain('start=100');
 	});
 
 	it('stops after one page when that page was short', async () => {
 		getJson.mockResolvedValue(answer([item('AAAA1111')]));
-		await changedSince(0);
+		await changedSince(0, '');
 		expect(getJson).toHaveBeenCalledTimes(1);
 	});
 
 	it('reports an unreachable Zotero rather than an empty library', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(changedSince(0)).rejects.toBeInstanceOf(SourceError);
+		await expect(changedSince(0, '')).rejects.toBeInstanceOf(SourceError);
 	});
 });
 
@@ -311,5 +244,36 @@ describe('the connectivity messages', () => {
 		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow();
 		const refused = lastContact();
 		if (refused?.reachable === false) expect(refused.reason.length).toBeLessThan(70);
+	});
+});
+
+/**
+ * The two numbers that say whether the library is worth reading again, and the
+ * one request that carries both.
+ */
+describe('libraryState', () => {
+	it('hands back the library version and how many items it holds', async () => {
+		getJson.mockResolvedValue(answer([{ key: 'AAAA1111', data: {} }], { version: 122, total: 412 }));
+		expect(await libraryState('')).toEqual({ version: 122, total: 412 });
+	});
+
+	it('asks with no since, or the count would be of what changed', async () => {
+		getJson.mockResolvedValue(answer([]));
+		await libraryState('');
+		expect(getJson.mock.calls[0]?.[0]).not.toContain('since=');
+	});
+
+	// The answers are both headers, so the body is dead weight: asking for one
+	// item keeps this the same cost on a library of four and one of four
+	// thousand, which is what lets it be asked on every window focus.
+	it('asks for one item, because neither answer is in the body', async () => {
+		getJson.mockResolvedValue(answer([]));
+		await libraryState('');
+		expect(getJson.mock.calls[0]?.[0]).toContain('limit=1');
+	});
+
+	it('reports an unreachable Zotero rather than an empty library', async () => {
+		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
+		await expect(libraryState('')).rejects.toBeInstanceOf(SourceError);
 	});
 });

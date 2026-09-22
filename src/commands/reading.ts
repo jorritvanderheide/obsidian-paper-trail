@@ -7,14 +7,11 @@
 //
 // Every route goes through applyTriage, so the frontmatter a decision leaves
 // behind cannot drift between them.
-import { Notice, type App, type TFile, type WorkspaceLeaf } from 'obsidian';
-import { backMatter, cleanFulltext } from '../core/clean';
-import { passOne } from '../core/passOne';
-import { glance, referenceLines, type KnownPaper } from '../core/references';
+import { Notice, type App, type TFile } from 'obsidian';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
-import { itemMetadata, loadFulltext, SourceError } from '../source';
-import { PASS_ONE_VIEW, PassOneView, type Brief, type Full } from '../ui/pass-one-view';
-import { applyTriage, asks, currentReading, iconOf, landing, type Reading, type Triage } from '../core/triage';
+import { itemMetadata, SourceError } from '../source';
+import { TriageModal, type Brief } from '../ui/triage-modal';
+import { applyTriage, asks, iconOf, landing, READING_ORDER, type Reading, type Triage } from '../core/triage';
 import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
@@ -66,14 +63,31 @@ export async function decide(context: Context, file: TFile, reading: Reading): P
 	return true;
 }
 
-const CHOICES: { reading: Reading; label: string }[] = [
-	{ reading: 'finished', label: 'Finished, and that was enough' },
-	{ reading: 'promoted', label: 'Read, and worth assessing closely' },
-	{ reading: 'queued', label: 'Queued, worth an hour' },
-	{ reading: 'deferred', label: 'Deferred, come back to it later' },
-	{ reading: 'dropped', label: 'Dropped, not worth reading' },
-	{ reading: 'untriaged', label: 'Untriaged, assess it again' },
-];
+/**
+ * How each state reads in the list, as a state rather than as an action.
+ *
+ * Unlike the second-pass chooser, which asks what just happened, this one asks
+ * what a paper should be. So "Queued" rather than "worth an hour": you are
+ * correcting a record, not making a decision about reading.
+ */
+const CHOICE_LABELS: Record<Reading, string> = {
+	untriaged: 'Untriaged, assess it again',
+	queued: 'Queued, worth an hour',
+	finished: 'Finished, and that was enough',
+	promoted: 'Read, and worth assessing closely',
+	deferred: 'Deferred, come back to it later',
+	dropped: 'Dropped, not worth reading',
+};
+
+/**
+ * Built from `READING_ORDER` rather than written out, so the list cannot come
+ * to disagree with the pane by someone adding a state in the wrong place. The
+ * record shape also means a new state is a compile error until it is labelled.
+ */
+const CHOICES: { reading: Reading; label: string }[] = READING_ORDER.map((reading) => ({
+	reading,
+	label: CHOICE_LABELS[reading],
+}));
 
 /**
  * Set the reading state by hand, including back to states no button offers.
@@ -108,74 +122,6 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 }
 
 /**
- * Every paper the vault already holds, as the references glance needs to see
- * it. Titles and aliases together, because Zotero's short title is what the
- * note is called and the full one is what somebody else's bibliography prints.
- *
- * The paper being assessed is left out. It does not cite itself, and matching
- * its own title would only ever mean the cleaner had left the front matter in.
- */
-function known(context: Context, selfPath: string | null): KnownPaper[] {
-	const app = context.app;
-	const keyField = context.settings.keyField;
-
-	return app.vault
-		.getMarkdownFiles()
-		.filter((file) => file.path !== selfPath)
-		.flatMap((file) => {
-			const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
-			if (!isPaper(frontmatter, keyField)) return [];
-
-			const titles = [frontmatter.title, ...(Array.isArray(frontmatter.aliases) ? (frontmatter.aliases as unknown[]) : [])].filter(
-				(value): value is string => typeof value === 'string',
-			);
-
-			return [
-				{
-					path: file.path,
-					titles: titles.length > 0 ? titles : [file.basename],
-					reading: typeof frontmatter.reading === 'string' ? currentReading(frontmatter.reading) : null,
-				},
-			];
-		});
-}
-
-/**
- * Keshav's full first pass: the extracted text, cleaned, plus how much of the
- * bibliography the vault already holds.
- *
- * Everything expensive lives here, and nothing calls it until the button is
- * pressed. Reading the cache off disk, running the cleaner over it and scanning
- * every note in the vault for titles is a fair price for a paper you are
- * seriously considering and an absurd one for the four out of five that the
- * abstract already answered.
- */
-async function fullPass(context: Context, ref: ItemRef, body: string, selfPath: string | null): Promise<Full> {
-	const fulltext = await loadFulltext(context.settings, ref, body);
-	await context.saveSettings();
-
-	return {
-		result: passOne(cleanFulltext(fulltext.text)),
-		seen: glance(referenceLines(backMatter(fulltext.text)), known(context, selfPath)),
-	};
-}
-
-/**
- * The triage pane. One of them, reused: opening triage twice without deciding
- * in between would otherwise leave two up, both waiting for an answer.
- *
- * A tab rather than a split. The pane stays for as long as you are working
- * through the pile, so taking half the editor for the duration would be taking
- * it from whatever you were actually writing.
- */
-async function triageLeaf(app: App): Promise<WorkspaceLeaf> {
-	const leaf = app.workspace.getLeavesOfType(PASS_ONE_VIEW)[0] ?? app.workspace.getLeaf('tab');
-	await leaf.setViewState({ type: PASS_ONE_VIEW, active: true });
-	await app.workspace.revealLeaf(leaf);
-	return leaf;
-}
-
-/**
  * What triage can be pointed at: a paper's note, or a paper in Zotero that has
  * none yet.
  *
@@ -185,15 +131,25 @@ async function triageLeaf(app: App): Promise<WorkspaceLeaf> {
  */
 export type TriageTarget = { kind: 'note'; file: TFile } | { kind: 'pending'; item: Pending };
 
+/**
+ * The dialog, while one is up.
+ *
+ * Module state rather than a field on anything, because triage has no owner: it
+ * is reached from a queue row, from a note's title bar and from `next`, and all
+ * three should land in the same dialog rather than stacking a second one over
+ * the first.
+ */
+let open: TriageModal | null = null;
+
 /** The paper a queue row is about, as triage needs to be handed it. */
-function targetOf(app: App, row: Row): TriageTarget | null {
+export function targetOf(app: App, row: Row): TriageTarget | null {
 	if (row.kind === 'pending') return { kind: 'pending', item: row.item };
 	const file = fileOf(app, row.note);
 	return file ? { kind: 'note', file } : null;
 }
 
 /** Make the note a decision needs, for a paper that did not have one. */
-async function noteFor(context: Context, item: Pending): Promise<TFile> {
+export async function noteFor(context: Context, item: Pending): Promise<TFile> {
 	const ref: ItemRef = { key: item.key, groupID: null };
 	// The queue's copy is a summary. The note wants the authors and the citation
 	// key, which only the item itself carries.
@@ -207,7 +163,7 @@ async function noteFor(context: Context, item: Pending): Promise<TFile> {
  * went unanswered. Nothing is created in that case: abandoning a drop halfway
  * through should leave no trace, which it cannot do if the file came first.
  */
-async function decideOn(context: Context, target: TriageTarget, reading: Reading): Promise<TFile | null> {
+export async function decideOn(context: Context, target: TriageTarget, reading: Reading): Promise<TFile | null> {
 	const question = asks(reading);
 
 	let reason: string | null = null;
@@ -244,7 +200,7 @@ async function advance(context: Context, decided: TFile, key: string | null): Pr
 		return;
 	}
 
-	app.workspace.getLeavesOfType(PASS_ONE_VIEW).forEach((leaf) => leaf.detach());
+	open?.close();
 	new Notice('Nothing left to triage.');
 }
 
@@ -332,25 +288,23 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 		}
 	}
 
-	const selfPath = target.kind === 'note' ? target.file.path : null;
+	const loaded = { title, brief, problem };
 
-	const leaf = await triageLeaf(app);
-	if (!(leaf.view instanceof PassOneView)) return;
+	// One dialog for the whole sitting. Pointing the open one at the next paper
+	// rather than opening another is what makes forty decisions forty answers
+	// instead of forty dialogs.
+	if (open) {
+		open.show(loaded);
+		return;
+	}
 
-	leaf.view.show(
-		{ title, brief, problem },
-		{
-			decide: async (reading) => {
-				const file = await decideOn(context, target, reading);
-				if (!file) return false;
-				await advance(context, file, key);
-				return true;
-			},
-			full: async () => {
-				if (!ref) throw new SourceError('This note names no Zotero item, so there is no text to read.');
-				const body = target.kind === 'note' ? await app.vault.cachedRead(target.file) : '';
-				return fullPass(context, ref, body, selfPath);
-			},
-		},
-	);
+	const decide = async (reading: Reading) => {
+		const file = await decideOn(context, target, reading);
+		if (!file) return false;
+		await advance(context, file, key);
+		return true;
+	};
+
+	open = new TriageModal(app, loaded, decide, () => (open = null));
+	open.open();
 }

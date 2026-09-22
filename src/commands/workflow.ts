@@ -5,14 +5,15 @@
 // What is outstanding in the first place is worked out in `outstanding.ts`,
 // which triage needs as well and which must not depend on this.
 import { Notice, type App, type TFile } from 'obsidian';
-import { rowTask, rowTitle, STAGES, type NoteState, type Row, type Task } from '../core/stages';
-import { formatItemRef, parseItemRef, readerUrl } from '../core/zotero';
-import { loadFulltext } from '../source';
-import { decide, openTriage } from './reading';
+import { rowTask, rowTitle, STAGES, TASKS, type NoteState, type Row, type Task } from '../core/stages';
+import { attachmentKeys, parseItemRef, readerUrl, type ItemRef } from '../core/zotero';
+import { selectUrl } from '../core/paper-note';
+import { itemChildren } from '../source';
+import { decideOn, noteFor, openTriage, targetOf } from './reading';
 import { fileOf, queue } from '../outstanding';
 import { iconOf, landing, PASS_TWO } from '../core/triage';
 import { suggest } from '../ui/prompt';
-import { reveal } from '../ui/reveal';
+import { openAtHeading, reveal } from '../ui/reveal';
 import type { Context } from '../context';
 
 /**
@@ -46,26 +47,49 @@ async function readingUrl(context: Context, file: TFile): Promise<string | null>
 	const ref = parseItemRef(frontmatter?.[context.settings.keyField]);
 	if (!ref) return select;
 
-	let key = context.settings.attachments[formatItemRef(ref)];
-	if (!key) {
-		try {
-			key = (await loadFulltext(context.settings, ref, await app.vault.cachedRead(file))).attachmentKey;
-			await context.saveSettings();
-		} catch {
-			return select;
-		}
-	}
+	return attachmentUrl(ref, select);
+}
 
-	return readerUrl(ref, key);
+/**
+ * The reader link for whichever attachment Zotero is offering now, or the
+ * select link when it has none.
+ *
+ * Asked every time rather than remembered. A key used to be cached in the
+ * settings to save a request on localhost, which is the wrong trade and the
+ * sync already said so: replace a PDF and the note goes on pointing at an
+ * attachment that has gone. This is the same call `createPaperNote` and
+ * `syncPaper` make, so all three now agree about which file a paper is.
+ */
+async function attachmentUrl(ref: ItemRef, fallback: string | null): Promise<string | null> {
+	try {
+		const key = attachmentKeys(await itemChildren(ref))[0];
+		return key ? readerUrl(ref, key) : fallback;
+	} catch {
+		// Zotero not answering is not a reason to open nothing: the select link
+		// came off the note and still names the item.
+		return fallback;
+	}
 }
 
 export async function act(context: Context, task: Task, row: Row): Promise<void> {
 	const app = context.app;
 
-	// A pending paper has no note, so triage is the only thing that can be done
-	// with it, and doing it is what gives it one.
 	if (row.kind === 'pending') {
-		await openTriage(context, { kind: 'pending', item: row.item });
+		// Triaging is what gives a pending paper a note, so it must not have one
+		// yet: the dialog writes it along with the decision, or writes nothing.
+		if (task === 'triage') {
+			await openTriage(context, { kind: 'pending', item: row.item });
+			return;
+		}
+
+		// Reading one does need a note, and now rather than later. You are about
+		// to annotate the paper in Zotero, and the highlights want somewhere to
+		// land when you come back. It arrives queued, because with triage off
+		// that is what putting it in Zotero meant.
+		const ref: ItemRef = { key: row.item.key, groupID: null };
+		await noteFor(context, row.item);
+		const url = await attachmentUrl(ref, selectUrl(ref));
+		if (url) window.open(url);
 		return;
 	}
 
@@ -85,9 +109,39 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
 		}
 		case 'claim':
 		case 'assessment':
-			await openNote(app, note);
+			await writeUnder(context, file, task);
 			return;
 	}
+}
+
+/**
+ * Go to the heading a paper is waiting on, put the cursor under it, and ask
+ * for what goes there.
+ *
+ * The question is put here rather than left in the note. It used to be an HTML
+ * comment the template wrote under each heading, which was the only way to ask
+ * at the point of use when arriving at the point of use meant scrolling. Asked
+ * on arrival it is asked once, in the current wording, and is gone as soon as
+ * it is answered.
+ *
+ * A heading the note does not have falls back to the note and says so. It is
+ * the one failure in this workflow that is otherwise completely silent: the
+ * paper never leaves its section and nothing anywhere explains why.
+ */
+async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assessment'): Promise<void> {
+	const claim = task === 'claim';
+	const heading = claim ? context.settings.claimHeading : context.settings.assessmentHeading;
+
+	if (await openAtHeading(context.app, file, heading)) {
+		const asked = TASKS[task].prompt;
+		if (asked) new Notice(asked);
+		return;
+	}
+
+	new Notice(
+		`${file.basename} has no "${heading}" heading, so nothing can ever leave this stage.\n` +
+			`Add it to the note, or change the ${claim ? 'Claim' : 'Assessment'} heading in settings.`,
+	);
 }
 
 /**
@@ -100,24 +154,42 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
  * the state the triage pane would have left it in.
  */
 export async function finish(context: Context, task: Task, row: Row): Promise<void> {
-	if (task !== 'read' || row.kind !== 'note') return;
+	if (task !== 'read') return;
 	const app = context.app;
-	const note = row.note;
-	const file = fileOf(app, note);
-	if (!file) return;
 
+	// A pending paper can be finished too, when triage is off: you may have read
+	// it in Zotero without ever opening its row. Through the same path a triage
+	// decision takes, which asks its question before it writes anything, so
+	// escaping a drop still leaves no file behind.
+	const target = targetOf(app, row);
+	if (!target) return;
+
+	const title = rowTitle(row);
 	const choice = await suggest(
 		app,
 		PASS_TWO,
 		(entry) => entry.label,
-		`Finished with ${note.title}`,
+		`Finished with ${title}`,
 		(entry) => landing(entry.reading),
 		(entry) => iconOf(entry.reading),
 	);
 	if (!choice) return;
-	if (!(await decide(context, file, choice.reading))) return;
 
-	new Notice(`${note.title}\n${landing(choice.reading)}`);
+	const file = await decideOn(context, target, choice.reading);
+	if (!file) return;
+
+	new Notice(`${title}\n${landing(choice.reading)}`);
+
+	// Both of the outcomes that mean you engaged with the paper leave it owing a
+	// claim, so this goes straight there rather than leaving you to find it.
+	// It is the moment the summary is cheapest to write: you have just closed
+	// the PDF, and the highlights are already in the note below the cursor.
+	//
+	// The two that end the paper are not followed anywhere. A drop and a
+	// deferral have already been answered, and there is nothing left to type.
+	if (choice.reading === 'finished' || choice.reading === 'promoted') {
+		await writeUnder(context, file, 'claim');
+	}
 }
 
 /**
@@ -131,7 +203,7 @@ export async function next(context: Context): Promise<void> {
 
 	for (const { stage, label } of STAGES) {
 		const first = buckets.get(stage)?.[0];
-		const task = first ? rowTask(first) : null;
+		const task = first ? rowTask(first, context.settings.triage) : null;
 		if (!first || !task) continue;
 		new Notice(`${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} outstanding` : ''}`);
 		await act(context, task, first);

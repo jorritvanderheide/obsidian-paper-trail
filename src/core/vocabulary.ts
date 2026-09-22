@@ -33,11 +33,6 @@ export function label(value: string): string {
 	return LABELS[value] ?? value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-/**
- * Whether a tag is a valid value on its axis. Exact match, not `startsWith`:
- * nested values like `domain/phd/wp1` are refused rather than silently accepted,
- * because nothing offers them and a typo would only surface as a split tag tree.
- */
 /** The values allowed on each axis, for a given configuration. */
 export interface Vocabulary {
 	domains: readonly string[];
@@ -49,6 +44,11 @@ export function valuesOn(_axis: Axis, vocabulary: Vocabulary): readonly string[]
 	return vocabulary.domains;
 }
 
+/**
+ * Whether a tag is a valid value on its axis. Exact match, not `startsWith`:
+ * nested values like `domain/phd/wp1` are refused rather than silently accepted,
+ * because nothing offers them and a typo would only surface as a split tag tree.
+ */
 export function isValid(axis: Axis, value: string, vocabulary: Vocabulary = DEFAULT_VOCABULARY): boolean {
 	return valuesOn(axis, vocabulary).includes(value);
 }

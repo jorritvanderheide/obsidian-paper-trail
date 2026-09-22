@@ -2,17 +2,18 @@ import { debounce, Notice, Plugin } from 'obsidian';
 import { next } from './commands/workflow';
 import { insertCitation } from './commands/citations';
 import { refreshPaper, syncOnOpen } from './commands/papers';
-import { findOrphans } from './commands/orphans';
-import { writeReport } from './commands/record';
+import { findOrphans } from './commands/find-orphans';
+import { writeReport } from './commands/report';
 import { setReading } from './commands/reading';
 import { insertBlock, welcome } from './commands/setup';
 import { retag } from './commands/tags';
 import { loadSettings, type Settings } from './core/settings';
-import { PASS_ONE_VIEW, PassOneView } from './ui/pass-one-view';
 import { SettingsTab } from './ui/settings-tab';
 import { WORKFLOW_BLOCK, WorkflowBlock } from './ui/workflow-block';
 import { openQueue, QUEUE_VIEW, QueueView } from './ui/queue';
 import { decorate, undecorate } from './ui/view-actions';
+import { noteStatus } from './ui/note-status';
+import { announce, forgetCompletions } from './ui/completion';
 
 export default class PaperTrail extends Plugin {
 	settings!: Settings;
@@ -45,11 +46,19 @@ export default class PaperTrail extends Plugin {
 		// that has just been created is not in it yet: a note written by a triage
 		// decision opened with its buttons hidden until you switched tabs and
 		// back. This is the cache catching up, which is when the answer changes.
-		this.registerEvent(this.app.metadataCache.on('changed', () => this.decorate()));
+		this.registerEvent(
+			this.app.metadataCache.on('changed', (file) => {
+				announce(this, file);
+				this.decorate();
+			}),
+		);
 		this.app.workspace.onLayoutReady(() => this.decorate());
-		this.registerView(PASS_ONE_VIEW, (leaf) => new PassOneView(leaf));
 		this.registerView(QUEUE_VIEW, (leaf) => new QueueView(leaf, this));
 		this.addRibbonIcon('file-stack', 'Open queue', () => void openQueue(this.app));
+		// The state at the top of a rendered paper, which is the only way it can
+		// reach a hover preview: a preview renders the file afresh and cannot see
+		// anything the pane it came from added.
+		this.registerMarkdownPostProcessor(noteStatus(this));
 		this.registerMarkdownCodeBlockProcessor(WORKFLOW_BLOCK, (_source, el, ctx) => {
 			ctx.addChild(new WorkflowBlock(el, this));
 		});
@@ -64,11 +73,20 @@ export default class PaperTrail extends Plugin {
 		this.command('set-reading', 'Set reading status', () => setReading(this));
 		this.command('insert-citation', 'Insert citation', () => insertCitation(this));
 
-		if (saved === null) this.app.workspace.onLayoutReady(() => welcome(this, this.manifest.name));
+		// The pane first, then the dialog over it, so closing the dialog leaves
+		// the queue already drawn rather than asking for one more click to see
+		// the thing that was just described. This is the only time either
+		// happens: from the second load on, the workspace is yours.
+		if (saved === null) {
+			this.app.workspace.onLayoutReady(() => {
+				void openQueue(this.app).then(() => welcome(this, this.manifest.name));
+			});
+		}
 	}
 
 	onunload() {
 		this.unloaded = true;
+		forgetCompletions();
 		undecorate(this.app);
 	}
 

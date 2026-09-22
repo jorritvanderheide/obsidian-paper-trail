@@ -33,5 +33,10 @@ export class WorkflowBlock extends MarkdownRenderChild {
 		this.registerEvent(this.context.app.metadataCache.on('changed', this.redraw));
 		this.registerEvent(this.context.app.vault.on('delete', this.redraw));
 		this.registerEvent(this.context.app.vault.on('rename', this.redraw));
+		// And when the workspace does, because one thing here depends on it: the
+		// Zotero warning is drawn only when the sidebar is not up to carry it.
+		// Without this, collapsing the sidebar would leave the block still
+		// deferring to a pane that has gone, and the news nowhere.
+		this.registerEvent(this.context.app.workspace.on('layout-change', this.redraw));
 	}
 }

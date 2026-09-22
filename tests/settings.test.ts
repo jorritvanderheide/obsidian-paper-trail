@@ -7,12 +7,7 @@ describe('loadSettings', () => {
 	});
 
 	it('keeps valid data and drops invalid entries', () => {
-		const settings = loadSettings({
-			keyField: ' citekey ',
-			attachments: { ABCD2345: 'EFGH2345', bad: 3 },
-		});
-		expect(settings.keyField).toBe('citekey');
-		expect(settings.attachments).toEqual({ ABCD2345: 'EFGH2345' });
+		expect(loadSettings({ keyField: ' citekey ' }).keyField).toBe('citekey');
 	});
 });
 
@@ -29,8 +24,15 @@ describe('loadSettings, the address fields', () => {
 		});
 	});
 
-	it('keeps an empty data directory, where empty means ask Zotero', () => {
-		expect(loadSettings({ dataDir: '' }).dataDir).toBe('');
+	it('keeps an empty collection, where empty means the whole library', () => {
+		expect(loadSettings({ collection: '' }).collection).toBe('');
+	});
+
+	it('is opt-in about triage, so Zotero\'s save button is the first pass by default', () => {
+		expect(loadSettings(null).triage).toBe(false);
+		expect(loadSettings({ triage: true }).triage).toBe(true);
+		// Anything that is not a boolean is not an answer.
+		expect(loadSettings({ triage: 'yes' }).triage).toBe(false);
 	});
 });
 
@@ -89,5 +91,21 @@ describe('a value written back is a value the loader would accept', () => {
 	it('is idempotent, so writing settings back repeatedly cannot drift', () => {
 		const once = loadSettings({ papersFolder: ' Papers ' });
 		expect(loadSettings(once)).toEqual(once);
+	});
+});
+
+/**
+ * The two settings that are preferences rather than addresses. Both are named
+ * as exceptions where they are declared, so a third should have to argue.
+ */
+describe('the toggles', () => {
+	it('shows the status pill unless you say otherwise', () => {
+		expect(loadSettings(null).statusPill).toBe(true);
+		expect(loadSettings({ statusPill: false }).statusPill).toBe(false);
+	});
+
+	it('takes only a boolean as an answer, on either of them', () => {
+		expect(loadSettings({ statusPill: 'no' }).statusPill).toBe(true);
+		expect(loadSettings({ triage: 'yes' }).triage).toBe(false);
 	});
 });

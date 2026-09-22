@@ -1,75 +1,26 @@
-// Finds a Zotero item's extracted text. The text itself always comes from
-// disk: Zotero caches it beside each attachment as storage/<key>/.zotero-ft-cache.
-// The only question is which attachment, since a literature note names the
-// parent item. That is answered, cheapest first, by the attachment this item
-// was read from before, by attachment links in the note, and finally by
-// Zotero's local API.
-import { readdirSync, readFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
+// Talking to Zotero, over the local API on port 23119 and nothing else.
+//
+// This used to read Zotero's storage folder from disk as well, to find the
+// text it extracts beside each attachment for the triage pane's first pass.
+// The pane is gone and so is that: no filesystem, no data-directory setting,
+// no hunting through prefs.js for a profile, and nothing that can fail because
+// Zotero keeps its library somewhere this did not guess.
+//
+// What is left is one shape of request. Everything goes through `answered`,
+// which is also what records whether Zotero is there at all.
 import {
-	attachmentKeys,
-	dataDirFromPrefs,
-	formatItemRef,
 	highlights,
 	libraryPath,
-	linkedKeys,
 	type ApiItem,
 	type Highlight,
 	type ItemRef,
 } from './core/zotero';
+import type { ApiCollection } from './core/collections';
 import { getJson, getText, type Headers } from './http';
-import type { Settings } from './core/settings';
 
 /** A failure to show the user as is. */
 export class SourceError extends Error {}
 
-export interface Fulltext {
-	attachmentKey: string;
-	text: string;
-}
-
-function profileDirs(): string[] {
-	const home = homedir();
-	switch (process.platform) {
-		case 'darwin':
-			return [join(home, 'Library', 'Application Support', 'Zotero', 'Profiles')];
-		case 'win32':
-			return [join(process.env.APPDATA ?? join(home, 'AppData', 'Roaming'), 'Zotero', 'Zotero', 'Profiles')];
-		default:
-			return [join(home, '.zotero', 'zotero')];
-	}
-}
-
-/** Zotero records its own data directory, which need not be ~/Zotero. */
-export function zoteroDataDir(override: string): string {
-	if (override.trim()) return override.trim();
-	for (const profiles of profileDirs()) {
-		let names: string[];
-		try {
-			names = readdirSync(profiles);
-		} catch {
-			continue;
-		}
-		for (const name of names) {
-			try {
-				const dir = dataDirFromPrefs(readFileSync(join(profiles, name, 'prefs.js'), 'utf8'));
-				if (dir) return dir;
-			} catch {
-				// Not a profile folder.
-			}
-		}
-	}
-	return join(homedir(), 'Zotero');
-}
-
-function readCache(dataDir: string, attachmentKey: string): string | null {
-	try {
-		return readFileSync(join(dataDir, 'storage', attachmentKey, '.zotero-ft-cache'), 'utf8');
-	} catch {
-		return null;
-	}
-}
 
 /**
  * These are read in a sidebar banner about as wide as a sentence, so they are
@@ -157,41 +108,6 @@ export function recentItems(limit: number): Promise<ApiItem[]> {
 /** Zotero's maximum, and the fewest requests a library can be read in. */
 const PAGE = 100;
 
-/**
- * The extracted text of an item. `body` is the literature note's text, if the
- * item came from one. Remembers which attachment worked in `settings`; the
- * caller persists it.
- */
-export async function loadFulltext(settings: Settings, ref: ItemRef, body = ''): Promise<Fulltext> {
-	const dataDir = zoteroDataDir(settings.dataDir);
-	const id = formatItemRef(ref);
-
-	const tryKeys = (keys: (string | undefined)[]): Fulltext | null => {
-		for (const key of keys) {
-			const text = key ? readCache(dataDir, key) : null;
-			if (key && text !== null) {
-				settings.attachments[id] = key;
-				return { attachmentKey: key, text };
-			}
-		}
-		return null;
-	};
-
-	// The item itself is a candidate too: a standalone PDF is its own attachment.
-	const local = tryKeys([settings.attachments[id], ...linkedKeys(body, ref.key), ref.key]);
-	if (local) return local;
-
-	const keys = attachmentKeys(await api<ApiItem[]>(`${libraryPath(ref)}/items/${ref.key}/children`));
-	if (keys.length === 0) throw new SourceError('This item has no file attachment in Zotero.');
-
-	const found = tryKeys(keys);
-	if (found) return found;
-	throw new SourceError(
-		`Zotero has no extracted text for this item in ${join(dataDir, 'storage')}. ` +
-			'It indexes attachments in the background: open the file in Zotero once, or check Settings > Search.',
-	);
-}
-
 /** A paper's metadata, for building or refreshing its note. */
 export function itemMetadata(ref: ItemRef): Promise<ApiItem> {
 	return api<ApiItem>(`${libraryPath(ref)}/items/${ref.key}`);
@@ -245,13 +161,41 @@ export async function pickCitation(): Promise<string | null> {
 }
 
 
+/**
+ * Where to read top-level items from: one collection, or the whole library.
+ *
+ * An empty scope is the whole library, which is both the default and the only
+ * honest reading of "no collection chosen". The key is escaped because it
+ * arrives from a setting, and a setting is a place a person can type.
+ */
+function itemsPath(collection: string): string {
+	if (collection === '') return 'users/0/items/top';
+	return `users/0/collections/${encodeURIComponent(collection)}/items/top`;
+}
+
+/**
+ * Every collection in the library, for the scope picker and for checking that
+ * the scope still exists.
+ *
+ * Paged like the items are. Nobody has a thousand collections, but the loop
+ * costs one comparison and the alternative is a library that silently stops at
+ * a hundred for the one person who does.
+ */
+export async function allCollections(): Promise<ApiCollection[]> {
+	const out: ApiCollection[] = [];
+	for (let start = 0; ; start += PAGE) {
+		const page = await api<ApiCollection[]>(`users/0/collections?limit=${PAGE}&start=${start}`);
+		out.push(...page);
+		if (page.length < PAGE) break;
+	}
+	return out;
+}
+
 /** What Zotero has changed since a version, and what to ask about next time. */
 export interface Changes {
 	items: ApiItem[];
 	/** The library version this answer reflects. Ask with this next. */
 	version: number;
-	/** How many top-level items the library holds now, deleted ones already gone. */
-	total: number;
 }
 
 /**
@@ -265,21 +209,55 @@ export interface Changes {
  * `since: 0` means everything, so a first read and an update are the same call.
  *
  * It cannot report deletions: the local API has no `/deleted` endpoint, and an
- * item that is gone simply stops being mentioned. `total` is the way round
- * that, because a count that disagrees with what the caller is holding means
- * something went, even though it does not say what.
+ * item that is gone simply stops being mentioned. `libraryState` is the way
+ * round that, and it has to be asked separately: the count on this response is
+ * the count of what changed, not of what exists.
  */
-export async function changedSince(since: number): Promise<Changes> {
-	const { body, headers } = await answered<ApiItem[]>(`users/0/items/top?since=${since}&limit=${PAGE}`);
+export async function changedSince(since: number, collection: string): Promise<Changes> {
+	const path = itemsPath(collection);
+	const { body, headers } = await answered<ApiItem[]>(`${path}?since=${since}&limit=${PAGE}`);
 
 	// A full read can exceed one page. An update almost never will, but a week
 	// away from a busy library is exactly when it would.
 	const items = [...body];
 	for (let start = PAGE; items.length >= start; start += PAGE) {
-		const page = await api<ApiItem[]>(`users/0/items/top?since=${since}&limit=${PAGE}&start=${start}`);
+		const page = await api<ApiItem[]>(`${path}?since=${since}&limit=${PAGE}&start=${start}`);
 		items.push(...page);
 		if (page.length < PAGE) break;
 	}
 
-	return { items, version: headers.version, total: headers.total };
+	return { items, version: headers.version };
+}
+
+/** What state Zotero's library is in, without reading it. */
+export interface LibraryState {
+	/**
+	 * The library's current version, which moves whenever anything in it does.
+	 *
+	 * The library's and not the collection's: Zotero versions the library as a
+	 * whole, so under a scope this moves for changes outside it too. That costs
+	 * a delta request that comes back empty, and it is the safe way round.
+	 */
+	version: number;
+	/** How many top-level items are in scope, deleted ones already gone. */
+	total: number;
+}
+
+/**
+ * Both of those numbers, for the price of one item.
+ *
+ * `limit=1` because neither answer is in the body: Zotero puts the version and
+ * the size of the result set in headers, so this costs the same on a library of
+ * four and a library of four thousand. Asked with no `since`, so the count is
+ * of the library rather than of a delta, which is the whole point of it.
+ *
+ * This exists because that distinction was got wrong once, and expensively.
+ * `Total-Results` on a `?since=` query counts what changed: comparing it
+ * against a cached library said "something was deleted" on every refresh where
+ * nothing had, so the incremental path never once took effect and every look
+ * read the whole library twice.
+ */
+export async function libraryState(collection: string): Promise<LibraryState> {
+	const { headers } = await answered<ApiItem[]>(`${itemsPath(collection)}?limit=1`);
+	return { version: headers.version, total: headers.total };
 }

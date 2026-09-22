@@ -5,7 +5,7 @@
 // frontmatter keys listed below and the region between the markers. Everything
 // else in the file belongs to whoever wrote it, and losing a word of that is
 // the one unforgivable failure for a plugin like this.
-import { applyStatusTag } from './triage';
+import { applyStatusTag, type Reading } from './triage';
 import { authorNames, itemYear, readerUrl, type ApiItem, type Highlight, type ItemRef } from './zotero';
 import { sortKeys } from './frontmatter';
 
@@ -68,16 +68,42 @@ export function selectUrl(ref: ItemRef): string {
 	return `zotero://select/${library}/items/${ref.key}`;
 }
 
-export function paperFrontmatter(item: ApiItem, ref: ItemRef): PaperFrontmatter {
+/**
+ * `basename` is what the note is actually called, which is not always what a
+ * note for this item would be called today. It decides one thing: whether the
+ * citation key is worth aliasing.
+ */
+export function paperFrontmatter(item: ApiItem, ref: ItemRef, basename: string): PaperFrontmatter {
 	const full = item.data.title ?? item.key;
 	const short = item.data.shortTitle?.trim();
+	const key = item.data.citationKey?.trim();
+
 	return {
 		title: short || full,
-		// The full title stays reachable by search even when a short one is shown.
-		aliases: short && short !== full ? [full] : [],
+		// One way to reach a paper: its citation key, which is its filename.
+		//
+		// The full title used to be aliased here, so that a paper stayed findable
+		// by the words on its cover. It only appeared when Zotero's short title
+		// differed from its long one, which is a field nobody sets deliberately,
+		// so it split the library in two arbitrary halves: the papers you could
+		// find by title were exactly the ones whose link came out a hundred
+		// characters long, and the ones that inserted cleanly could not be found
+		// that way at all.
+		//
+		// Removing it makes typing `[[` and running Insert citation produce the
+		// same text, which is worth more than fuzzy-matching the back half of a
+		// title. The title is still on the note, in `title` and in its heading,
+		// and still found by search.
+		aliases:
+			// The exception, and the only one: a note made before Better BibTeX was
+			// installed keeps the author-title-year name it was born with and learns
+			// its key later from a sync. Without this, a citation to one of those
+			// would quietly not resolve. Aliasing a file to its own name would list
+			// it twice in the suggester, so this asks first.
+			key && key !== basename ? [key] : [],
 		authors: authorNames(item).join(', '),
 		year: itemYear(item),
-		citekey: item.data.citationKey?.trim() || null,
+		citekey: key || null,
 		zotero: selectUrl(ref),
 		itemKey: ref.key,
 	};
@@ -161,7 +187,7 @@ export function managedDiffers(current: Record<string, unknown> | undefined, man
 	// What the keys would be afterwards, worked out on a throwaway object so
 	// that asking the question cannot answer it.
 	const after: Record<string, unknown> = {};
-	applyPaperFrontmatter(after, managed, false, keyField);
+	applyPaperFrontmatter(after, managed, null, keyField);
 
 	const same = (key: string) => JSON.stringify(before[key]) === JSON.stringify(after[key]);
 
@@ -181,21 +207,26 @@ export function managedDiffers(current: Record<string, unknown> | undefined, man
  * Managed keys are written or removed; every other key is left exactly as it
  * was found, including the reading decision.
  *
- * `fresh` says this is a new note rather than a sync. A parameter rather than
- * something inferred: stamping the reading state on a sync instead of a
- * creation would silently discard a judgement, and that is too important to
- * leave to a heuristic about whether a field happens to be absent.
+ * `arriving` is the state a brand new note is stamped with, and null says
+ * this is a sync rather than a creation. A parameter rather than something
+ * inferred: stamping the reading state on a sync would silently discard a
+ * judgement, and that is too important to leave to a heuristic about whether a
+ * field happens to be absent.
  *
- * A new paper gets `reading: untriaged` and no tags at all. No value on the
- * type axis is right for one: `inbox` would claim it is waiting to be filed
- * when `stageOf` never sends it to File, `filed` describes a loop it was never
- * in, and `living` is wrong for one you dropped. A paper's lifecycle is
- * `reading`, and the inbox loop is for notes you write.
+ * Which state that is depends on what putting an item in Zotero means to you,
+ * which is the one thing the plugin cannot work out: `untriaged` when the
+ * queue is to ask first, `queued` when saving it to Zotero already was the
+ * first pass.
+ *
+ * It gets no tags at all beyond that. No value on the type axis is right for a
+ * paper: `inbox` would claim it is waiting to be filed when `stageOf` never
+ * sends it to File, `filed` describes a loop it was never in, and `living` is
+ * wrong for one you dropped. A paper's lifecycle is `reading`.
  */
 export function applyPaperFrontmatter(
 	frontmatter: Record<string, unknown>,
 	managed: PaperFrontmatter,
-	fresh: boolean,
+	arriving: Reading | null,
 	keyField: string,
 	statusTag = '',
 ): void {
@@ -216,12 +247,12 @@ export function applyPaperFrontmatter(
 	// the same name or a vault stops recognising its own notes.
 	frontmatter[keyField] = managed.itemKey;
 
-	// A new paper is untriaged and says so in both places at once. Without the
-	// tag it would be the one thing a tag explorer cannot see, which is exactly
-	// the pile the queue exists to work through.
-	if (fresh) {
-		frontmatter.reading = 'untriaged';
-		applyStatusTag(frontmatter, 'untriaged', statusTag);
+	// A new paper says where it arrived in both places at once. Without the tag
+	// it would be the one thing a tag explorer cannot see, which is exactly the
+	// pile the queue exists to work through.
+	if (arriving !== null) {
+		frontmatter.reading = arriving;
+		applyStatusTag(frontmatter, arriving, statusTag);
 	}
 
 	sortKeys(frontmatter);

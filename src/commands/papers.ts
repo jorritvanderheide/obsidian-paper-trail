@@ -7,7 +7,7 @@
 // The plugin owns the note from there on, which is what lets it know the shape
 // instead of asking: where the claim heading is, which region a sync may
 // rewrite, and which frontmatter keys are its own.
-import { Notice, normalizePath, type TFile } from 'obsidian';
+import { Notice, TFile, normalizePath } from 'obsidian';
 import { PAPER_TEMPLATE } from '../core/templates';
 import {
 	applyPaperFrontmatter,
@@ -21,8 +21,9 @@ import {
 	renderHighlights,
 } from '../core/paper-note';
 import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
+import { arrivalReading, type Reading } from '../core/triage';
 import { attachmentAnnotations, itemChildren, itemMetadata, SourceError } from '../source';
-import { ensureFolder, templateBody } from './templates';
+import { ensureFolder, templateBody } from './seed';
 import type { Context } from '../context';
 
 /** Where a new note for this paper would go. */
@@ -40,14 +41,13 @@ export async function writePaperFrontmatter(
 	file: TFile,
 	item: ApiItem,
 	ref: ItemRef,
-	fresh: boolean,
+	arriving: Reading | null,
 ): Promise<void> {
-	const managed = paperFrontmatter(item, ref);
+	const managed = paperFrontmatter(item, ref, file.basename);
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-		applyPaperFrontmatter(frontmatter, managed, fresh, context.settings.keyField, context.settings.statusTag);
+		applyPaperFrontmatter(frontmatter, managed, arriving, context.settings.keyField, context.settings.statusTag);
 	});
 }
-
 
 /**
  * Write the note for a paper, and hand it back.
@@ -57,6 +57,28 @@ export async function writePaperFrontmatter(
  */
 export async function createPaperNote(context: Context, item: ApiItem, ref: ItemRef): Promise<TFile> {
 	const app = context.app;
+
+	// A note that is already there is the note, not a name collision to fail on.
+	// Two routes can now reach a pending paper at once, the row and its button,
+	// and the queue takes a moment to notice the first one landed. Checking the
+	// key as well as the path is what keeps this from adopting somebody else's
+	// note that happens to be called the same thing.
+	const path = notePath(context, item);
+	const existing = app.vault.getFileByPath(path);
+	if (existing instanceof TFile) {
+		const frontmatter = app.metadataCache.getFileCache(existing)?.frontmatter;
+		if (frontmatter?.[context.settings.keyField] === ref.key) return existing;
+
+		// Something else is already called this. Most likely an empty note made
+		// by following a citation to a paper that had none yet, since a citation
+		// is a link and Obsidian offers to create what a link points at. Said
+		// plainly here, because the alternative is `vault.create` refusing with
+		// a message about a file existing and nothing about which paper or why.
+		throw new Error(
+			`${path} already exists and is not this paper.\n` +
+				'Delete it, or rename it out of the way, and try again.',
+		);
+	}
 
 	const attachment = attachmentKeys(await itemChildren(ref))[0] ?? null;
 
@@ -87,8 +109,8 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	// afterwards, for the same reason: a sync reads the note's frontmatter from
 	// the cache, finds no Zotero key on a file this new, and quietly does
 	// nothing.
-	const file = await app.vault.create(notePath(context, item), `---\n---\n${replaceRegion(body, renderHighlights(highlights))}`);
-	await writePaperFrontmatter(context, file, item, ref, true);
+	const file = await app.vault.create(path, `---\n---\n${replaceRegion(body, renderHighlights(highlights))}`);
+	await writePaperFrontmatter(context, file, item, ref, arrivalReading(context.settings.triage));
 	return file;
 }
 
@@ -123,10 +145,10 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 
 	const highlights = attachment ? await attachmentAnnotations(ref, attachment) : [];
 
-	const managed = paperFrontmatter(item, ref);
+	const managed = paperFrontmatter(item, ref, file.basename);
 	if (managedDiffers(frontmatter, managed, context.settings.keyField)) {
 		await app.fileManager.processFrontMatter(file, (existing: Record<string, unknown>) => {
-			applyPaperFrontmatter(existing, managed, false, context.settings.keyField);
+			applyPaperFrontmatter(existing, managed, null, context.settings.keyField);
 		});
 	}
 
