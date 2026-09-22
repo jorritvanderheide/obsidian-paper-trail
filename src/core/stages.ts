@@ -7,7 +7,7 @@
 
 import type { CachedMetadata } from 'obsidian';
 import { isPaper } from './paper-note';
-import { currentReading, passDate, readingOf, type Reading } from './triage';
+import { currentReading, readingOf, type Reading } from './triage';
 import type { Pending } from './pending';
 
 /** Everything the rules need, read from Obsidian's metadata cache. */
@@ -26,10 +26,6 @@ export interface NoteState {
 	key: string | null;
 	/** The `reading` property, or null when the note has none. */
 	reading: string | null;
-	/** The date the claim was marked written, or null while it is still owed. */
-	claimed: string | null;
-	/** The date the assessment was marked written, or null while still owed. */
-	assessed: string | null;
 	/** Creation time, so a backlog drains in the order things arrived. */
 	created: number;
 	/**
@@ -51,7 +47,7 @@ export interface NoteState {
  * paper and being able to say what it argues are halves of one pass, and
  * writing the summary down is this plugin's own addition to it.
  */
-export type Task = 'triage' | 'claim' | 'read' | 'assessment';
+export type Task = 'triage' | 'claim' | 'reading' | 'assessment';
 
 /**
  * The order a paper passes through them, which is the order the queue is read
@@ -70,7 +66,7 @@ export type Task = 'triage' | 'claim' | 'read' | 'assessment';
  * Declaration order on the type above is not it, and cannot be: that order is
  * arbitrary and nothing can depend on it. This is the one that is meant.
  */
-const ORDER: readonly Task[] = ['triage', 'read', 'claim', 'assessment'];
+const ORDER: readonly Task[] = ['triage', 'reading', 'claim', 'assessment'];
 
 /**
  * Everything one task is: the section it heads in the queue, and the work it
@@ -182,8 +178,8 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		inNote: true,
 		announces: true,
 	},
-	read: {
-		task: 'read',
+	reading: {
+		task: 'reading',
 		label: 'Reading',
 		stageIcon: 'book-open',
 		hint: 'Worth an hour, in Zotero, where your highlights go. Say what came of it when you are done.',
@@ -284,22 +280,17 @@ export function taskOf(note: NoteState): Task | null {
 	const reading = readingOf(note.reading);
 	if (reading === 'untriaged') return 'triage';
 
-	// Queued keeps the paper here even once a claim exists, because the outcome
-	// of the reading is still unrecorded. Letting it leave on the claim alone
-	// would file a paper whose `reading` says it was never finished, and that
-	// field is the record the exclusions report is built from.
-	if (reading === 'queued') return 'read';
+	if (reading === 'queued') return 'reading';
 
-	// `promoted` and `finished` both mean the second pass happened, so both owe
-	// a claim, and the claim comes first either way: assessing a paper is an
+	// `read` and `promoted` both mean the second pass happened, so both owe a
+	// claim, and the claim comes first either way: assessing a paper is an
 	// argument with one you can already summarise.
-	const finished = reading === 'finished' || reading === 'promoted';
-	if (finished && note.claimed === null) return 'claim';
-	if (reading === 'promoted' && note.assessed === null) return 'assessment';
+	if (reading === 'read' || reading === 'promoted') return 'claim';
+	if (reading === 'assessing') return 'assessment';
 
-	// `dropped` and `deferred` are both off the list. The difference is on
-	// the note, where the record needs it, and not in the machine, where a
-	// parked paper that kept appearing would not be parked.
+	// `summarised`, `assessed`, `dropped` and `deferred` are all off the list.
+	// What separates them is on the note, where the record needs it, and not in
+	// the machine, where a parked paper that kept appearing would not be parked.
 	return null;
 }
 
@@ -405,8 +396,6 @@ export function noteState(
 		// Through `currentReading`, so a note written under an older spelling is
 		// read as what that value is called now and nothing below has to know.
 		reading: typeof frontmatter?.reading === 'string' ? currentReading(frontmatter.reading) : null,
-		claimed: passDate(frontmatter, 'claim'),
-		assessed: passDate(frontmatter, 'assessment'),
 		created: file.created,
 		decided: typeof frontmatter?.['reading-date'] === 'string' ? frontmatter['reading-date'] : null,
 	};
@@ -442,7 +431,7 @@ export function rowTitle(row: Row): string {
  */
 export function rowTask(row: Row, triage: boolean): Task | null {
 	if (row.kind !== 'pending') return taskOf(row.note);
-	return triage ? 'triage' : 'read';
+	return triage ? 'triage' : 'reading';
 }
 
 /** The Zotero item a row is about, which is the one name both kinds share. */
@@ -484,7 +473,7 @@ export function rowsByStage(notes: NoteState[], pending: Pending[], triage: bool
 	// Whichever section pending papers belong to, they go at the front of it.
 	// They are the ones that arrived by themselves; anything already in the
 	// vault got there by a decision and has waited longer.
-	const stage: Task = triage ? 'triage' : 'read';
+	const stage: Task = triage ? 'triage' : 'reading';
 	const rest = out.get(stage) ?? [];
 	out.set(stage, [...pending.map((item) => ({ kind: 'pending' as const, item })), ...rest]);
 	return out;

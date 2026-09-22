@@ -119,7 +119,12 @@ appeared under it, which read the state straight off what you had written and
 needed no extra press. One character counted, so the paper left the section
 mid-sentence, and there was nowhere to leave yourself a note under a heading
 without it being taken for the work. What is under the heading is yours; the
-date says only that you consider it done.
+status says only that you consider it done.
+
+Ticking moves `reading` one step on: `read` becomes `summarised` and is done,
+while `promoted` becomes `assessing` and then `assessed`. One field says where
+a paper is, which is also why moving one backwards is nothing special: **Set
+reading status** reopens a pass the same way it corrects anything else.
 
 The plugin writes none of it. The heading is left empty and the question is put
 in the moment you arrive, rather than left lying in the file as a comment you
@@ -134,12 +139,10 @@ A dropped paper is not a deletion. The note stays, and so do:
 
 | | |
 | --- | --- |
-| `reading` | `untriaged`, `queued`, `finished`, `promoted`, `deferred` or `dropped` |
+| `reading` | `untriaged`, `queued`, `read`, `summarised`, `promoted`, `assessing`, `assessed`, `deferred` or `dropped` |
 | `reading-date` | when the status last changed |
 | `triaged-date` | when you first formed an opinion, written once |
 | `reading-reason` | why, on a drop or a deferral |
-| `claim-date` | when you ticked the second pass off |
-| `assessment-date` | when you ticked the third pass off |
 
 Nothing about Zotero overwrites those. **Export excluded papers** turns
 them into a plain markdown table, oldest first, every row linking back to the

@@ -50,8 +50,11 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
 const CHOICE_LABELS: Record<Reading, string> = {
 	untriaged: 'Untriaged, assess it again',
 	queued: 'Queued, worth an hour',
-	finished: 'Finished, and that was enough',
+	read: 'Read, and owing a summary',
+	summarised: 'Summarised, and done with',
 	promoted: 'Read, and worth assessing closely',
+	assessing: 'Summarised, and owing an assessment',
+	assessed: 'Assessed, and done with',
 	deferred: 'Deferred, come back to it later',
 	dropped: 'Dropped, not worth reading',
 };

@@ -109,6 +109,6 @@ describe('the prompts the template no longer carries', () => {
 
 	it('asks nothing of the tasks that are not answered by typing under a heading', () => {
 		expect(TASKS.triage.prompt).toBeUndefined();
-		expect(TASKS.read.prompt).toBeUndefined();
+		expect(TASKS.reading.prompt).toBeUndefined();
 	});
 });

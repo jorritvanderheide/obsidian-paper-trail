@@ -9,9 +9,9 @@ import { rowTask, rowTitle, STAGES, TASKS, type NoteState, type Row, type Task }
 import { attachmentKeys, parseItemRef, readerUrl, type ItemRef } from '../core/zotero';
 import { selectUrl } from '../core/paper-note';
 import { itemChildren } from '../source';
-import { decideOn, noteFor, openTriage, targetOf, today } from './reading';
+import { decideOn, noteFor, openTriage, targetOf, writeTriage } from './reading';
 import { fileOf, queue } from '../outstanding';
-import { applyPass, iconOf, landing, PASS_TWO, type Pass } from '../core/triage';
+import { advance, iconOf, landing, PASS_TWO, readingOf } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { say } from '../ui/notify';
 import { openAtHeading, reveal } from '../ui/reveal';
@@ -101,7 +101,7 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
 		case 'triage':
 			await openTriage(context, { kind: 'note', file });
 			return;
-		case 'read': {
+		case 'reading': {
 			const url = await readingUrl(context, file);
 			if (url) window.open(url);
 			else await openNote(app, note);
@@ -171,17 +171,20 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
  * this records only that you consider it done, so a claim can be redrafted for
  * a week afterwards without the queue having an opinion about it.
  */
-async function finishPass(context: Context, pass: Pass, row: Row): Promise<void> {
+async function finishPass(context: Context, pass: 'claim' | 'assessment', row: Row): Promise<void> {
 	// A pass belongs to a note. A paper Zotero holds and the vault does not has
 	// never been read, so it is never in either of these sections.
 	if (row.kind !== 'note') return;
 	const file = fileOf(context.app, row.note);
 	if (!file) return;
 
-	const date = today();
-	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-		applyPass(frontmatter, pass, date);
-	});
+	// Where the tick takes it is the status one step on, which is core's to say.
+	// Through `writeTriage` like every other change of status, so the date moves,
+	// the tag mirror follows and a pass ticked off here lands exactly where the
+	// chooser would have put it.
+	const next = advance(readingOf(row.note.reading));
+	if (next === null) return;
+	await writeTriage(context, file, { reading: next, reason: null });
 
 	const said = TASKS[pass].completed;
 	if (said) say(context, `${rowTitle(row)}\n${said}`);
@@ -198,7 +201,7 @@ async function finishPass(context: Context, pass: Pass, row: Row): Promise<void>
  */
 export async function finish(context: Context, task: Task, row: Row): Promise<void> {
 	if (task === 'claim' || task === 'assessment') return finishPass(context, task, row);
-	if (task !== 'read') return;
+	if (task !== 'reading') return;
 	const app = context.app;
 
 	// A pending paper can be finished too, when triage is off: you may have read
@@ -234,7 +237,7 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	//
 	// The two that end the paper are not followed anywhere. A drop and a
 	// deferral have already been answered, and there is nothing left to type.
-	if (choice.reading === 'finished' || choice.reading === 'promoted') {
+	if (choice.reading === 'read' || choice.reading === 'promoted') {
 		await writeUnder(context, file, 'claim', landed);
 		return;
 	}

@@ -1,16 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
 	applyStatusTag,
-	applyPass,
 	applyTriage,
-	clearPass,
 	arrivalReading,
 	asks,
 	iconOf,
 	label,
 	landing,
 	NO_STATUS_TAGS,
-	passDate,
+	advance,
 	PASS_TWO,
 	readingOf,
 	readTags,
@@ -39,7 +37,7 @@ describe('applyTriage', () => {
 		// A paper's lifecycle is `reading`, in the frontmatter. Every tag on the
 		// note belongs to whoever put it there.
 		const frontmatter: Record<string, unknown> = untriaged();
-		applyTriage(frontmatter, { reading: 'finished', reason: null }, '2026-09-20');
+		applyTriage(frontmatter, { reading: 'read', reason: null }, '2026-09-20');
 		expect(frontmatter.tags).toEqual(['topic/heat-pumps']);
 	});
 
@@ -58,7 +56,7 @@ describe('applyTriage', () => {
 	it('never moves the first assessment, however often the status changes', () => {
 		const frontmatter: Record<string, unknown> = untriaged();
 		applyTriage(frontmatter, { reading: 'queued', reason: null }, '2026-09-20');
-		applyTriage(frontmatter, { reading: 'finished', reason: null }, '2026-11-14');
+		applyTriage(frontmatter, { reading: 'read', reason: null }, '2026-11-14');
 		applyTriage(frontmatter, { reading: 'dropped', reason: 'changed my mind' }, '2027-02-01');
 
 		expect(frontmatter['triaged-date']).toBe('2026-09-20');
@@ -90,7 +88,7 @@ describe('applyTriage', () => {
 
 	it('leaves a tagged note alone, whatever the tags are', () => {
 		const frontmatter: Record<string, unknown> = { tags: ['project/wp1', 'topic/heat-pumps'] };
-		applyTriage(frontmatter, { reading: 'finished', reason: null }, '2026-09-20');
+		applyTriage(frontmatter, { reading: 'read', reason: null }, '2026-09-20');
 		expect(frontmatter.tags).toEqual(['project/wp1', 'topic/heat-pumps']);
 	});
 
@@ -105,7 +103,7 @@ describe('applyTriage', () => {
 describe('a decision writes no tags at all', () => {
 	it('adds neither a domain nor a type, because nothing reads either on a paper', () => {
 		const frontmatter: Record<string, unknown> = {};
-		applyTriage(frontmatter, { reading: 'finished', reason: null }, '2026-09-20');
+		applyTriage(frontmatter, { reading: 'read', reason: null }, '2026-09-20');
 		expect('tags' in frontmatter).toBe(false);
 	});
 
@@ -125,9 +123,9 @@ describe('a decision leaves sorted frontmatter', () => {
 
 	it('is still a no-op the second time, order included', () => {
 		const once: Record<string, unknown> = untriaged();
-		applyTriage(once, { reading: 'finished', reason: null }, '2026-09-21');
+		applyTriage(once, { reading: 'read', reason: null }, '2026-09-21');
 		const twice = { ...once };
-		applyTriage(twice, { reading: 'finished', reason: null }, '2026-09-21');
+		applyTriage(twice, { reading: 'read', reason: null }, '2026-09-21');
 		expect(Object.keys(twice)).toEqual(Object.keys(once));
 	});
 });
@@ -143,7 +141,7 @@ describe('asks', () => {
 
 	it('asks nothing of the decisions that leave a paper on the list', () => {
 		expect(asks('queued')).toBeNull();
-		expect(asks('finished')).toBeNull();
+		expect(asks('read')).toBeNull();
 		expect(asks('promoted')).toBeNull();
 		expect(asks('untriaged')).toBeNull();
 	});
@@ -156,7 +154,7 @@ describe('asks', () => {
 
 describe('PASS_TWO', () => {
 	it('offers Keshav\'s three, plus abandoning a paper an hour in', () => {
-		expect(PASS_TWO.map((entry) => entry.reading)).toEqual(['finished', 'promoted', 'deferred', 'dropped']);
+		expect(PASS_TWO.map((entry) => entry.reading)).toEqual(['read', 'promoted', 'deferred', 'dropped']);
 	});
 
 	it('never offers a state that would send a read paper backwards', () => {
@@ -179,7 +177,17 @@ describe('PASS_TWO', () => {
 
 describe('landing', () => {
 	it('says something different for every state, so no two decisions look alike', () => {
-		const all: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
+		const all: Reading[] = [
+			'untriaged',
+			'dropped',
+			'queued',
+			'deferred',
+			'read',
+			'summarised',
+			'promoted',
+			'assessing',
+			'assessed',
+		];
 		expect(new Set(all.map(landing)).size).toBe(all.length);
 	});
 });
@@ -221,8 +229,8 @@ describe('applyStatusTag', () => {
 
 	it('reads tags written as a string, which is a shape Obsidian allows', () => {
 		const frontmatter: Record<string, unknown> = { tags: 'topic/heat-pumps status/untriaged' };
-		applyStatusTag(frontmatter, 'finished', { current: 'status', retired: [] });
-		expect(frontmatter.tags).toEqual(['status/finished', 'topic/heat-pumps']);
+		applyStatusTag(frontmatter, 'read', { current: 'status', retired: [] });
+		expect(frontmatter.tags).toEqual(['status/read', 'topic/heat-pumps']);
 	});
 });
 
@@ -250,12 +258,12 @@ describe('applyTriage with a status tag', () => {
 
 describe('iconOf', () => {
 	it('names an icon for every state, so no chooser can draw a blank', () => {
-		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
+		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'read', 'promoted'];
 		for (const state of states) expect(iconOf(state), state).toBeTruthy();
 	});
 
 	it('gives each state its own, or two decisions would look like one', () => {
-		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
+		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'read', 'promoted'];
 		expect(new Set(states.map(iconOf)).size).toBe(states.length);
 	});
 });
@@ -265,14 +273,34 @@ describe('iconOf', () => {
  */
 describe('READING_ORDER', () => {
 	it('holds every state exactly once', () => {
-		const all: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
+		const all: Reading[] = [
+			'untriaged',
+			'queued',
+			'read',
+			'summarised',
+			'promoted',
+			'assessing',
+			'assessed',
+			'deferred',
+			'dropped',
+		];
 		expect([...READING_ORDER].sort()).toEqual([...all].sort());
 	});
 
-	// Untriaged is Triage, queued is Reading, finished and promoted are Claim
+	// Untriaged is Triage, queued is Reading, read and promoted are Claim
 	// and then Assessment, and the last two are the ways out.
 	it('reads as the queue does, downwards', () => {
-		expect(READING_ORDER).toEqual(['untriaged', 'queued', 'finished', 'promoted', 'deferred', 'dropped']);
+		expect(READING_ORDER).toEqual([
+			'untriaged',
+			'queued',
+			'read',
+			'summarised',
+			'promoted',
+			'assessing',
+			'assessed',
+			'deferred',
+			'dropped',
+		]);
 	});
 
 	// PASS_TWO is a subset: the four a second pass can end in. It was written
@@ -373,7 +401,17 @@ describe('readTags', () => {
 
 describe('label', () => {
 	it('gives every state a word, because an icon cannot be read aloud', () => {
-		expect(READING_ORDER.map(label)).toEqual(['Untriaged', 'Queued', 'Finished', 'Promoted', 'Deferred', 'Dropped']);
+		expect(READING_ORDER.map(label)).toEqual([
+			'Untriaged',
+			'Queued',
+			'Read',
+			'Summarised',
+			'Promoted',
+			'Assessing',
+			'Assessed',
+			'Deferred',
+			'Dropped',
+		]);
 	});
 });
 
@@ -480,64 +518,41 @@ describe('retiredTagCount', () => {
 	});
 });
 
+
 /**
- * A finished pass, recorded rather than read off the prose.
+ * The tick on a Claim or Assessment row, as one step along the status.
  *
- * The plugin used to call a pass done as soon as the heading had anything under
- * it. One character counted, so a paper left its section mid-sentence, and
- * there was nowhere to think under a heading without it being taken for the
- * work. Saying when you are done is one press.
+ * Pass completion used to live beside this field rather than in it: first read
+ * off the prose under a heading, then as a date of its own. One axis is fewer
+ * things to keep in step, and it is what makes reopening a pass an ordinary
+ * change of status rather than a control of its own.
  */
-describe('applyPass and passDate', () => {
-	it('records the date the pass was marked written', () => {
-		const frontmatter: Record<string, unknown> = {};
-		applyPass(frontmatter, 'claim', '2026-09-22');
-		expect(frontmatter['claim-date']).toBe('2026-09-22');
-		expect(passDate(frontmatter, 'claim')).toBe('2026-09-22');
+describe('advance', () => {
+	it('takes a read paper to summarised, which is the end of it', () => {
+		expect(advance('read')).toBe('summarised');
+		expect(advance('summarised')).toBeNull();
 	});
 
-	it('keeps the two passes apart', () => {
-		const frontmatter: Record<string, unknown> = {};
-		applyPass(frontmatter, 'assessment', '2026-09-22');
-		expect(passDate(frontmatter, 'claim')).toBeNull();
-		expect(passDate(frontmatter, 'assessment')).toBe('2026-09-22');
+	// The claim comes first either way: assessing a paper is an argument with
+	// one you can already summarise.
+	it('takes a promoted paper through the claim before the assessment', () => {
+		expect(advance('promoted')).toBe('assessing');
+		expect(advance('assessing')).toBe('assessed');
+		expect(advance('assessed')).toBeNull();
 	});
 
-	it('reads a paper that has never been marked as owing the pass', () => {
-		expect(passDate({}, 'claim')).toBeNull();
-		expect(passDate(undefined, 'claim')).toBeNull();
+	it('has nothing to advance for a paper that owes no pass', () => {
+		for (const reading of ['untriaged', 'queued', 'deferred', 'dropped'] as const) {
+			expect(advance(reading), reading).toBeNull();
+		}
 	});
 
-	it('ignores a value that is not a date somebody wrote', () => {
-		expect(passDate({ 'claim-date': true }, 'claim')).toBeNull();
-		expect(passDate({ 'claim-date': '   ' }, 'claim')).toBeNull();
-	});
-
-	// What is under the heading is yours. This says only that you consider it
-	// done, so a claim can be redrafted for a week without the queue minding.
-	it('touches nothing else on the note', () => {
-		const frontmatter: Record<string, unknown> = { reading: 'promoted', tags: ['topic/heat-pumps'], mine: 1 };
-		applyPass(frontmatter, 'claim', '2026-09-22');
-		expect(frontmatter).toMatchObject({ reading: 'promoted', tags: ['topic/heat-pumps'], mine: 1 });
-	});
-
-	it('leaves sorted frontmatter, like every other write', () => {
-		const frontmatter: Record<string, unknown> = { zotero: 'z', authors: 'a' };
-		applyPass(frontmatter, 'claim', '2026-09-22');
-		expect(Object.keys(frontmatter)).toEqual([...Object.keys(frontmatter)].sort());
-	});
-
-	it('takes a pass back to owed, for a paper you want to write again', () => {
-		const frontmatter: Record<string, unknown> = {};
-		applyPass(frontmatter, 'claim', '2026-09-22');
-		clearPass(frontmatter, 'claim');
-		expect('claim-date' in frontmatter).toBe(false);
-		expect(passDate(frontmatter, 'claim')).toBeNull();
-	});
-
-	it('is a no-op clearing a pass that was never marked', () => {
-		const frontmatter: Record<string, unknown> = { reading: 'promoted' };
-		clearPass(frontmatter, 'assessment');
-		expect(frontmatter).toEqual({ reading: 'promoted' });
+	// Every step lands on a state the rest of the list knows about, or a tick
+	// would put a paper somewhere nothing can show it.
+	it('only ever lands on a state the order knows', () => {
+		for (const reading of READING_ORDER) {
+			const next = advance(reading);
+			if (next) expect(READING_ORDER).toContain(next);
+		}
 	});
 });

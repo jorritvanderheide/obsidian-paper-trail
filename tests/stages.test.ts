@@ -25,8 +25,6 @@ const paper = (over: Partial<NoteState> = {}): NoteState => ({
 	isPaper: true,
 	key: 'ABCD2345',
 	reading: null,
-	claimed: null,
-	assessed: null,
 	created: 0,
 	decided: null,
 	...over,
@@ -38,8 +36,6 @@ const note = (over: Partial<NoteState> = {}): NoteState => ({
 	isPaper: false,
 	key: null,
 	reading: null,
-	claimed: null,
-	assessed: null,
 	created: 0,
 	decided: null,
 	...over,
@@ -55,41 +51,45 @@ describe('taskOf, papers', () => {
 	});
 
 	it('puts a queued paper in reading', () => {
-		expect(taskOf(paper({ reading: 'queued' }))).toBe('read');
+		expect(taskOf(paper({ reading: 'queued' }))).toBe('reading');
 	});
 
-	it('puts a read paper with no claim in its own claim section', () => {
-		expect(taskOf(paper({ reading: 'finished', claimed: null }))).toBe('claim');
+	it('asks a read paper for the claim', () => {
+		expect(taskOf(paper({ reading: 'read' }))).toBe('claim');
 	});
 
-	it('is done with a read paper that has a claim', () => {
-		expect(taskOf(paper({ reading: 'finished', claimed: '2026-01-01' }))).toBeNull();
+	it('is done with a paper once it has been summarised', () => {
+		expect(taskOf(paper({ reading: 'summarised' }))).toBeNull();
 	});
 
-	it('is done with a dropped paper, claim or no claim', () => {
+	it('is done with a dropped paper', () => {
 		expect(taskOf(paper({ reading: 'dropped' }))).toBeNull();
-		expect(taskOf(paper({ reading: 'dropped', claimed: '2026-01-01' }))).toBeNull();
 	});
 
 	it('takes a deferred paper off the list, which is what deferring it is for', () => {
 		expect(taskOf(paper({ reading: 'deferred' }))).toBeNull();
-		expect(taskOf(paper({ reading: 'deferred', claimed: '2026-01-01' }))).toBeNull();
 	});
 
 	it('asks a promoted paper for the claim before the third pass', () => {
-		expect(taskOf(paper({ reading: 'promoted', claimed: null }))).toBe('claim');
+		expect(taskOf(paper({ reading: 'promoted' }))).toBe('claim');
 	});
 
-	it('sends a promoted paper with a claim and no assessment to Assess', () => {
-		expect(taskOf(paper({ reading: 'promoted', claimed: '2026-01-01', assessed: null }))).toBe('assessment');
+	it('sends it on to the assessment once the claim is ticked off', () => {
+		expect(taskOf(paper({ reading: 'assessing' }))).toBe('assessment');
 	});
 
-	it('is done with a promoted paper once the assessment is written', () => {
-		expect(taskOf(paper({ reading: 'promoted', claimed: '2026-01-01', assessed: '2026-01-01' }))).toBeNull();
+	it('is done with a promoted paper once the assessment is ticked off', () => {
+		expect(taskOf(paper({ reading: 'assessed' }))).toBeNull();
 	});
 
+	// The fork: a paper that was only read stops at the summary, and never gets
+	// asked for an assessment it was not promoted to.
 	it('never asks a merely read paper for an assessment', () => {
-		expect(taskOf(paper({ reading: 'finished', claimed: '2026-01-01', assessed: null }))).toBeNull();
+		expect(taskOf(paper({ reading: 'summarised' }))).toBeNull();
+	});
+
+	it('reads the old spelling of read as read', () => {
+		expect(taskOf(paper({ reading: 'finished' }))).toBe('claim');
 	});
 
 });
@@ -105,7 +105,7 @@ describe('taskOf, own notes', () => {
 
 describe('byStage', () => {
 	it('keeps every stage present, even empty', () => {
-		expect([...byStage([]).keys()]).toEqual(['triage', 'read', 'claim', 'assessment']);
+		expect([...byStage([]).keys()]).toEqual(['triage', 'reading', 'claim', 'assessment']);
 		expect([...byStage([]).values()].every((list) => list.length === 0)).toBe(true);
 	});
 
@@ -113,7 +113,7 @@ describe('byStage', () => {
 		const notes = [paper(), paper({ reading: 'queued' }), note()];
 		const result = byStage(notes);
 		expect(result.get('triage')).toHaveLength(1);
-		expect(result.get('read')).toHaveLength(1);
+		expect(result.get('reading')).toHaveLength(1);
 	});
 });
 
@@ -167,7 +167,7 @@ describe('headingLine', () => {
 
 describe('STAGES', () => {
 	it('offers from inside a note only the actions that go somewhere else', () => {
-		expect(Object.entries(TASKS).filter(([, t]) => t.inNote).map(([name]) => name)).toEqual(['triage', 'read']);
+		expect(Object.entries(TASKS).filter(([, t]) => t.inNote).map(([name]) => name)).toEqual(['triage', 'reading']);
 	});
 
 	it('withholds the two whose action is opening the note you are already in', () => {
@@ -175,7 +175,7 @@ describe('STAGES', () => {
 	});
 
 	it('gives reading a way to end, because nothing in the vault records that it happened', () => {
-		expect(TASKS.read.done).toBe('Finished');
+		expect(TASKS.reading.done).toBe('Finished');
 	});
 
 	// The two passes that end in prose end when you say so. The plugin used to
@@ -257,7 +257,7 @@ describe('rowsByStage', () => {
 
 	it('leaves every other stage to the vault alone', () => {
 		const rows = rowsByStage([paper({ reading: 'queued' })], [item('AAAA1111', 'pending')], true);
-		expect(rows.get('read')?.map(rowTitle)).toEqual(['A paper']);
+		expect(rows.get('reading')?.map(rowTitle)).toEqual(['A paper']);
 		expect(rows.get('triage')?.map(rowTitle)).toEqual(['pending']);
 	});
 
@@ -284,29 +284,30 @@ describe('stage icons', () => {
 
 describe('what a queued paper still owes', () => {
 	it('still tells them apart by the task, which is what the row draws', () => {
-		expect(taskOf(paper({ reading: 'queued' }))).toBe('read');
-		expect(taskOf(paper({ reading: 'finished', claimed: null }))).toBe('claim');
+		expect(taskOf(paper({ reading: 'queued' }))).toBe('reading');
+		expect(taskOf(paper({ reading: 'read' }))).toBe('claim');
 	});
 
 	// Each half offers its own icon. The claim's repeats what clicking the row
 	// does, which is a rule broken on purpose: without it the two rows are
 	// identical, and pressing Finished changes nothing anybody can see.
 	it('offers a different icon on each, so the two halves are distinguishable', () => {
-		expect(TASKS.read.icon).toBeTruthy();
+		expect(TASKS.reading.icon).toBeTruthy();
 		expect(TASKS.claim.icon).toBeTruthy();
-		expect(TASKS.claim.icon).not.toBe(TASKS.read.icon);
+		expect(TASKS.claim.icon).not.toBe(TASKS.reading.icon);
 	});
 
 	// Letting a claim alone release the paper would file one whose `reading`
 	// still says queued, and that field is what the exclusions report is built
 	// from. The outcome decision is owed whatever else has been written.
 	it('keeps a queued paper even once its claim is written', () => {
-		expect(taskOf(paper({ reading: 'queued', claimed: '2026-01-01' }))).toBe('read');
-		expect(taskOf(paper({ reading: 'queued', claimed: '2026-01-01' }))).toBe('read');
+		expect(taskOf(paper({ reading: 'queued' }))).toBe('reading');
 	});
 
-	it('lets a decided paper go once the claim is there', () => {
-		expect(taskOf(paper({ reading: 'finished', claimed: '2026-01-01' }))).toBeNull();
+	// The tick is what moves it on, and only from a state that owes a pass.
+	it('lets a paper go once its pass has been ticked off', () => {
+		expect(taskOf(paper({ reading: 'summarised' }))).toBeNull();
+		expect(taskOf(paper({ reading: 'assessed' }))).toBeNull();
 	});
 });
 
@@ -329,7 +330,7 @@ describe('a note written under the old spelling', () => {
 	});
 
 	it('leaves every other value exactly as it was written', () => {
-		for (const value of ['untriaged', 'queued', 'finished', 'deferred', 'dropped', 'something-of-your-own']) {
+		for (const value of ['untriaged', 'queued', 'summarised', 'deferred', 'dropped', 'something-of-your-own']) {
 			expect(cached(value).reading, value).toBe(value);
 		}
 	});
@@ -339,8 +340,8 @@ describe('settledOf', () => {
 	it('names the state a paper came to rest in', () => {
 		expect(settledOf(paper({ reading: 'dropped' }))).toBe('dropped');
 		expect(settledOf(paper({ reading: 'deferred' }))).toBe('deferred');
-		expect(settledOf(paper({ reading: 'finished', claimed: '2026-01-01' }))).toBe('finished');
-		expect(settledOf(paper({ reading: 'promoted', claimed: '2026-01-01', assessed: '2026-01-01' }))).toBe('promoted');
+		expect(settledOf(paper({ reading: 'summarised' }))).toBe('summarised');
+		expect(settledOf(paper({ reading: 'assessed' }))).toBe('assessed');
 	});
 
 	it('says nothing about a paper still owing something', () => {
@@ -349,7 +350,7 @@ describe('settledOf', () => {
 		expect(settledOf(paper({ reading: 'queued' }))).toBeNull();
 		// Finished but the claim is not written: the second pass is not over.
 		expect(settledOf(paper({ reading: 'finished' }))).toBeNull();
-		expect(settledOf(paper({ reading: 'promoted', claimed: '2026-01-01' }))).toBeNull();
+		expect(settledOf(paper({ reading: 'promoted',  }))).toBeNull();
 	});
 
 	// Both of these also make `taskOf` return null, which is why settling is not
@@ -382,8 +383,8 @@ describe('settled', () => {
 	});
 
 	it('carries the decision alongside the note', () => {
-		const assessed = paper({ reading: 'promoted', claimed: '2026-01-01', assessed: '2026-01-01' });
-		expect(settled([assessed])).toEqual([{ note: assessed, reading: 'promoted' }]);
+		const assessed = paper({ reading: 'assessed' });
+		expect(settled([assessed])).toEqual([{ note: assessed, reading: 'assessed' }]);
 	});
 
 	it('leaves out everything still outstanding', () => {
@@ -406,20 +407,20 @@ describe('the second pass, in two sections', () => {
 
 	it('separates the paper still to be read from the one still to be summarised', () => {
 		const rows = byStage([queued('read-me', 100), owesClaim('write-me', 300)]);
-		expect(rows.get('read')?.map((n) => n.title)).toEqual(['read-me']);
+		expect(rows.get('reading')?.map((n) => n.title)).toEqual(['read-me']);
 		expect(rows.get('claim')?.map((n) => n.title)).toEqual(['write-me']);
 	});
 
 	// Which is what makes finishing a paper visible: it leaves one count and
 	// joins another, in a section with a different name and a different icon.
 	it('moves a paper between them when the reading ends', () => {
-		expect(taskOf(paper({ reading: 'queued' }))).toBe('read');
+		expect(taskOf(paper({ reading: 'queued' }))).toBe('reading');
 		expect(taskOf(paper({ reading: 'finished' }))).toBe('claim');
 	});
 
 	it('sends a promoted paper to the claim first, because a third pass argues with a summary', () => {
 		expect(taskOf(paper({ reading: 'promoted' }))).toBe('claim');
-		expect(taskOf(paper({ reading: 'promoted', claimed: '2026-01-01' }))).toBe('assessment');
+		expect(taskOf(paper({ reading: 'assessing' }))).toBe('assessment');
 	});
 
 	it('drains each of them oldest first', () => {
@@ -435,12 +436,12 @@ describe('the second pass, in two sections', () => {
  */
 describe('the order of the sections', () => {
 	it('runs in the order a paper passes through them', () => {
-		expect(STAGES.map((entry) => entry.task)).toEqual(['triage', 'read', 'claim', 'assessment']);
+		expect(STAGES.map((entry) => entry.task)).toEqual(['triage', 'reading', 'claim', 'assessment']);
 	});
 
 	it('puts the claim after the reading it belongs to, as every explanation does', () => {
 		const order = STAGES.map((entry) => entry.task);
-		expect(order.indexOf('read')).toBeLessThan(order.indexOf('claim'));
+		expect(order.indexOf('reading')).toBeLessThan(order.indexOf('claim'));
 	});
 
 	it('names and describes every one of them', () => {
@@ -463,7 +464,7 @@ describe('completion messages', () => {
 
 	it('are absent where a chooser has already said what happened', () => {
 		expect(TASKS.triage.completed).toBeUndefined();
-		expect(TASKS.read.completed).toBeUndefined();
+		expect(TASKS.reading.completed).toBeUndefined();
 	});
 });
 
@@ -481,20 +482,20 @@ describe('a pending paper, with triage on and off', () => {
 	it('wants ruling on when the queue is to ask first', () => {
 		expect(rowTask(pending, true)).toBe('triage');
 		expect(rowsByStage([], [pending.item], true).get('triage')).toHaveLength(1);
-		expect(rowsByStage([], [pending.item], true).get('read')).toHaveLength(0);
+		expect(rowsByStage([], [pending.item], true).get('reading')).toHaveLength(0);
 	});
 
 	// Saving it to Zotero was the first pass: the abstract was on the page and
 	// the connector button was the answer.
 	it('wants reading when it does not', () => {
-		expect(rowTask(pending, false)).toBe('read');
-		expect(rowsByStage([], [pending.item], false).get('read')).toHaveLength(1);
+		expect(rowTask(pending, false)).toBe('reading');
+		expect(rowsByStage([], [pending.item], false).get('reading')).toHaveLength(1);
 		expect(rowsByStage([], [pending.item], false).get('triage')).toHaveLength(0);
 	});
 
 	it('goes at the front of whichever section it lands in, either way', () => {
 		for (const triage of [true, false]) {
-			const stage = triage ? 'triage' : 'read';
+			const stage = triage ? 'triage' : 'reading';
 			const already = paper({ reading: triage ? 'untriaged' : 'queued', created: 1 });
 			expect(rowsByStage([already], [pending.item], triage).get(stage)?.map((row) => row.kind)).toEqual([
 				'pending',
@@ -505,8 +506,8 @@ describe('a pending paper, with triage on and off', () => {
 
 	it('says nothing different about a paper that already has a note', () => {
 		const note = { kind: 'note' as const, note: paper({ reading: 'queued' }) };
-		expect(rowTask(note, true)).toBe('read');
-		expect(rowTask(note, false)).toBe('read');
+		expect(rowTask(note, true)).toBe('reading');
+		expect(rowTask(note, false)).toBe('reading');
 	});
 });
 
@@ -529,7 +530,7 @@ describe('visibleStages', () => {
 
 	it('never drops any other stage, however empty', () => {
 		const shown = visibleStages(rows({}), false).map((entry) => entry.task);
-		expect(shown).toEqual(['read', 'claim', 'assessment']);
+		expect(shown).toEqual(['reading', 'claim', 'assessment']);
 	});
 });
 
@@ -595,8 +596,8 @@ describe('a reading value nothing here recognises', () => {
 	});
 
 	it('goes to Triage whatever has been written in the note', () => {
-		expect(taskOf(odd({ claimed: '2026-01-01' }))).toBe('triage');
-		expect(taskOf(odd({ claimed: '2026-01-01', assessed: '2026-01-01' }))).toBe('triage');
+		expect(taskOf(odd({  }))).toBe('triage');
+		expect(taskOf(odd({ reading: 'quued' }))).toBe('triage');
 	});
 
 	// It is not a decision, so it does not belong in a record of decisions.
@@ -630,14 +631,14 @@ describe('a note written under the old pass-three spelling', () => {
 		expect(taskOf(old())).toBe('claim');
 	});
 
-	it('owes an assessment once the claim is written', () => {
-		expect(taskOf(old({ claimed: '2026-01-01' }))).toBe('assessment');
+	it('owes an assessment once the claim is ticked off', () => {
+		expect(taskOf(paper({ reading: 'assessing' }))).toBe('assessment');
 	});
 
-	it('comes to rest as promoted once both are written', () => {
-		const done = old({ claimed: '2026-01-01', assessed: '2026-01-01' });
+	it('comes to rest as assessed once both are ticked off', () => {
+		const done = paper({ reading: 'assessed' });
 		expect(taskOf(done)).toBeNull();
-		expect(settledOf(done)).toBe('promoted');
+		expect(settledOf(done)).toBe('assessed');
 		expect(settled([done])).toHaveLength(1);
 	});
 });
@@ -646,6 +647,6 @@ describe('TASKS announces', () => {
 	// `next` speaks only for the task that leaves Obsidian, because the other
 	// three answer for themselves and a second slip is noise.
 	it('is false only for reading, which goes to Zotero', () => {
-		expect(Object.values(TASKS).filter((task) => !task.announces).map((task) => task.task)).toEqual(['read']);
+		expect(Object.values(TASKS).filter((task) => !task.announces).map((task) => task.task)).toEqual(['reading']);
 	});
 });

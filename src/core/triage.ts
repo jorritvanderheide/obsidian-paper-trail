@@ -15,7 +15,7 @@ import { sortKeys } from './frontmatter';
  * the next time you decide anything about it. Rewriting the vault to tidy a
  * word would be a worse trade than carrying this table.
  */
-const RENAMED: Record<string, string> = { 'pass-three': 'promoted' };
+const RENAMED: Record<string, string> = { 'pass-three': 'promoted', finished: 'read' };
 
 /** What a stored `reading` value is called now. Unknown values pass through. */
 export function currentReading(value: string): string {
@@ -23,30 +23,57 @@ export function currentReading(value: string): string {
 }
 
 /**
- * How far a paper is going, in Keshav's terms. `untriaged` is the state a new
+ * Where a paper has got to, in Keshav's terms. `untriaged` is the state a new
  * note is stamped with, never chosen.
  *
- * Two of these are intents rather than reports: `queued` says the paper earned
- * a second pass, `promoted` says it earned a third. What has actually been
- * written is read off the note's headings, so the stage a paper waits at is the
- * pair of the two and neither has to be kept in step with the other.
+ * One axis, not two. A pass that had been written used to be recorded apart
+ * from this, first by reading the prose under a heading and then by a date of
+ * its own, on the grounds that `queued` and `promoted` are intents while a
+ * finished claim is a report. That line does not survive contact with the rest
+ * of the list: `read` is a report too, and `untriaged` is neither. What the
+ * field actually answers is where the paper is, and a finished pass is part of
+ * that answer.
+ *
+ * Keeping it here is what makes moving a paper backwards an ordinary change of
+ * status rather than a second control: the chooser that fixes a mistake in the
+ * reading is the one that reopens a claim.
  */
-export type Reading = 'untriaged' | 'dropped' | 'queued' | 'deferred' | 'finished' | 'promoted';
+export type Reading =
+	| 'untriaged'
+	| 'queued'
+	| 'read'
+	| 'summarised'
+	| 'promoted'
+	| 'assessing'
+	| 'assessed'
+	| 'deferred'
+	| 'dropped';
 
 /**
  * The reading values in the order a paper passes through them, which is the
- * order any list of all six is shown in.
+ * order any list of them is shown in.
  *
- * It is the queue read downwards: untriaged is Triage, queued is Reading,
- * finished and promoted are Claim and then Assessment, and the last two are
- * the ways out. A chooser offering the same six states in some other order
- * than the pane you were just looking at makes you read all six every time,
- * which for a list you reach for to correct a mistake is the whole cost of it.
+ * It is the queue read downwards, with the fork in the middle: untriaged is
+ * Triage, queued is Reading, and then a paper either stops at a summary or goes
+ * on to a third pass. The last two are the ways out. A chooser offering these
+ * in some other order than the pane you were just looking at makes you read the
+ * whole list every time, which for something you reach for to correct a mistake
+ * is the whole cost of it.
  *
  * Declaration order on the type above is not it, and cannot be: that order is
  * arbitrary and nothing can depend on it. This is the one that is meant.
  */
-export const READING_ORDER: readonly Reading[] = ['untriaged', 'queued', 'finished', 'promoted', 'deferred', 'dropped'];
+export const READING_ORDER: readonly Reading[] = [
+	'untriaged',
+	'queued',
+	'read',
+	'summarised',
+	'promoted',
+	'assessing',
+	'assessed',
+	'deferred',
+	'dropped',
+];
 
 /**
  * A stored `reading` as one of the six states, reading anything else as
@@ -89,47 +116,20 @@ export interface Triage {
 	reason: string | null;
 }
 
-/** The two passes that end in something written, rather than in a decision. */
-export type Pass = 'claim' | 'assessment';
-
 /**
- * Where a finished pass is recorded.
+ * Where the tick on a Claim or Assessment row takes a paper, or null when the
+ * state it is in has no pass outstanding.
  *
- * A date, like `reading-date` and `triaged-date`, because the question a record
- * asks four years later is when rather than whether, and a boolean cannot
- * answer it. The rules only test whether the key is there.
- *
- * It used to be nothing at all: a pass counted as finished when the heading had
- * anything under it, so the state was read straight off the prose. That is a
- * lovely property and it cost too much in practice. One character counted, so
- * the paper left the section mid-sentence, and there was nowhere to put a note
- * to yourself under a heading without the plugin calling it the claim. Saying
- * when you are done is one press, and it is a press you can mean.
+ * The whole of what pressing it means. A paper that has only been read stops at
+ * the summary; one promoted to a third pass has two ticks ahead of it, and the
+ * claim is the first, because assessing a paper is an argument with one you can
+ * already summarise.
  */
-const PASS_DATE: Record<Pass, string> = { claim: 'claim-date', assessment: 'assessment-date' };
-
-/** The date a pass was marked written, or null while it is still owed. */
-export function passDate(frontmatter: Record<string, unknown> | undefined, pass: Pass): string | null {
-	const value = frontmatter?.[PASS_DATE[pass]];
-	return typeof value === 'string' && value.trim() ? value : null;
-}
-
-/**
- * Record a pass as written. Mutates in place, which is the shape
- * `processFrontMatter` wants.
- *
- * Nothing else is touched, and the prose under the heading least of all: what
- * you wrote there is yours, and this says only that you consider it done.
- */
-export function applyPass(frontmatter: Record<string, unknown>, pass: Pass, date: string): void {
-	frontmatter[PASS_DATE[pass]] = date;
-	sortKeys(frontmatter);
-}
-
-/** Take a pass back to owed, for a paper you want to write again. */
-export function clearPass(frontmatter: Record<string, unknown>, pass: Pass): void {
-	delete frontmatter[PASS_DATE[pass]];
-	sortKeys(frontmatter);
+export function advance(reading: Reading): Reading | null {
+	if (reading === 'read') return 'summarised';
+	if (reading === 'promoted') return 'assessing';
+	if (reading === 'assessing') return 'assessed';
+	return null;
 }
 
 /**
@@ -168,11 +168,14 @@ export function asks(reading: Reading): { question: string; cta: string } | null
  */
 const ICONS: Record<Reading, string> = {
 	untriaged: 'circle-dashed',
-	dropped: 'x',
 	queued: 'bookmark',
-	deferred: 'clock',
-	finished: 'check',
+	read: 'book-open',
+	summarised: 'check',
 	promoted: 'book-open-check',
+	assessing: 'pencil',
+	assessed: 'check-check',
+	deferred: 'clock',
+	dropped: 'x',
 };
 
 export function iconOf(reading: Reading): string {
@@ -202,16 +205,22 @@ export function landing(reading: Reading): string {
 	switch (reading) {
 		case 'untriaged':
 			return 'Back to Triage, to be assessed again.';
-		case 'dropped':
-			return 'Dropped, and off the list.';
 		case 'queued':
 			return 'Queued, and waiting to be read.';
-		case 'deferred':
-			return 'Parked, with the condition on the note.';
-		case 'finished':
-			return 'Read. Write what it argues and it is done.';
+		case 'read':
+			return 'Read. Write what it argues and tick it off.';
+		case 'summarised':
+			return 'Summarised, and done with.';
 		case 'promoted':
 			return 'Worth a third pass. The claim comes first.';
+		case 'assessing':
+			return 'Summarised. The assessment is what is left.';
+		case 'assessed':
+			return 'Assessed, and done with.';
+		case 'deferred':
+			return 'Parked, with the condition on the note.';
+		case 'dropped':
+			return 'Dropped, and off the list.';
 	}
 }
 
@@ -233,7 +242,7 @@ export function landing(reading: Reading): string {
  * confusing.
  */
 export const PASS_TWO: { reading: Reading; label: string }[] = [
-	{ reading: 'finished', label: 'I can summarise it' },
+	{ reading: 'read', label: 'I can summarise it' },
 	{ reading: 'promoted', label: 'Worth a third pass' },
 	{ reading: 'deferred', label: 'Come back to it later' },
 	{ reading: 'dropped', label: 'Not worth finishing' },

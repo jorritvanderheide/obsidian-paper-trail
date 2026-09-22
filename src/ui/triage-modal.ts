@@ -53,7 +53,7 @@ const DECISIONS: { reading: Reading; label: string; hint: string }[] = [
 		hint: 'Worth a real read. Goes on the reading list.',
 	},
 	{
-		reading: 'finished',
+		reading: 'read',
 		label: 'Already read',
 		// Not "this one is done", which is what it used to say and what the paper
 		// then was not: `finished` skips the reading list and lands in Claim,

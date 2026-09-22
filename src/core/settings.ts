@@ -135,15 +135,15 @@ export interface Settings {
 	/** Where the paper template is kept, and seeded to when it is missing. */
 	templateFolder: string;
 	/**
-	 * The heading a literature note is finished under. A paper leaves Reading
-	 * once this has anything below it, so renaming it in the paper template
-	 * without changing it here would keep every read paper on the list forever.
+	 * The heading the second pass is written under. Nothing is read from it: it
+	 * is where the Claim button puts the cursor, and the tick beside that button
+	 * is what ends the pass.
 	 */
 	claimHeading: string;
 	/**
-	 * The heading the third pass is finished under. A paper promoted to a third
-	 * pass leaves the list once this has anything below it, which is the same
-	 * trick the claim heading plays one pass earlier.
+	 * The heading the third pass is written under, and only papers you promote
+	 * are asked for one. The same bargain as the claim heading: it places the
+	 * cursor, and the tick ends the pass.
 	 */
 	assessmentHeading: string;
 }
