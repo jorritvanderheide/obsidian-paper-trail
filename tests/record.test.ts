@@ -5,7 +5,6 @@ const paper = (over: Partial<Decided> = {}): Decided => ({
 	title: 'Reframing heat pump transitions',
 	authors: 'Jeltje Van Der Haer',
 	year: 2026,
-	citekey: 'vanderhaer2026',
 	reading: 'dropped',
 	triaged: '2026-03-14',
 	reason: 'a review, not empirical',
@@ -150,8 +149,7 @@ describe('decidedOf', () => {
 				title: 'Reframing heat pump transitions',
 				authors: 'Jeltje Van Der Haer',
 				year: 2026,
-				citekey: 'vanderhaer2026',
-				reading: 'dropped',
+							reading: 'dropped',
 				'triaged-date': '2026-03-14',
 				'reading-reason': 'a review, not empirical',
 			}),
@@ -159,8 +157,7 @@ describe('decidedOf', () => {
 			title: 'Reframing heat pump transitions',
 			authors: 'Jeltje Van Der Haer',
 			year: 2026,
-			citekey: 'vanderhaer2026',
-			reading: 'dropped',
+					reading: 'dropped',
 			triaged: '2026-03-14',
 			reason: 'a review, not empirical',
 			path: 'Literature/vanderhaer2026.md',
@@ -193,7 +190,7 @@ describe('decidedOf', () => {
 	// A cell the table can print. An empty authors field is an empty cell; a
 	// year that is not a number is no year rather than the word it was typed as.
 	it('leaves an unusable field empty rather than printing what was typed', () => {
-		const row = of({ 'zotero-key': 'ABCD2345', authors: 42, year: 'in press', citekey: null });
-		expect(row).toMatchObject({ authors: '', year: null, citekey: null });
+		const row = of({ 'zotero-key': 'ABCD2345', authors: 42, year: 'in press' });
+		expect(row).toMatchObject({ authors: '', year: null });
 	});
 });

@@ -41,7 +41,6 @@ export interface Decided {
 	title: string;
 	authors: string;
 	year: number | null;
-	citekey: string | null;
 	reading: string;
 	/** When the first opinion was formed, which is the date a methods section wants. */
 	triaged: string | null;
@@ -73,7 +72,6 @@ export function decidedOf(
 		title: text('title') ?? file.basename,
 		authors: text('authors') ?? '',
 		year: typeof frontmatter.year === 'number' ? frontmatter.year : null,
-		citekey: text('citekey'),
 		// A paper with no reading field has not been assessed, which is exactly
 		// what untriaged means.
 		reading: currentReading(text('reading') ?? 'untriaged'),

@@ -160,7 +160,6 @@ describe('highlights', () => {
 				text: 'Care is not inherently good.',
 				comment: 'cf. Tronto',
 				page: '842',
-				color: null,
 				sortIndex: '00001|000000|00000',
 			},
 		]);
@@ -189,18 +188,21 @@ describe('highlights', () => {
 });
 
 /**
- * Taken verbatim from the local API, so the shape is checked against Zotero
- * rather than against its documentation. The two disagree about `/children`.
+ * Taken from the local API, so the shape is checked against Zotero rather than
+ * against its documentation. The two disagree about `/children`.
+ *
+ * The real response also carries `annotationType: "highlight"` and
+ * `annotationColor: "#ffd400"`. Neither is declared on `ApiItem` and neither is
+ * read: nothing renders a colour, and the only annotations that reach here are
+ * the ones `?itemType=annotation` returned.
  */
 describe('highlights, against a real annotation', () => {
 	const real: ApiItem = {
 		key: '2SQ873XZ',
 		data: {
 			itemType: 'annotation',
-			annotationType: 'highlight',
 			annotationText: 'The decarbonisation of domestic heating is central to climate policy, with the heat pump positioned as a key technology',
 			annotationComment: '',
-			annotationColor: '#ffd400',
 			annotationPageLabel: '840',
 			annotationSortIndex: '00000|000566|00410',
 		},
@@ -213,7 +215,6 @@ describe('highlights, against a real annotation', () => {
 				text: 'The decarbonisation of domestic heating is central to climate policy, with the heat pump positioned as a key technology',
 				comment: '',
 				page: '840',
-				color: '#ffd400',
 				sortIndex: '00000|000566|00410',
 			},
 		]);

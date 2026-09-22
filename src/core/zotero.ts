@@ -36,7 +36,11 @@ export function readerUrl(ref: ItemRef, attachmentKey: string): string {
 }
 
 /**
- * The fields of a Zotero API item that are used here.
+ * The fields of a Zotero API item that are read here, and only those.
+ *
+ * Zotero sends a great deal more. Declaring a field nothing reads makes the
+ * type a worse copy of Zotero's documentation than Zotero's documentation, and
+ * gives the next person a list of things to wonder whether they can rely on.
  *
  * `citationKey` is written into the item by Better BibTeX and handed over by
  * the local API, so the citation key needs no second request and no Better
@@ -51,8 +55,6 @@ export interface ApiItem {
 		shortTitle?: string;
 		abstractNote?: string;
 		date?: string;
-		DOI?: string;
-		url?: string;
 		publicationTitle?: string;
 		proceedingsTitle?: string;
 		bookTitle?: string;
@@ -64,20 +66,14 @@ export interface ApiItem {
 		creators?: Creator[];
 		contentType?: string;
 		linkMode?: string;
-		filename?: string;
-		parentItem?: string;
 		dateAdded?: string;
-		annotationType?: string;
 		annotationText?: string;
 		annotationComment?: string;
-		annotationColor?: string;
 		annotationPageLabel?: string;
 		annotationSortIndex?: string;
 	};
 	meta?: {
-		creatorSummary?: string;
 		parsedDate?: string;
-		numChildren?: number;
 	};
 }
 
@@ -110,7 +106,7 @@ function creatorName(creator: Creator): string {
 }
 
 /** The authors, in order, skipping editors and translators. */
-export function authors(item: ApiItem): Creator[] {
+function authors(item: ApiItem): Creator[] {
 	return (item.data.creators ?? []).filter((creator) => creator.creatorType === undefined || creator.creatorType === 'author');
 }
 
@@ -224,7 +220,6 @@ export interface Highlight {
 	text: string;
 	comment: string;
 	page: string | null;
-	color: string | null;
 	/** Zotero's own ordering string. Sorts as text, not as a number. */
 	sortIndex: string;
 }
@@ -244,7 +239,6 @@ export function highlights(items: ApiItem[]): Highlight[] {
 			text: (item.data.annotationText ?? '').trim(),
 			comment: (item.data.annotationComment ?? '').trim(),
 			page: item.data.annotationPageLabel?.trim() || null,
-			color: item.data.annotationColor?.trim() || null,
 			sortIndex: item.data.annotationSortIndex ?? '',
 		}))
 		.filter((highlight) => highlight.text.length > 0 || highlight.comment.length > 0)

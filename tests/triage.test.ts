@@ -82,7 +82,7 @@ describe('applyTriage', () => {
 		expect(frontmatter['reading-reason']).toBe('second reason');
 	});
 
-	it('does not duplicate an axis when the note is already filed', () => {
+	it('leaves a tagged note alone, whatever the tags are', () => {
 		const frontmatter: Record<string, unknown> = { tags: ['project/wp1', 'topic/heat-pumps'] };
 		applyTriage(frontmatter, { reading: 'finished', reason: null }, '2026-09-20');
 		expect(frontmatter.tags).toEqual(['project/wp1', 'topic/heat-pumps']);

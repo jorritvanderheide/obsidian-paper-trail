@@ -49,9 +49,8 @@ export interface Settings {
 	 * triaged, or arrives already queued to read.
 	 *
 	 * Off, so it arrives queued. This is the one setting here with an opinion in
-	 * it rather than an address, and it earns the exception the same way
-	 * `domains` does: it records something only you can know, which is what
-	 * putting an item in Zotero means to you.
+	 * it rather than an address, and it earns the exception by recording
+	 * something only you can know: what putting an item in Zotero means to you.
 	 *
 	 * For a lot of people it means "I have read the abstract and I want this",
 	 * because the abstract was on the page in front of them and the connector
@@ -85,10 +84,10 @@ export interface Settings {
 	/**
 	 * Tag namespace to mirror a paper's reading status into, or empty for none.
 	 *
-	 * An address rather than an opinion, and configurable where the other axes
-	 * are not, for one reason: nothing in the workflow reads this tag. `reading`
-	 * in the frontmatter stays the value every rule uses, so setting or clearing
-	 * this cannot change what the plugin does, only what a tag explorer can see.
+	 * An address rather than an opinion, and the only tag the plugin writes, for
+	 * one reason: nothing in the workflow reads it. `reading` in the frontmatter
+	 * stays the value every rule uses, so setting or clearing this cannot change
+	 * what the plugin does, only what a tag explorer can see.
 	 *
 	 * Empty by default. Navigating by tag is a real way to work and not the
 	 * common one, and a plugin that wrote tags into a stranger's notes unasked

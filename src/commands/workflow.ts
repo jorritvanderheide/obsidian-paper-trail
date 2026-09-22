@@ -150,7 +150,7 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
  * The question is Keshav's, and it has four answers rather than one, so this
  * offers them rather than assuming the commonest. Through `writeTriage` like
  * every other decision, so a paper finished from the homepage lands in exactly
- * the state the triage pane would have left it in.
+ * the state the triage dialog would have left it in.
  */
 export async function finish(context: Context, task: Task, row: Row): Promise<void> {
 	if (task !== 'read') return;

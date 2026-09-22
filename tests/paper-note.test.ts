@@ -41,7 +41,6 @@ const highlight = (over: Partial<Highlight> = {}): Highlight => ({
 	text: 'Care is not inherently good.',
 	comment: '',
 	page: '842',
-	color: '#ffd400',
 	sortIndex: '00000|000566|00410',
 	...over,
 });
@@ -482,7 +481,7 @@ describe('isPaper', () => {
 	});
 
 	it('still counts a key that is malformed, because every other rule does', () => {
-		// The triage pane has to open for these or they stay in Triage forever.
+		// The triage dialog has to open for these or they stay in Triage forever.
 		expect(isPaper({ 'zotero-key': 'nonsense' }, 'zotero-key')).toBe(true);
 	});
 

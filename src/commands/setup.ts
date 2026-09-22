@@ -5,7 +5,7 @@
 // there for anyone who would rather have the queue on a dashboard of their
 // own; it has to be asked for, and it goes where you put the cursor.
 import { MarkdownView, Modal, Notice, Setting, type App } from 'obsidian';
-import { WORKFLOW_BLOCK } from '../core/templates';
+import { WORKFLOW_BLOCK } from '../ui/workflow-block';
 import { library, refreshLibrary } from '../library';
 import { lastContact } from '../source';
 import { openQueue } from '../ui/queue';

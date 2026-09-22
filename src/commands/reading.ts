@@ -1,4 +1,4 @@
-// A paper's reading state: forming it in the triage pane, and changing it by
+// A paper's reading state: forming it in the triage dialog, and changing it by
 // hand afterwards.
 //
 // The pane is one way in, but not the only one. A paper that has actually been
@@ -148,7 +148,7 @@ export async function noteFor(context: Context, item: Pending): Promise<TFile> {
 /**
  * Write a decision, making the note first when there is not one.
  *
- * Every route to a decision comes through here: the triage pane, the queue's
+ * Every route to a decision comes through here: the triage dialog, the queue's
  * Finished button, the status command and the title bar. The alternative was
  * several copies of "a drop asks why", which is how one of them ends up not
  * asking.
@@ -226,7 +226,7 @@ function indexed(app: App, file: TFile, wait = 1000): Promise<void> {
 }
 
 /**
- * Show a paper in the triage pane.
+ * Show a paper in the triage dialog.
  *
  * A pending paper costs no requests at all: the queue already fetched its
  * title, venue, year and abstract when it worked out what was outstanding. A

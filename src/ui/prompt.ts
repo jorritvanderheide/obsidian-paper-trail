@@ -42,7 +42,7 @@ class Suggester<T> extends FuzzySuggestModal<T> {
 		}
 
 		// The icon on the left edge rather than above the words, so a list of
-		// decisions scans down one column the way the triage pane's buttons do.
+		// decisions scans down one column the way the triage dialog's buttons do.
 		if (this.icon) {
 			el.addClass('paper-trail-suggestion');
 			setIcon(el.createDiv({ cls: 'paper-trail-suggestion-icon' }), this.icon(match.item));

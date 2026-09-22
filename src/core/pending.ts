@@ -25,12 +25,11 @@ export interface Pending {
 	added: string;
 }
 
-export function pendingOf(items: ApiItem[], known: Iterable<string>, ignored: Iterable<string> = []): Pending[] {
+export function pendingOf(items: ApiItem[], known: Iterable<string>): Pending[] {
 	const have = new Set(known);
-	const skip = new Set(ignored);
 
 	return items
-		.filter((item) => isPaperItem(item) && !have.has(item.key) && !skip.has(item.key))
+		.filter((item) => isPaperItem(item) && !have.has(item.key))
 		.map((item) => ({
 			key: item.key,
 			title: item.data.shortTitle?.trim() || item.data.title?.trim() || item.key,

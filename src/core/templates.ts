@@ -6,8 +6,6 @@
 //
 // Content only. The seeding lives in commands/seed.ts, so this file stays
 // free of Obsidian and the tests can read it.
-/** The fence that renders the queue block. One constant, so the command that inserts it and the processor that renders it cannot drift. */
-export const WORKFLOW_BLOCK = 'paper-trail';
 
 /**
  * Two empty headings and the managed region, and nothing else.
@@ -37,7 +35,6 @@ export const PAPER = `# {{TITLE}}
 `;
 
 export interface Template {
-	label: string;
 	file: string;
 	content: string;
 }
@@ -51,4 +48,4 @@ export interface Template {
  * Templates plugin is for those. This one is here only because the workflow
  * has to know where the claim and the assessment headings are.
  */
-export const PAPER_TEMPLATE: Template = { label: 'Paper', file: 'Paper.md', content: PAPER };
+export const PAPER_TEMPLATE: Template = { file: 'Paper.md', content: PAPER };

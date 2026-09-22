@@ -72,10 +72,6 @@ describe('pendingOf', () => {
 		expect(pendingOf([item('AAAA1111', { abstractNote: '   ' })], [])[0]?.abstract).toBeNull();
 	});
 
-	it('can be told to ignore keys as well, for papers deliberately kept out', () => {
-		expect(pendingOf([item('AAAA1111'), item('BBBB2222')], [], ['AAAA1111']).map((row) => row.key)).toEqual(['BBBB2222']);
-	});
-
 	it('is empty when Zotero has nothing, rather than throwing', () => {
 		expect(pendingOf([], [])).toEqual([]);
 	});

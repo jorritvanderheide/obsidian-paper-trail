@@ -7,7 +7,16 @@ import { MarkdownRenderChild, debounce } from 'obsidian';
 import { renderQueue } from './queue';
 import type { Context } from '../context';
 
-export { WORKFLOW_BLOCK } from '../core/templates';
+/**
+ * The fence that renders the queue block.
+ *
+ * Here rather than in `core/`, beside the processor registered for it, because
+ * a code fence name is not a template and the two have to agree: the command
+ * that inserts the block writes this word, and Obsidian calls back on it. It
+ * was reachable by two import paths while it lived among the templates, which
+ * is one more than a single constant should have.
+ */
+export const WORKFLOW_BLOCK = 'paper-trail';
 
 export class WorkflowBlock extends MarkdownRenderChild {
 	constructor(
