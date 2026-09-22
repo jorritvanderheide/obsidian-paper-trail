@@ -31,6 +31,7 @@ import { iconOf, label } from '../core/triage';
 import { chooseReading, noteFor, targetOf } from '../commands/reading';
 import { queue } from '../outstanding';
 import { reveal } from './reveal';
+import { WhileWriting } from './editing';
 import { notify } from './notify';
 import type { Pending } from '../core/pending';
 import { lastContact } from '../source';
@@ -774,6 +775,16 @@ export class QueueView extends ItemView {
 	 */
 	private readonly redraw = debounce(() => renderQueue(this.contentEl, this.context), 200, true);
 
+	/**
+	 * The redraw a note's own change asks for, held while you are writing it.
+	 *
+	 * Writing a claim moved its row out of Claim, changed two counts and rebuilt
+	 * the tree, all mid-sentence. The rules are unchanged: the paper does leave
+	 * Claim the moment there is something under the heading. This only waits
+	 * until you have stopped writing to show you.
+	 */
+	private readonly writing = new WhileWriting(this.app, () => this.redraw());
+
 	/** Redraw after a resize, once the dragging has stopped rather than during it. */
 	private readonly refit = debounce(() => renderQueue(this.contentEl, this.context), 250, false);
 
@@ -811,9 +822,17 @@ export class QueueView extends ItemView {
 		// showing anything would mean an empty pane every time this opens.
 		void refreshLibrary(this.context.settings.collection).then(() => this.redraw());
 
-		this.registerEvent(this.app.metadataCache.on('changed', this.redraw));
+		// A note's own change waits while you are the one writing it. Everything
+		// else lands at once: a deletion, a rename, or a paper arriving from a
+		// sync has nothing to do with the sentence you are in the middle of.
+		this.registerEvent(this.app.metadataCache.on('changed', (file) => this.writing.changed(file)));
 		this.registerEvent(this.app.vault.on('delete', this.redraw));
 		this.registerEvent(this.app.vault.on('rename', this.redraw));
+
+		// Leaving the note is what lets the held change land, and clicking this
+		// pane counts as leaving.
+		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.writing.flush()));
+		this.registerEvent(this.app.workspace.on('file-open', () => this.writing.flush()));
 
 		// Coming back to Obsidian is the moment you have just saved something in
 		// the browser, so it is the moment worth asking. Asking costs one request
