@@ -17,7 +17,7 @@ import { ItemView, Menu, Notice, debounce, setIcon, type App, type WorkspaceLeaf
 import {
 	rowTask,
 	rowTitle,
-	settledOf,
+	outcomeOf,
 	TASKS,
 	visibleStages,
 	type Row,
@@ -661,7 +661,7 @@ function decided(root: HTMLElement, context: Context, done: Settled[]): boolean 
 	// the ones worth the most: the reason to keep a record is the paper you
 	// ruled out long enough ago to have forgotten ruling on.
 	for (const entry of done) {
-		const row = treeRow(children, entry.note.title, () => void openNote(context.app, entry.note), iconOf(entry.reading));
+		const row = treeRow(children, entry.note.title, () => void openNote(context.app, entry.note), iconOf(entry.note.state));
 		// The state in words as well as in the icon, because the icon is the only
 		// thing distinguishing four outcomes and an icon cannot be read aloud.
 		row.dataset.path = entry.note.path;
@@ -682,7 +682,8 @@ function decided(root: HTMLElement, context: Context, done: Settled[]): boolean 
  */
 function decidedState(entry: Settled): string {
 	const when = entry.note.decided;
-	return when ? `${label(entry.reading)} on ${when}` : label(entry.reading);
+	const word = label(entry.note.state);
+	return when ? `${word} on ${when}` : word;
 }
 
 /**
@@ -694,8 +695,8 @@ function rowState(row: Row, triage: boolean): { text: string; icon: string } | n
 	if (task) return { text: TASKS[task].label, icon: TASKS[task].stageIcon };
 	if (row.kind !== 'note') return null;
 
-	const reading = settledOf(row.note);
-	return reading ? { text: decidedState({ note: row.note, reading }), icon: iconOf(reading) } : null;
+	const outcome = outcomeOf(row.note);
+	return outcome ? { text: decidedState({ note: row.note, reading: outcome }), icon: iconOf(row.note.state) } : null;
 }
 
 /**

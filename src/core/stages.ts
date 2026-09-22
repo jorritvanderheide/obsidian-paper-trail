@@ -7,7 +7,7 @@
 
 import type { CachedMetadata } from 'obsidian';
 import { isPaper } from './paper-note';
-import { currentReading, readingOf, type Reading } from './triage';
+import { stateOf, type Outcome, type State } from './triage';
 import type { Pending } from './pending';
 
 /** Everything the rules need, read from Obsidian's metadata cache. */
@@ -24,8 +24,8 @@ export interface NoteState {
 	 * note's frontmatter a second time.
 	 */
 	key: string | null;
-	/** The `reading` property, or null when the note has none. */
-	reading: string | null;
+	/** Where the paper is: what it earns, and how far you have got. */
+	state: State;
 	/** Creation time, so a backlog drains in the order things arrived. */
 	created: number;
 	/**
@@ -67,6 +67,23 @@ export type Task = 'triage' | 'claim' | 'reading' | 'assessment';
  * arbitrary and nothing can depend on it. This is the one that is meant.
  */
 const ORDER: readonly Task[] = ['triage', 'reading', 'claim', 'assessment'];
+
+/**
+ * The order `next` works in, which is not the order the queue is read in.
+ *
+ * Two different questions, and they were answered with one list. The sections
+ * are read downwards as the shape of the workflow, so Triage is first; `next`
+ * walked the same order and so offered Triage almost every time, because Triage
+ * is normally longer than everything else put together. A claim you owed from
+ * this morning queued behind four hundred papers you have never opened.
+ *
+ * Finish what is started. An untriaged paper is stable: it will triage just as
+ * well in March. A paper you read yesterday and have not summarised is
+ * perishable, and Keshav's test for the second pass, that you can say what it
+ * argues, is exactly the thing that decays. So the cheapest work that is also
+ * the most urgent comes first, and starting something new comes last.
+ */
+export const NEXT_ORDER: readonly Task[] = ['claim', 'assessment', 'reading', 'triage'];
 
 /**
  * Everything one task is: the section it heads in the queue, and the work it
@@ -194,7 +211,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		task: 'claim',
 		label: 'Claim',
 		stageIcon: 'pencil',
-		hint: 'Read, and not yet summarised. Keshav’s second pass ends when you can say what the paper argues, with its evidence, to someone else. Write that and it leaves.',
+		hint: 'Read, and not yet summarised. Keshav’s second pass ends when you can say what the paper argues, with its evidence, to someone else. Write that, then tick it off.',
 		action: 'Write the claim',
 		icon: 'pencil',
 		done: 'Claim written',
@@ -202,13 +219,13 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		inNote: false,
 		announces: true,
 		completed: 'The second pass is done: you can say what it argues.',
-		prompt: 'What does this paper argue? One or two sentences, in your own words.',
+		prompt: 'What does this paper argue? One or two sentences, in your own words. Tick it off when you are done.',
 	},
 	assessment: {
 		task: 'assessment',
 		label: 'Assessment',
 		stageIcon: 'book-open-check',
-		hint: 'You said this one earns four hours. The assessment is still empty.',
+		hint: 'You said this one earns four hours. Argue with it under the heading, then tick it off.',
 		action: 'Write the assessment',
 		// The same mark as the claim, because it is the same verb: put the cursor
 		// under a heading and write. Which heading is what the section says.
@@ -218,7 +235,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		inNote: false,
 		announces: true,
 		completed: 'The third pass is done.',
-		prompt: 'Where does it strain? What is it assuming? What is the evidence actually doing?',
+		prompt: 'Where does it strain? What is it assuming? What is the evidence actually doing? Tick it off when you are done.',
 	},
 };
 
@@ -272,25 +289,27 @@ export function headingCoverage(papers: (CachedMetadata | null)[], heading: stri
 export function taskOf(note: NoteState): Task | null {
 	if (!note.isPaper) return null;
 
-	// Through `readingOf`, so a value nothing here recognises is read as
-	// untriaged rather than falling out of every branch below. It used to reach
-	// the end and answer null, which put the paper in no section of the queue
-	// and, because it is not a decision either, in no record: a paper the plugin
-	// knew about and could not show you anywhere.
-	const reading = readingOf(note.reading);
+	const { reading, progress } = note.state;
+
+	// A missing or unreadable `reading` counts as untriaged rather than as
+	// nothing at all. A note brought in from somewhere else, or written before
+	// the field existed, has no opinion recorded on it, and an unrecorded
+	// opinion is one not yet formed.
 	if (reading === 'untriaged') return 'triage';
 
-	if (reading === 'queued') return 'reading';
+	// Both ways out. The difference is on the note, where the record needs it,
+	// and not in the machine, where a parked paper that kept appearing would not
+	// be parked.
+	if (reading === 'deferred' || reading === 'dropped') return null;
 
-	// `read` and `promoted` both mean the second pass happened, so both owe a
-	// claim, and the claim comes first either way: assessing a paper is an
-	// argument with one you can already summarise.
-	if (reading === 'read' || reading === 'promoted') return 'claim';
-	if (reading === 'assessing') return 'assessment';
+	// What is left is a paper that earns at least a second pass, so what it is
+	// waiting on is simply how far you have got with it.
+	if (progress === null) return 'reading';
+	if (progress === 'read') return 'claim';
 
-	// `summarised`, `assessed`, `dropped` and `deferred` are all off the list.
-	// What separates them is on the note, where the record needs it, and not in
-	// the machine, where a parked paper that kept appearing would not be parked.
+	// Only a promoted paper is ever asked for a third pass, which is what
+	// promoting it meant.
+	if (progress === 'summarised' && reading === 'promoted') return 'assessment';
 	return null;
 }
 
@@ -312,15 +331,18 @@ export function taskOf(note: NoteState): Task | null {
  * matched nothing, and answered null, so the paper was in no section and in no
  * record. One reading of the field, in one place, is what stops that.
  */
-export function settledOf(note: NoteState): Reading | null {
+export function outcomeOf(note: NoteState): Outcome | null {
 	if (!note.isPaper || taskOf(note) !== null) return null;
-	return readingOf(note.reading);
+
+	const { reading, progress } = note.state;
+	if (reading === 'dropped' || reading === 'deferred') return reading;
+	return progress === 'assessed' ? 'assessed' : 'summarised';
 }
 
 /** A paper nothing is outstanding for, and the decision that put it there. */
 export interface Settled {
 	note: NoteState;
-	reading: Reading;
+	reading: Outcome;
 }
 
 /**
@@ -339,7 +361,7 @@ export interface Settled {
 export function settled(notes: NoteState[]): Settled[] {
 	return notes
 		.flatMap((note) => {
-			const reading = settledOf(note);
+			const reading = outcomeOf(note);
 			return reading === null ? [] : [{ note, reading }];
 		})
 		.sort((a, b) => (b.note.decided ?? '').localeCompare(a.note.decided ?? '') || b.note.created - a.note.created);
@@ -393,9 +415,9 @@ export function noteState(
 		title: typeof frontmatter?.title === 'string' ? frontmatter.title : file.basename,
 		isPaper: isPaper(frontmatter, keyField),
 		key: isPaper(frontmatter, keyField) ? String(frontmatter[keyField]) : null,
-		// Through `currentReading`, so a note written under an older spelling is
-		// read as what that value is called now and nothing below has to know.
-		reading: typeof frontmatter?.reading === 'string' ? currentReading(frontmatter.reading) : null,
+		// Through `stateOf`, so a note written under any older spelling is read
+		// as the pair it means and nothing below has to know which era made it.
+		state: stateOf(frontmatter),
 		created: file.created,
 		decided: typeof frontmatter?.['reading-date'] === 'string' ? frontmatter['reading-date'] : null,
 	};

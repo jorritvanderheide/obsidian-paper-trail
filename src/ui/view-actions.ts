@@ -8,7 +8,7 @@
 // Wiring only. Which stage a note is at, and what that stage offers, are core's
 // to say; this asks and draws the answer.
 import { MarkdownView, setIcon, type App } from 'obsidian';
-import { readingOf } from '../core/triage';
+
 import { fillPill } from './note-status';
 import { setReading } from '../commands/reading';
 import { noteState, taskOf, TASKS, type NoteState, type Task } from '../core/stages';
@@ -142,9 +142,7 @@ function status(pill: HTMLElement, note: NoteState | null): void {
 	pill.toggle(note !== null && note.isPaper);
 	if (note === null || !note.isPaper) return;
 
-	// A paper with no `reading` at all has had no opinion formed on it, which is
-	// what untriaged means. Reading it any other way would invent a seventh state.
-	fillPill(pill, readingOf(note.reading));
+	fillPill(pill, note.state);
 }
 
 /**

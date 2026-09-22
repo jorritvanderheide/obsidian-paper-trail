@@ -121,10 +121,14 @@ mid-sentence, and there was nowhere to leave yourself a note under a heading
 without it being taken for the work. What is under the heading is yours; the
 status says only that you consider it done.
 
-Ticking moves `reading` one step on: `read` becomes `summarised` and is done,
-while `promoted` becomes `assessing` and then `assessed`. One field says where
-a paper is, which is also why moving one backwards is nothing special: **Set
-reading status** reopens a pass the same way it corrects anything else.
+Ticking moves `reading-progress` on, and leaves `reading` alone. The two are
+different kinds of fact: what a paper earns is a judgement you made about it,
+and how far you have got is a report about yourself. Keeping them apart is why
+dropping a paper you had summarised does not unsummarise it, and why picking it
+back up returns it to where it was rather than to the start.
+
+It is also why **Set reading status** offers five things rather than nine. You
+pick from the judgements; the reports are ticked off on the row that owes them.
 
 The plugin writes none of it. The heading is left empty and the question is put
 in the moment you arrive, rather than left lying in the file as a comment you
@@ -139,7 +143,8 @@ A dropped paper is not a deletion. The note stays, and so do:
 
 | | |
 | --- | --- |
-| `reading` | `untriaged`, `queued`, `read`, `summarised`, `promoted`, `assessing`, `assessed`, `deferred` or `dropped` |
+| `reading` | what the paper earns: `untriaged`, `queued`, `promoted`, `deferred` or `dropped` |
+| `reading-progress` | how far you got: `read`, `summarised`, `assessed`, or absent |
 | `reading-date` | when the status last changed |
 | `triaged-date` | when you first formed an opinion, written once |
 | `reading-reason` | why, on a drop or a deferral |

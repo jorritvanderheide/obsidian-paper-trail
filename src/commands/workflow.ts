@@ -5,13 +5,13 @@
 // What is outstanding in the first place is worked out in `outstanding.ts`,
 // which triage needs as well and which must not depend on this.
 import { Notice, type App, type TFile } from 'obsidian';
-import { rowTask, rowTitle, STAGES, TASKS, type NoteState, type Row, type Task } from '../core/stages';
+import { NEXT_ORDER, rowTask, rowTitle, TASKS, type NoteState, type Row, type Task } from '../core/stages';
 import { attachmentKeys, parseItemRef, readerUrl, type ItemRef } from '../core/zotero';
 import { selectUrl } from '../core/paper-note';
 import { itemChildren } from '../source';
 import { decideOn, noteFor, openTriage, targetOf, writeTriage } from './reading';
 import { fileOf, queue } from '../outstanding';
-import { advance, iconOf, landing, PASS_TWO, readingOf } from '../core/triage';
+import { iconOf, landing, PASS_PROGRESS, PASS_TWO, type State } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { say } from '../ui/notify';
 import { openAtHeading, reveal } from '../ui/reveal';
@@ -178,13 +178,15 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 	const file = fileOf(context.app, row.note);
 	if (!file) return;
 
-	// Where the tick takes it is the status one step on, which is core's to say.
-	// Through `writeTriage` like every other change of status, so the date moves,
-	// the tag mirror follows and a pass ticked off here lands exactly where the
-	// chooser would have put it.
-	const next = advance(readingOf(row.note.reading));
-	if (next === null) return;
-	await writeTriage(context, file, { reading: next, reason: null });
+	// The pass, and only the pass. What the paper earns is a judgement you made
+	// and this is a report about you, so ticking a claim off leaves `reading`
+	// exactly as it was. Through `writeTriage` like every other change, so the
+	// date moves and the tag mirror follows.
+	await writeTriage(context, file, {
+		reading: row.note.state.reading,
+		reason: null,
+		progress: PASS_PROGRESS[pass],
+	});
 
 	const said = TASKS[pass].completed;
 	if (said) say(context, `${rowTitle(row)}\n${said}`);
@@ -217,15 +219,16 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 		PASS_TWO,
 		(entry) => entry.label,
 		`Finished with ${title}`,
-		(entry) => landing(entry.reading),
-		(entry) => iconOf(entry.reading),
+		(entry) => landing({ reading: entry.reading, progress: entry.progress ?? null }),
+		(entry) => iconOf({ reading: entry.reading, progress: entry.progress ?? null }),
 	);
 	if (!choice) return;
 
-	const file = await decideOn(context, target, choice.reading);
+	const file = await decideOn(context, target, choice.reading, choice.progress);
 	if (!file) return;
 
-	const landed = `${title}\n${landing(choice.reading)}`;
+	const at: State = { reading: choice.reading, progress: choice.progress ?? null };
+	const landed = `${title}\n${landing(at)}`;
 
 	// Both of the outcomes that mean you engaged with the paper leave it owing a
 	// claim, so this goes straight there rather than leaving you to find it.
@@ -237,7 +240,7 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	//
 	// The two that end the paper are not followed anywhere. A drop and a
 	// deferral have already been answered, and there is nothing left to type.
-	if (choice.reading === 'read' || choice.reading === 'promoted') {
+	if (choice.progress === 'read') {
 		await writeUnder(context, file, 'claim', landed);
 		return;
 	}
@@ -254,7 +257,8 @@ export async function next(context: Context): Promise<void> {
 	const buckets = queue(context).rows;
 	const outstanding = [...buckets.values()].reduce((sum, list) => sum + list.length, 0);
 
-	for (const { task: section, label } of STAGES) {
+	for (const section of NEXT_ORDER) {
+		const { label } = TASKS[section];
 		const first = buckets.get(section)?.[0];
 		// The row's own task, not the section's: a pending paper in Reading is
 		// asking to be read whatever the section it was filed under is called.

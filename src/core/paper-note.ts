@@ -45,10 +45,9 @@ const MARKERS = [
 
 /**
  * Frontmatter keys the plugin writes. Every other key in the file is the
- * user's, including everything you answered: `reading`, `reading-date`,
- * `triaged-date`, `reading-reason`, `claim-date` and `assessment-date` are
- * answers a person gave, and a refresh from Zotero has no business resetting
- * them.
+ * user's, including everything you answered: `reading`, `reading-progress`,
+ * `reading-date`, `triaged-date` and `reading-reason` are answers a person
+ * gave, and a refresh from Zotero has no business resetting them.
  */
 export const MANAGED_KEYS = ['title', 'aliases', 'authors', 'year', 'citekey', 'zotero'] as const;
 
@@ -286,7 +285,7 @@ export function applyPaperFrontmatter(
 	// pile the queue exists to work through.
 	if (arriving !== null) {
 		frontmatter.reading = arriving;
-		applyStatusTag(frontmatter, arriving, tags);
+		applyStatusTag(frontmatter, { reading: arriving, progress: null }, tags);
 	}
 
 	sortKeys(frontmatter);

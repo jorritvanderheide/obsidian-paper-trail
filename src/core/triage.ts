@@ -3,100 +3,97 @@
 import { sortKeys } from './frontmatter';
 
 /**
- * Values this field used to hold, mapped to what they are called now.
+ * How far a paper is going: what you decided it earns, and nothing about what
+ * you have done.
  *
- * `pass-three` named a stage called Third pass, which is now Assessment, and a
- * value nothing in the interface says any more is one you meet only in your own
- * frontmatter and in a `status/` tag, wondering what it meant.
- *
- * Read through `currentReading`, written in the new spelling, and old notes are
- * never rewritten: a promoted paper you finished last year keeps saying
- * `pass-three` and goes on behaving exactly as it did. Its tag corrects itself
- * the next time you decide anything about it. Rewriting the vault to tidy a
- * word would be a worse trade than carrying this table.
+ * One of the two axes, and the older one. It used to carry both, so a list of
+ * these was a list of two questions at once: "Queued, worth an hour" is a
+ * judgement about the paper and "Summarised, and done with" is a report about
+ * you, and picking from one list meant answering whichever the label happened
+ * to be about. The chooser offers these five and nothing else.
  */
-const RENAMED: Record<string, string> = { 'pass-three': 'promoted', finished: 'read' };
+export type Reading = 'untriaged' | 'queued' | 'promoted' | 'deferred' | 'dropped';
 
-/** What a stored `reading` value is called now. Unknown values pass through. */
-export function currentReading(value: string): string {
-	return RENAMED[value] ?? value;
+/**
+ * How far you have got, which only ever moves forwards.
+ *
+ * Never chosen from a list. `read` is set by the question at the end of a
+ * reading; the other two by the tick on the row that owes them.
+ */
+export type Progress = 'read' | 'summarised' | 'assessed';
+
+/**
+ * Why a paper is filed: the four things that mean nothing is outstanding.
+ *
+ * Two are judgements about the paper and two are reports about you, which is
+ * the split showing through at the one place it should: what you want to know
+ * about a filed paper is why it is there, and those are the four reasons.
+ */
+export type Outcome = 'dropped' | 'deferred' | 'summarised' | 'assessed';
+
+/** Where a paper is: the pair, which is the only thing that answers it. */
+export interface State {
+	reading: Reading;
+	progress: Progress | null;
+}
+
+/** The frontmatter key holding the progress half. */
+export const PROGRESS_KEY = 'reading-progress';
+
+export const READING_ORDER: readonly Reading[] = ['untriaged', 'queued', 'promoted', 'deferred', 'dropped'];
+export const PROGRESS_ORDER: readonly Progress[] = ['read', 'summarised', 'assessed'];
+
+/**
+ * Values `reading` used to hold on its own, and the pair each one means.
+ *
+ * For one release the field carried both axes, and before that a finished pass
+ * was read off the prose under a heading. None of these is a verdict, so a note
+ * holding one was written before the split and says so by saying it: no dated
+ * migration, no sweep of the vault, and a note that is never touched again goes
+ * on being read correctly forever. The same bargain `RENAMED` struck for a
+ * renamed value, one axis up.
+ */
+const MERGED: Record<string, State> = {
+	// Two spellings deep: `finished` became `read`, and `read` was the merged
+	// value meaning the second pass had happened.
+	finished: { reading: 'queued', progress: 'read' },
+	read: { reading: 'queued', progress: 'read' },
+	summarised: { reading: 'queued', progress: 'summarised' },
+	'pass-three': { reading: 'promoted', progress: 'read' },
+	assessing: { reading: 'promoted', progress: 'summarised' },
+	assessed: { reading: 'promoted', progress: 'assessed' },
+};
+
+/** A stored progress value, or null for a paper that has not got there. */
+export function progressOf(value: unknown): Progress | null {
+	if (typeof value !== 'string') return null;
+	return PROGRESS_ORDER.find((known) => known === value.trim()) ?? null;
 }
 
 /**
- * Where a paper has got to, in Keshav's terms. `untriaged` is the state a new
- * note is stamped with, never chosen.
+ * Where a paper is, however its note was written.
  *
- * One axis, not two. A pass that had been written used to be recorded apart
- * from this, first by reading the prose under a heading and then by a date of
- * its own, on the grounds that `queued` and `promoted` are intents while a
- * finished claim is a report. That line does not survive contact with the rest
- * of the list: `read` is a report too, and `untriaged` is neither. What the
- * field actually answers is where the paper is, and a finished pass is part of
- * that answer.
+ * The one reading of the frontmatter, so nothing downstream has to know which
+ * era a note came from. A value it does not recognise at all reads as
+ * untriaged: no opinion it can read has been formed, and that is the answer
+ * that puts the paper back in front of you, which is the only way it gets fixed.
  *
- * Keeping it here is what makes moving a paper backwards an ordinary change of
- * status rather than a second control: the chooser that fixes a mistake in the
- * reading is the one that reopens a claim.
+ * `promoted` is the one value that is both a verdict now and a merged value
+ * before, so it is the one that could be ambiguous. It is not, because
+ * promoting a paper to a third pass is a thing you decide at the end of reading
+ * it: `promoted` implies `read`, and a note saying promoted with no progress
+ * means the same thing whichever era wrote it.
  */
-export type Reading =
-	| 'untriaged'
-	| 'queued'
-	| 'read'
-	| 'summarised'
-	| 'promoted'
-	| 'assessing'
-	| 'assessed'
-	| 'deferred'
-	| 'dropped';
+export function stateOf(frontmatter: Record<string, unknown> | undefined): State {
+	const stored = typeof frontmatter?.reading === 'string' ? frontmatter.reading.trim() : '';
+	const explicit = progressOf(frontmatter?.[PROGRESS_KEY]);
 
-/**
- * The reading values in the order a paper passes through them, which is the
- * order any list of them is shown in.
- *
- * It is the queue read downwards, with the fork in the middle: untriaged is
- * Triage, queued is Reading, and then a paper either stops at a summary or goes
- * on to a third pass. The last two are the ways out. A chooser offering these
- * in some other order than the pane you were just looking at makes you read the
- * whole list every time, which for something you reach for to correct a mistake
- * is the whole cost of it.
- *
- * Declaration order on the type above is not it, and cannot be: that order is
- * arbitrary and nothing can depend on it. This is the one that is meant.
- */
-export const READING_ORDER: readonly Reading[] = [
-	'untriaged',
-	'queued',
-	'read',
-	'summarised',
-	'promoted',
-	'assessing',
-	'assessed',
-	'deferred',
-	'dropped',
-];
+	const merged = MERGED[stored];
+	if (merged) return { reading: merged.reading, progress: explicit ?? merged.progress };
 
-/**
- * A stored `reading` as one of the six states, reading anything else as
- * untriaged.
- *
- * Three places asked this and two of them answered differently, which is what
- * it is here to stop: a paper whose `reading` says something no version of this
- * plugin ever wrote showed "Untriaged" in its title bar, no state at all in its
- * rendered note, and appeared in no section of the queue. Invisible, and lying
- * about it in one of the two places you could still see it.
- *
- * Untriaged rather than nothing, because that is what the value means to the
- * machine: no opinion it can read has been formed. It is also the answer that
- * puts the paper back in front of you, which is the only way the frontmatter
- * gets fixed.
- *
- * Not a hypothetical. `RENAMED` exists because values get renamed, and a value
- * renamed in some future version is exactly this to the version before it.
- */
-export function readingOf(value: unknown): Reading {
-	if (typeof value !== 'string') return 'untriaged';
-	const current = currentReading(value);
-	return READING_ORDER.find((known) => known === current) ?? 'untriaged';
+	const reading = READING_ORDER.find((known) => known === stored) ?? 'untriaged';
+	if (reading === 'promoted' && explicit === null) return { reading, progress: 'read' };
+	return { reading, progress: explicit };
 }
 
 /**
@@ -111,33 +108,30 @@ export function arrivalReading(triage: boolean): Reading {
 	return triage ? 'untriaged' : 'queued';
 }
 
+/**
+ * What a decision writes. `progress` left out means leave it as it is, which is
+ * what every decision about the paper itself does: dropping a paper you had
+ * summarised does not unsummarise it, so un-dropping it returns it to where it
+ * was rather than to the start.
+ */
 export interface Triage {
 	reading: Reading;
 	reason: string | null;
+	progress?: Progress;
 }
 
-/**
- * Where the tick on a Claim or Assessment row takes a paper, or null when the
- * state it is in has no pass outstanding.
- *
- * The whole of what pressing it means. A paper that has only been read stops at
- * the summary; one promoted to a third pass has two ticks ahead of it, and the
- * claim is the first, because assessing a paper is an argument with one you can
- * already summarise.
- */
-export function advance(reading: Reading): Reading | null {
-	if (reading === 'read') return 'summarised';
-	if (reading === 'promoted') return 'assessing';
-	if (reading === 'assessing') return 'assessed';
-	return null;
-}
+/** What the tick on each of the two written passes records. */
+export const PASS_PROGRESS: Record<'claim' | 'assessment', Progress> = {
+	claim: 'summarised',
+	assessment: 'assessed',
+};
 
 /**
  * The question a decision has to answer before it can be written, and the word
  * on the button that writes it.
  *
  * Here rather than at each of the three call sites, because a drop asked for a
- * reason in the triage pane and in the status command and would have grown a
+ * reason in the triage dialog and in the status command and would have grown a
  * third wording the moment the second pass learned to drop too.
  *
  * Only the two that take a paper off the list ask. A deferral is the one worth
@@ -151,77 +145,71 @@ export function asks(reading: Reading): { question: string; cta: string } | null
 }
 
 /**
- * One icon per reading state, written down once.
+ * Where a paper is, in one word.
  *
- * Three places show a state and each had its own answer, or none: the triage
- * pane named `x`, `bookmark` and `check` inline, and the two choosers showed
- * no icon at all, so the same decision looked like three different things.
+ * Nine of them, for a pair that has five values on one axis and three on the
+ * other. That is the point of the split rather than an argument against it: a
+ * precise word is what a pill and a filed row want, and a list of nine is what
+ * a chooser does not. You read all nine; you pick from five.
+ */
+export function label({ reading, progress }: State): string {
+	if (reading === 'untriaged') return 'Untriaged';
+	if (reading === 'deferred') return 'Deferred';
+	if (reading === 'dropped') return 'Dropped';
+
+	if (progress === 'assessed') return 'Assessed';
+	if (reading === 'promoted') return progress === 'summarised' ? 'Assessing' : 'Promoted';
+	if (progress === 'summarised') return 'Summarised';
+	return progress === 'read' ? 'Read' : 'Queued';
+}
+
+/**
+ * One icon per word, keyed by the word itself so the two cannot come to
+ * disagree: a state that reads one way and draws another is exactly the bug
+ * this table was written down once to stop.
  *
  * Every name is checked against the set Obsidian bundles rather than the Lucide
  * catalogue, because an icon Obsidian does not ship renders as nothing and says
- * nothing about why.
- *
- * These are also what to put in a tag explorer's folder icons, if you have the
- * status tag turned on. The plugin cannot set those itself: they live in that
- * plugin's own data, and reaching into it would be the same overreach as
- * writing someone's hotkeys.
+ * nothing about why. `Read` and the Reading section still share `book-open`,
+ * which is the one collision left and wants a running app to fix safely.
  */
-const ICONS: Record<Reading, string> = {
-	untriaged: 'circle-dashed',
-	queued: 'bookmark',
-	read: 'book-open',
-	summarised: 'check',
-	promoted: 'book-open-check',
-	assessing: 'pencil',
-	assessed: 'check-check',
-	deferred: 'clock',
-	dropped: 'x',
+const ICONS: Record<string, string> = {
+	Untriaged: 'circle-dashed',
+	Queued: 'bookmark',
+	Read: 'book-open',
+	Summarised: 'check',
+	Promoted: 'book-open-check',
+	Assessing: 'pencil',
+	Assessed: 'check-check',
+	Deferred: 'clock',
+	Dropped: 'x',
 };
 
-export function iconOf(reading: Reading): string {
-	return ICONS[reading];
+export function iconOf(state: State): string {
+	return ICONS[label(state)] ?? 'circle-dashed';
 }
 
 /**
- * The state as a word, for a pill or a row that has to say which one this is.
+ * Where a decision leaves the paper, in terms of the queue.
  *
- * Capitalising the stored value rather than carrying a table of display names,
- * because the six values are already written as the words they should read as.
- * A table would be six more strings to keep level with `Reading` for no gain,
- * and the day one of them needs a name of its own is the day `RENAMED` says so.
+ * Named for the section it lands in rather than the decision just taken:
+ * whoever pressed the button already knows what they chose, and what they
+ * cannot know is what the pane will say about it a second later.
  */
-export function label(reading: Reading): string {
-	return reading.charAt(0).toUpperCase() + reading.slice(1);
-}
+const LANDINGS: Record<string, string> = {
+	Untriaged: 'Back to Triage, to be assessed again.',
+	Queued: 'Queued, and waiting to be read.',
+	Read: 'Read. Write what it argues, then tick it off.',
+	Summarised: 'Summarised, and done with.',
+	Promoted: 'Worth a third pass. The claim comes first.',
+	Assessing: 'Summarised. The assessment is what is left.',
+	Assessed: 'Assessed, and done with.',
+	Deferred: 'Parked, with the condition on the note.',
+	Dropped: 'Dropped, and off the list.',
+};
 
-/**
- * Where a decision leaves the paper, in terms of the homepage.
- *
- * Named for the stage it lands in rather than the decision just taken: whoever
- * pressed the button already knows what they chose, and what they cannot know
- * is what the block will say about it a second later.
- */
-export function landing(reading: Reading): string {
-	switch (reading) {
-		case 'untriaged':
-			return 'Back to Triage, to be assessed again.';
-		case 'queued':
-			return 'Queued, and waiting to be read.';
-		case 'read':
-			return 'Read. Write what it argues and tick it off.';
-		case 'summarised':
-			return 'Summarised, and done with.';
-		case 'promoted':
-			return 'Worth a third pass. The claim comes first.';
-		case 'assessing':
-			return 'Summarised. The assessment is what is left.';
-		case 'assessed':
-			return 'Assessed, and done with.';
-		case 'deferred':
-			return 'Parked, with the condition on the note.';
-		case 'dropped':
-			return 'Dropped, and off the list.';
-	}
+export function landing(state: State): string {
+	return LANDINGS[label(state)] ?? '';
 }
 
 /**
@@ -233,17 +221,14 @@ export function landing(reading: Reading): string {
  * finishing, and the honest thing is to record that rather than leave it queued
  * forever or mark it read when it was not.
  *
- * The first is worded as his test rather than as an outcome. "You should be
- * able to summarize the main thrust of the paper, with supporting evidence, to
- * someone else" is what ends a second pass, so the button claims exactly that
- * and the next screen asks you to make good on it. The label it replaced said
- * "Enough: I have what I need", which is completion language for a paper that
- * then does not leave, and the difference is the whole reason this stage was
- * confusing.
+ * The first two record the reading as done, because it is. The last two leave
+ * progress alone: a paper you gave up on an hour in has not been read, and one
+ * you park keeps whatever it had, so coming back to either returns it to where
+ * it was rather than to the start.
  */
-export const PASS_TWO: { reading: Reading; label: string }[] = [
-	{ reading: 'read', label: 'I can summarise it' },
-	{ reading: 'promoted', label: 'Worth a third pass' },
+export const PASS_TWO: { reading: Reading; progress?: Progress; label: string }[] = [
+	{ reading: 'queued', progress: 'read', label: 'I can summarise it' },
+	{ reading: 'promoted', progress: 'read', label: 'Worth a third pass' },
 	{ reading: 'deferred', label: 'Come back to it later' },
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];
@@ -329,7 +314,7 @@ export function retiredTagCount(noteTags: string[][], retired: readonly string[]
  * Only values in this namespace are touched. Every other tag on the note
  * belongs to whoever put it there and is passed through.
  */
-export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Reading, tags: StatusTags): void {
+export function applyStatusTag(frontmatter: Record<string, unknown>, state: State, tags: StatusTags): void {
 	// A vault that never turned this on, and has nothing to take back out. It
 	// must leave the note exactly as found, including having no `tags` key.
 	if (tags.current === '' && tags.retired.length === 0) return;
@@ -338,7 +323,9 @@ export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Re
 	// Out before in, so renaming a namespace onto one the note already carries
 	// cannot drop what was just written.
 	for (const namespace of tags.retired) list = setTag(list, namespace, null);
-	if (tags.current !== '') list = setTag(list, tags.current, reading);
+	// The word rather than either half, so the tag says what the pill says and a
+	// tag tree has one entry per state rather than two axes to cross-reference.
+	if (tags.current !== '') list = setTag(list, tags.current, label(state).toLowerCase());
 
 	// An empty list is no tags rather than `tags: []`, which is a key somebody
 	// then has to look at and wonder about.
@@ -349,8 +336,13 @@ export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Re
 /**
  * Mutates in place, which is the shape `processFrontMatter` wants.
  *
- * Every field a decision owns is written on every decision, so re-triaging a
+ * Every field a decision owns is written on every decision, so re-deciding a
  * paper cannot leave part of the previous answer behind.
+ *
+ * Progress is written only when the decision says so. A judgement about the
+ * paper leaves what you have done alone: dropping one you had summarised does
+ * not unsummarise it, so picking it back up returns it to where it was rather
+ * than to the start of the queue.
  *
  * The status tag is the only tag it writes, and only because you asked for it
  * by naming a namespace. Every other tag on the note is somebody's own filing
@@ -365,7 +357,11 @@ export function applyTriage(
 ): void {
 	frontmatter.reading = triage.reading;
 	frontmatter['reading-date'] = date;
-	applyStatusTag(frontmatter, triage.reading, tags);
+	if (triage.progress !== undefined) frontmatter[PROGRESS_KEY] = triage.progress;
+
+	// Read back rather than assumed, so the tag follows the pair the note now
+	// holds however much of it this decision touched.
+	applyStatusTag(frontmatter, stateOf(frontmatter), tags);
 
 	// When the first opinion was formed, written once and never again.
 	// `reading-date` moves with the status, so on its own it cannot answer "when

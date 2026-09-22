@@ -14,7 +14,7 @@
 // to put it in a thesis appendix or send it to a supervisor, and neither of
 // those has your plugins installed.
 import { isPaper } from './paper-note';
-import { currentReading } from './triage';
+import { stateOf } from './triage';
 
 /**
  * The frontmatter stamped on a generated report, and the test for it.
@@ -72,9 +72,10 @@ export function decidedOf(
 		title: text('title') ?? file.basename,
 		authors: text('authors') ?? '',
 		year: typeof frontmatter.year === 'number' ? frontmatter.year : null,
-		// A paper with no reading field has not been assessed, which is exactly
-		// what untriaged means.
-		reading: currentReading(text('reading') ?? 'untriaged'),
+		// The judgement half, through `stateOf`, so a note written under any older
+		// spelling is read as the verdict it means. A paper with no reading field
+		// has not been assessed, which is exactly what untriaged means.
+		reading: stateOf(frontmatter).reading,
 		triaged: text('triaged-date'),
 		reason: text('reading-reason'),
 		path: file.path,

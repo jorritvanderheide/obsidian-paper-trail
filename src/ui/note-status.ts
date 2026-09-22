@@ -16,7 +16,7 @@
 //
 // Wiring only. What the states are and what each one means is core's.
 import { MarkdownRenderChild, setIcon, type MarkdownPostProcessor, type TFile } from 'obsidian';
-import { iconOf, label, landing, readingOf, type Reading } from '../core/triage';
+import { iconOf, label, landing, stateOf, type State } from '../core/triage';
 import { isPaper } from '../core/paper-note';
 import { setReading } from '../commands/reading';
 import type { Context } from '../context';
@@ -28,12 +28,12 @@ import type { Context } from '../context';
  * state differently. It empties and refills rather than rebuilding, so a click
  * handler on the element itself survives a redraw.
  */
-export function fillPill(el: HTMLElement, reading: Reading): void {
-	const words = label(reading);
+export function fillPill(el: HTMLElement, state: State): void {
+	const words = label(state);
 	el.empty();
-	setIcon(el.createSpan({ cls: 'paper-trail-status-icon' }), iconOf(reading));
+	setIcon(el.createSpan({ cls: 'paper-trail-status-icon' }), iconOf(state));
 	el.createSpan({ cls: 'paper-trail-status-word', text: words });
-	el.setAttribute('aria-label', `${words}. ${landing(reading)}`);
+	el.setAttribute('aria-label', `${words}. ${landing(state)}`);
 }
 
 /**
@@ -43,14 +43,14 @@ export function fillPill(el: HTMLElement, reading: Reading): void {
  * been formed. A value no version of this plugin wrote reads as nothing at all,
  * rather than being shown as a seventh state.
  */
-function readingAt(context: Context, path: string): { file: TFile; reading: Reading } | null {
+function readingAt(context: Context, path: string): { file: TFile; state: State } | null {
 	const file = context.app.vault.getFileByPath(path);
 	if (!file) return null;
 
 	const frontmatter = context.app.metadataCache.getFileCache(file)?.frontmatter;
 	if (!isPaper(frontmatter, context.settings.keyField)) return null;
 
-	return { file, reading: readingOf(frontmatter.reading) };
+	return { file, state: stateOf(frontmatter) };
 }
 
 /**
@@ -128,7 +128,7 @@ class NoteStatus extends MarkdownRenderChild {
 
 		const found = readingAt(this.context, this.path);
 		pill.toggle(found !== null);
-		if (found) fillPill(pill, found.reading);
+		if (found) fillPill(pill, found.state);
 	}
 }
 

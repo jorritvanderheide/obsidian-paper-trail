@@ -5,12 +5,13 @@ import {
 	headingCoverage,
 	headingLine,
 	nextAfter,
+	NEXT_ORDER,
 	noteState,
 	rowsByStage,
 	rowTask,
 	rowTitle,
 	settled,
-	settledOf,
+	outcomeOf,
 	STAGES,
 	taskOf,
 	TASKS,
@@ -24,7 +25,7 @@ const paper = (over: Partial<NoteState> = {}): NoteState => ({
 	title: 'A paper',
 	isPaper: true,
 	key: 'ABCD2345',
-	reading: null,
+	state: { reading: 'untriaged', progress: null },
 	created: 0,
 	decided: null,
 	...over,
@@ -35,7 +36,7 @@ const note = (over: Partial<NoteState> = {}): NoteState => ({
 	title: 'A note',
 	isPaper: false,
 	key: null,
-	reading: null,
+	state: { reading: 'untriaged', progress: null },
 	created: 0,
 	decided: null,
 	...over,
@@ -47,49 +48,49 @@ describe('taskOf, papers', () => {
 	});
 
 	it('puts an explicitly untriaged paper in triage', () => {
-		expect(taskOf(paper({ reading: 'untriaged' }))).toBe('triage');
+		expect(taskOf(paper({ state: { reading: 'untriaged', progress: null } }))).toBe('triage');
 	});
 
 	it('puts a queued paper in reading', () => {
-		expect(taskOf(paper({ reading: 'queued' }))).toBe('reading');
+		expect(taskOf(paper({ state: { reading: 'queued', progress: null } }))).toBe('reading');
 	});
 
 	it('asks a read paper for the claim', () => {
-		expect(taskOf(paper({ reading: 'read' }))).toBe('claim');
+		expect(taskOf(paper({ state: { reading: 'queued', progress: 'read' } }))).toBe('claim');
 	});
 
 	it('is done with a paper once it has been summarised', () => {
-		expect(taskOf(paper({ reading: 'summarised' }))).toBeNull();
+		expect(taskOf(paper({ state: { reading: 'queued', progress: 'summarised' } }))).toBeNull();
 	});
 
 	it('is done with a dropped paper', () => {
-		expect(taskOf(paper({ reading: 'dropped' }))).toBeNull();
+		expect(taskOf(paper({ state: { reading: 'dropped', progress: null } }))).toBeNull();
 	});
 
 	it('takes a deferred paper off the list, which is what deferring it is for', () => {
-		expect(taskOf(paper({ reading: 'deferred' }))).toBeNull();
+		expect(taskOf(paper({ state: { reading: 'deferred', progress: null } }))).toBeNull();
 	});
 
 	it('asks a promoted paper for the claim before the third pass', () => {
-		expect(taskOf(paper({ reading: 'promoted' }))).toBe('claim');
+		expect(taskOf(paper({ state: { reading: 'promoted', progress: 'read' } }))).toBe('claim');
 	});
 
 	it('sends it on to the assessment once the claim is ticked off', () => {
-		expect(taskOf(paper({ reading: 'assessing' }))).toBe('assessment');
+		expect(taskOf(paper({ state: { reading: 'promoted', progress: 'summarised' } }))).toBe('assessment');
 	});
 
 	it('is done with a promoted paper once the assessment is ticked off', () => {
-		expect(taskOf(paper({ reading: 'assessed' }))).toBeNull();
+		expect(taskOf(paper({ state: { reading: 'promoted', progress: 'assessed' } }))).toBeNull();
 	});
 
 	// The fork: a paper that was only read stops at the summary, and never gets
 	// asked for an assessment it was not promoted to.
 	it('never asks a merely read paper for an assessment', () => {
-		expect(taskOf(paper({ reading: 'summarised' }))).toBeNull();
+		expect(taskOf(paper({ state: { reading: 'queued', progress: 'summarised' } }))).toBeNull();
 	});
 
 	it('reads the old spelling of read as read', () => {
-		expect(taskOf(paper({ reading: 'finished' }))).toBe('claim');
+		expect(taskOf(paper({ state: { reading: 'queued', progress: 'read' } }))).toBe('claim');
 	});
 
 });
@@ -99,7 +100,7 @@ describe('taskOf, own notes', () => {
 	// typing, and the plugin has no business having an opinion about it.
 	it('never asks anything of a note that names no Zotero item', () => {
 		expect(taskOf(note())).toBeNull();
-		expect(taskOf(note({ reading: 'queued' }))).toBeNull();
+		expect(taskOf(note({ state: { reading: 'queued', progress: null } }))).toBeNull();
 	});
 });
 
@@ -110,7 +111,7 @@ describe('byStage', () => {
 	});
 
 	it('buckets each note once', () => {
-		const notes = [paper(), paper({ reading: 'queued' }), note()];
+		const notes = [paper(), paper({ state: { reading: 'queued', progress: null } }), note()];
 		const result = byStage(notes);
 		expect(result.get('triage')).toHaveLength(1);
 		expect(result.get('reading')).toHaveLength(1);
@@ -226,13 +227,16 @@ describe('noteState', () => {
 		expect(noteState(cache({}), file, KEY_FIELD).title).toBe('a');
 	});
 
-	it('reports a missing reading field as null, not as a string', () => {
-		expect(noteState(cache({}), file, KEY_FIELD).reading).toBeNull();
-		expect(noteState(cache({ reading: 42 }), file, KEY_FIELD).reading).toBeNull();
+	it('reads a missing or unusable reading field as untriaged', () => {
+		expect(noteState(cache({}), file, KEY_FIELD).state).toEqual({ reading: 'untriaged', progress: null });
+		expect(noteState(cache({ reading: 42 }), file, KEY_FIELD).state).toEqual({ reading: 'untriaged', progress: null });
 	});
 
 	it('survives a note with no frontmatter and no cache', () => {
-		expect(noteState(null, file, KEY_FIELD)).toMatchObject({ isPaper: false, reading: null });
+		expect(noteState(null, file, KEY_FIELD)).toMatchObject({
+			isPaper: false,
+			state: { reading: 'untriaged', progress: null },
+		});
 	});
 });
 
@@ -244,30 +248,30 @@ describe('rowsByStage', () => {
 	const item = (key: string, title: string) => ({ key, title, abstract: null, venue: null, year: null, added: '2026-01-01' });
 
 	it('puts pending papers into Triage alongside untriaged notes', () => {
-		const rows = rowsByStage([paper({ reading: 'untriaged', title: 'a note' })], [item('AAAA1111', 'a pending paper')], true);
+		const rows = rowsByStage([paper({ state: { reading: 'untriaged', progress: null }, title: 'a note' })], [item('AAAA1111', 'a pending paper')], true);
 		expect(rows.get('triage')?.map(rowTitle)).toEqual(['a pending paper', 'a note']);
 	});
 
 	it('keeps a note reset to untriaged, which is the way back from any decision', () => {
 		// Resetting a paper is the recovery path. If Triage were only what has no
 		// note, a reset paper would vanish instead of coming back.
-		const rows = rowsByStage([paper({ reading: 'untriaged' })], [], true);
+		const rows = rowsByStage([paper({ state: { reading: 'untriaged', progress: null } })], [], true);
 		expect(rows.get('triage')).toHaveLength(1);
 	});
 
 	it('leaves every other stage to the vault alone', () => {
-		const rows = rowsByStage([paper({ reading: 'queued' })], [item('AAAA1111', 'pending')], true);
+		const rows = rowsByStage([paper({ state: { reading: 'queued', progress: null } })], [item('AAAA1111', 'pending')], true);
 		expect(rows.get('reading')?.map(rowTitle)).toEqual(['A paper']);
 		expect(rows.get('triage')?.map(rowTitle)).toEqual(['pending']);
 	});
 
 	it('marks which source a row came from, because only one of them has a note', () => {
-		const rows = rowsByStage([paper({ reading: 'untriaged' })], [item('AAAA1111', 'pending')], true);
+		const rows = rowsByStage([paper({ state: { reading: 'untriaged', progress: null } })], [item('AAAA1111', 'pending')], true);
 		expect(rows.get('triage')?.map((row) => row.kind)).toEqual(['pending', 'note']);
 	});
 
 	it('is just the vault when Zotero has told it nothing', () => {
-		const rows = rowsByStage([paper({ reading: 'untriaged' })], [], true);
+		const rows = rowsByStage([paper({ state: { reading: 'untriaged', progress: null } })], [], true);
 		expect(rows.get('triage')?.map((row) => row.kind)).toEqual(['note']);
 	});
 });
@@ -284,8 +288,8 @@ describe('stage icons', () => {
 
 describe('what a queued paper still owes', () => {
 	it('still tells them apart by the task, which is what the row draws', () => {
-		expect(taskOf(paper({ reading: 'queued' }))).toBe('reading');
-		expect(taskOf(paper({ reading: 'read' }))).toBe('claim');
+		expect(taskOf(paper({ state: { reading: 'queued', progress: null } }))).toBe('reading');
+		expect(taskOf(paper({ state: { reading: 'queued', progress: 'read' } }))).toBe('claim');
 	});
 
 	// Each half offers its own icon. The claim's repeats what clicking the row
@@ -301,13 +305,13 @@ describe('what a queued paper still owes', () => {
 	// still says queued, and that field is what the exclusions report is built
 	// from. The outcome decision is owed whatever else has been written.
 	it('keeps a queued paper even once its claim is written', () => {
-		expect(taskOf(paper({ reading: 'queued' }))).toBe('reading');
+		expect(taskOf(paper({ state: { reading: 'queued', progress: null } }))).toBe('reading');
 	});
 
 	// The tick is what moves it on, and only from a state that owes a pass.
 	it('lets a paper go once its pass has been ticked off', () => {
-		expect(taskOf(paper({ reading: 'summarised' }))).toBeNull();
-		expect(taskOf(paper({ reading: 'assessed' }))).toBeNull();
+		expect(taskOf(paper({ state: { reading: 'queued', progress: 'summarised' } }))).toBeNull();
+		expect(taskOf(paper({ state: { reading: 'promoted', progress: 'assessed' } }))).toBeNull();
 	});
 });
 
@@ -320,8 +324,8 @@ describe('a note written under the old spelling', () => {
 	const cached = (reading: string) =>
 		noteState({ frontmatter: { 'zotero-key': 'ABCD2345', reading } }, old, KEY_FIELD);
 
-	it('reads pass-three as promoted', () => {
-		expect(cached('pass-three').reading).toBe('promoted');
+	it('reads pass-three as promoted, with the reading already done', () => {
+		expect(cached('pass-three').state).toEqual({ reading: 'promoted', progress: 'read' });
 	});
 
 	it('puts it in the same place a newly promoted paper goes', () => {
@@ -329,66 +333,70 @@ describe('a note written under the old spelling', () => {
 		expect(taskOf(cached('pass-three'))).toBe('claim');
 	});
 
-	it('leaves every other value exactly as it was written', () => {
-		for (const value of ['untriaged', 'queued', 'summarised', 'deferred', 'dropped', 'something-of-your-own']) {
-			expect(cached(value).reading, value).toBe(value);
+	it('leaves a verdict exactly as it was written', () => {
+		for (const value of ['untriaged', 'queued', 'deferred', 'dropped']) {
+			expect(cached(value).state.reading, value).toBe(value);
 		}
+	});
+
+	it('reads a value it does not know at all as untriaged', () => {
+		expect(cached('something-of-your-own').state).toEqual({ reading: 'untriaged', progress: null });
 	});
 });
 
-describe('settledOf', () => {
+describe('outcomeOf', () => {
 	it('names the state a paper came to rest in', () => {
-		expect(settledOf(paper({ reading: 'dropped' }))).toBe('dropped');
-		expect(settledOf(paper({ reading: 'deferred' }))).toBe('deferred');
-		expect(settledOf(paper({ reading: 'summarised' }))).toBe('summarised');
-		expect(settledOf(paper({ reading: 'assessed' }))).toBe('assessed');
+		expect(outcomeOf(paper({ state: { reading: 'dropped', progress: null } }))).toBe('dropped');
+		expect(outcomeOf(paper({ state: { reading: 'deferred', progress: null } }))).toBe('deferred');
+		expect(outcomeOf(paper({ state: { reading: 'queued', progress: 'summarised' } }))).toBe('summarised');
+		expect(outcomeOf(paper({ state: { reading: 'promoted', progress: 'assessed' } }))).toBe('assessed');
 	});
 
 	it('says nothing about a paper still owing something', () => {
-		expect(settledOf(paper())).toBeNull();
-		expect(settledOf(paper({ reading: 'untriaged' }))).toBeNull();
-		expect(settledOf(paper({ reading: 'queued' }))).toBeNull();
+		expect(outcomeOf(paper())).toBeNull();
+		expect(outcomeOf(paper({ state: { reading: 'untriaged', progress: null } }))).toBeNull();
+		expect(outcomeOf(paper({ state: { reading: 'queued', progress: null } }))).toBeNull();
 		// Finished but the claim is not written: the second pass is not over.
-		expect(settledOf(paper({ reading: 'finished' }))).toBeNull();
-		expect(settledOf(paper({ reading: 'promoted',  }))).toBeNull();
+		expect(outcomeOf(paper({ state: { reading: 'queued', progress: 'read' } }))).toBeNull();
+		expect(outcomeOf(paper({ state: { reading: 'promoted', progress: 'read' },  }))).toBeNull();
 	});
 
 	// Both of these also make `taskOf` return null, which is why settling is not
 	// defined as "nothing outstanding": neither records a decision.
 	it('ignores a note that is not a paper', () => {
-		expect(settledOf(note({ reading: 'dropped' }))).toBeNull();
+		expect(outcomeOf(note({ state: { reading: 'dropped', progress: null } }))).toBeNull();
 	});
 
-	it('ignores a reading value nothing here ever wrote', () => {
-		expect(settledOf(paper({ reading: 'something-of-your-own' }))).toBeNull();
+	it('ignores a paper still waiting to be triaged', () => {
+		expect(outcomeOf(paper({ state: { reading: 'untriaged', progress: null } }))).toBeNull();
 	});
 });
 
 describe('settled', () => {
 	it('reads backwards: newest decision first', () => {
 		const notes = [
-			paper({ path: 'a.md', title: 'old', reading: 'dropped', decided: '2026-01-01' }),
-			paper({ path: 'b.md', title: 'new', reading: 'dropped', decided: '2026-03-01' }),
-			paper({ path: 'c.md', title: 'mid', reading: 'deferred', decided: '2026-02-01' }),
+			paper({ path: 'a.md', title: 'old', state: { reading: 'dropped', progress: null }, decided: '2026-01-01' }),
+			paper({ path: 'b.md', title: 'new', state: { reading: 'dropped', progress: null }, decided: '2026-03-01' }),
+			paper({ path: 'c.md', title: 'mid', state: { reading: 'deferred', progress: null }, decided: '2026-02-01' }),
 		];
 		expect(settled(notes).map((entry) => entry.note.title)).toEqual(['new', 'mid', 'old']);
 	});
 
 	it('keeps an undated decision, at the end', () => {
 		const notes = [
-			paper({ path: 'a.md', title: 'undated', reading: 'dropped' }),
-			paper({ path: 'b.md', title: 'dated', reading: 'dropped', decided: '2026-01-01' }),
+			paper({ path: 'a.md', title: 'undated', state: { reading: 'dropped', progress: null } }),
+			paper({ path: 'b.md', title: 'dated', state: { reading: 'dropped', progress: null }, decided: '2026-01-01' }),
 		];
 		expect(settled(notes).map((entry) => entry.note.title)).toEqual(['dated', 'undated']);
 	});
 
 	it('carries the decision alongside the note', () => {
-		const assessed = paper({ reading: 'assessed' });
+		const assessed = paper({ state: { reading: 'promoted', progress: 'assessed' } });
 		expect(settled([assessed])).toEqual([{ note: assessed, reading: 'assessed' }]);
 	});
 
 	it('leaves out everything still outstanding', () => {
-		expect(settled([paper(), paper({ reading: 'queued' }), note()])).toEqual([]);
+		expect(settled([paper(), paper({ state: { reading: 'queued', progress: null } }), note()])).toEqual([]);
 	});
 });
 
@@ -401,9 +409,9 @@ describe('settled', () => {
  * nothing, renamed nothing and changed no count.
  */
 describe('the second pass, in two sections', () => {
-	const queued = (title: string, created: number) => paper({ path: `${title}.md`, title, reading: 'queued', created });
+	const queued = (title: string, created: number) => paper({ path: `${title}.md`, title, state: { reading: 'queued', progress: null }, created });
 	const owesClaim = (title: string, created: number) =>
-		paper({ path: `${title}.md`, title, reading: 'finished', created });
+		paper({ path: `${title}.md`, title, state: { reading: 'queued', progress: 'read' }, created });
 
 	it('separates the paper still to be read from the one still to be summarised', () => {
 		const rows = byStage([queued('read-me', 100), owesClaim('write-me', 300)]);
@@ -414,13 +422,13 @@ describe('the second pass, in two sections', () => {
 	// Which is what makes finishing a paper visible: it leaves one count and
 	// joins another, in a section with a different name and a different icon.
 	it('moves a paper between them when the reading ends', () => {
-		expect(taskOf(paper({ reading: 'queued' }))).toBe('reading');
-		expect(taskOf(paper({ reading: 'finished' }))).toBe('claim');
+		expect(taskOf(paper({ state: { reading: 'queued', progress: null } }))).toBe('reading');
+		expect(taskOf(paper({ state: { reading: 'queued', progress: 'read' } }))).toBe('claim');
 	});
 
 	it('sends a promoted paper to the claim first, because a third pass argues with a summary', () => {
-		expect(taskOf(paper({ reading: 'promoted' }))).toBe('claim');
-		expect(taskOf(paper({ reading: 'assessing' }))).toBe('assessment');
+		expect(taskOf(paper({ state: { reading: 'promoted', progress: 'read' } }))).toBe('claim');
+		expect(taskOf(paper({ state: { reading: 'promoted', progress: 'summarised' } }))).toBe('assessment');
 	});
 
 	it('drains each of them oldest first', () => {
@@ -496,7 +504,7 @@ describe('a pending paper, with triage on and off', () => {
 	it('goes at the front of whichever section it lands in, either way', () => {
 		for (const triage of [true, false]) {
 			const stage = triage ? 'triage' : 'reading';
-			const already = paper({ reading: triage ? 'untriaged' : 'queued', created: 1 });
+			const already = paper({ state: { reading: triage ? 'untriaged' : 'queued', progress: null }, created: 1 });
 			expect(rowsByStage([already], [pending.item], triage).get(stage)?.map((row) => row.kind)).toEqual([
 				'pending',
 				'note',
@@ -505,7 +513,7 @@ describe('a pending paper, with triage on and off', () => {
 	});
 
 	it('says nothing different about a paper that already has a note', () => {
-		const note = { kind: 'note' as const, note: paper({ reading: 'queued' }) };
+		const note = { kind: 'note' as const, note: paper({ state: { reading: 'queued', progress: null } }) };
 		expect(rowTask(note, true)).toBe('reading');
 		expect(rowTask(note, false)).toBe('reading');
 	});
@@ -583,62 +591,48 @@ describe('headingCoverage', () => {
 /**
  * A paper whose `reading` says something no version of this plugin wrote.
  *
- * It used to fall out of every branch of `taskOf` and answer null, which put it
- * in no section; and `settledOf` refuses it too, correctly, because it records
- * no decision. The paper was in the vault, was a paper, and could not be seen
- * anywhere in the plugin.
+ * It cannot be built as a `NoteState` any more, which is the point of the
+ * split: `stateOf` is the only way in and it has nowhere to put a value it does
+ * not know. These go through `noteState`, the path a real note takes, and pin
+ * that such a paper is still reachable rather than invisible.
  */
 describe('a reading value nothing here recognises', () => {
-	const odd = (over: Partial<NoteState> = {}) => paper({ reading: 'quued', ...over });
+	const odd = (frontmatter: Record<string, unknown>) =>
+		noteState({ frontmatter: { 'zotero-key': 'ABCD2345', ...frontmatter } }, file, KEY_FIELD);
 
 	it('goes to Triage, the one place that is neither a stage it earned nor a record', () => {
-		expect(taskOf(odd())).toBe('triage');
+		expect(taskOf(odd({ reading: 'quued' }))).toBe('triage');
 	});
 
-	it('goes to Triage whatever has been written in the note', () => {
-		expect(taskOf(odd({  }))).toBe('triage');
-		expect(taskOf(odd({ reading: 'quued' }))).toBe('triage');
+	it('goes to Triage whatever progress the note claims', () => {
+		expect(taskOf(odd({ reading: 'quued', 'reading-progress': 'summarised' }))).toBe('triage');
 	});
 
 	// It is not a decision, so it does not belong in a record of decisions.
 	it('is not counted as decided', () => {
-		expect(settledOf(odd())).toBeNull();
-		expect(settled([odd()])).toEqual([]);
-	});
-
-	it('is reachable, which is the point: it turns up in a section you work', () => {
-		expect(byStage([odd()]).get('triage')).toHaveLength(1);
+		expect(outcomeOf(odd({ reading: 'quued' }))).toBeNull();
 	});
 
 	it('still says nothing about a note that is not a paper', () => {
-		expect(taskOf({ ...odd(), isPaper: false })).toBeNull();
+		expect(taskOf(noteState({ frontmatter: { reading: 'quued' } }, file, KEY_FIELD))).toBeNull();
 	});
 });
 
-/**
- * The old spelling, all the way through.
- *
- * `noteState` maps it on the way in, so a note written under it behaves as
- * `promoted` everywhere. These pin the rules themselves rather than the mapping,
- * because the two disagreeing is exactly how a finished paper went missing: the
- * stage rules read the old value as promoted and let it out, and the record
- * compared the raw value and refused it.
- */
 describe('a note written under the old pass-three spelling', () => {
-	const old = (over: Partial<NoteState> = {}) => paper({ reading: 'pass-three', ...over });
+	const old = (over: Partial<NoteState> = {}) => paper({ state: { reading: 'promoted', progress: 'read' }, ...over });
 
 	it('owes a claim, like any promoted paper', () => {
 		expect(taskOf(old())).toBe('claim');
 	});
 
 	it('owes an assessment once the claim is ticked off', () => {
-		expect(taskOf(paper({ reading: 'assessing' }))).toBe('assessment');
+		expect(taskOf(paper({ state: { reading: 'promoted', progress: 'summarised' } }))).toBe('assessment');
 	});
 
 	it('comes to rest as assessed once both are ticked off', () => {
-		const done = paper({ reading: 'assessed' });
+		const done = paper({ state: { reading: 'promoted', progress: 'assessed' } });
 		expect(taskOf(done)).toBeNull();
-		expect(settledOf(done)).toBe('assessed');
+		expect(outcomeOf(done)).toBe('assessed');
 		expect(settled([done])).toHaveLength(1);
 	});
 });
@@ -648,5 +642,31 @@ describe('TASKS announces', () => {
 	// three answer for themselves and a second slip is noise.
 	it('is false only for reading, which goes to Zotero', () => {
 		expect(Object.values(TASKS).filter((task) => !task.announces).map((task) => task.task)).toEqual(['reading']);
+	});
+});
+
+/**
+ * What `next` works on first, which is not what the pane shows first.
+ *
+ * The sections are read downwards as the shape of the workflow; `next` answers
+ * a different question, and answering it with the same list meant Triage almost
+ * every time, because Triage is normally longer than everything else together.
+ */
+describe('NEXT_ORDER', () => {
+	it('finishes what is started before starting something new', () => {
+		expect(NEXT_ORDER).toEqual(['claim', 'assessment', 'reading', 'triage']);
+	});
+
+	it('holds every task exactly once, or one would be unreachable', () => {
+		expect([...NEXT_ORDER].sort()).toEqual(STAGES.map((entry) => entry.task).sort());
+	});
+
+	// The perishable work first. A paper you read yesterday and have not
+	// summarised is decaying; an untriaged paper will triage just as well in
+	// March.
+	it('puts the claim first and triage last, which the pane does the other way', () => {
+		expect(NEXT_ORDER[0]).toBe('claim');
+		expect(NEXT_ORDER[NEXT_ORDER.length - 1]).toBe('triage');
+		expect(STAGES[0]?.task).toBe('triage');
 	});
 });

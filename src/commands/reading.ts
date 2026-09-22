@@ -12,7 +12,18 @@ import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../co
 import { itemMetadata, SourceError } from '../source';
 import { messageOf, say } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
-import { applyTriage, asks, iconOf, landing, READING_ORDER, type Reading, type Triage } from '../core/triage';
+import {
+	applyTriage,
+	asks,
+	iconOf,
+	landing,
+	READING_ORDER,
+	stateOf,
+	type Progress,
+	type Reading,
+	type State,
+	type Triage,
+} from '../core/triage';
 import { statusTagsOf } from '../core/settings';
 import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
@@ -41,20 +52,23 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
 }
 
 /**
- * How each state reads in the list, as a state rather than as an action.
+ * How each judgement reads in the list.
  *
- * Unlike the second-pass chooser, which asks what just happened, this one asks
- * what a paper should be. So "Queued" rather than "worth an hour": you are
- * correcting a record, not making a decision about reading.
+ * Five, and every one a decision about the paper rather than a report about
+ * you. The list used to hold nine, because the field held both axes: picking
+ * from it meant answering "what do I want to do with this" and "what have I
+ * done" from the same menu, and two pairs of labels differed only in a clause
+ * at the end. What you have done is not chosen here; it is ticked off on the
+ * row that owes it.
+ *
+ * Worded as states rather than as actions, unlike the second-pass chooser,
+ * which asks what just happened. So "Queued" rather than "worth an hour": you
+ * are correcting a record, not making a decision about reading.
  */
 const CHOICE_LABELS: Record<Reading, string> = {
 	untriaged: 'Untriaged, assess it again',
 	queued: 'Queued, worth an hour',
-	read: 'Read, and owing a summary',
-	summarised: 'Summarised, and done with',
-	promoted: 'Read, and worth assessing closely',
-	assessing: 'Summarised, and owing an assessment',
-	assessed: 'Assessed, and done with',
+	promoted: 'Promoted, worth a third pass',
 	deferred: 'Deferred, come back to it later',
 	dropped: 'Dropped, not worth reading',
 };
@@ -103,18 +117,25 @@ export async function setReading(context: Context, target?: TFile): Promise<void
  * is the thing you cannot know from the word alone.
  */
 export async function chooseReading(context: Context, target: TriageTarget, name: string): Promise<void> {
+	// Where each judgement lands depends on what has been written as well as on
+	// what you pick, so the progress the paper already has rides along: a paper
+	// you have summarised goes straight back to Filed when you queue it again,
+	// and the list should say so rather than promise Reading.
+	const progress = target.kind === 'note' ? stateOf(context.app.metadataCache.getFileCache(target.file)?.frontmatter).progress : null;
+	const at = (reading: Reading): State => ({ reading, progress });
+
 	const choice = await suggest(
 		context.app,
 		CHOICES,
 		(entry) => entry.label,
 		`Reading status of ${name}`,
-		(entry) => landing(entry.reading),
-		(entry) => iconOf(entry.reading),
+		(entry) => landing(at(entry.reading)),
+		(entry) => iconOf(at(entry.reading)),
 	);
 	if (!choice) return;
 	if (!(await decideOn(context, target, choice.reading))) return;
 
-	say(context, `${name}\n${landing(choice.reading)}`);
+	say(context, `${name}\n${landing(at(choice.reading))}`);
 }
 
 /**
@@ -168,7 +189,12 @@ export async function noteFor(context: Context, item: Pending): Promise<TFile> {
  * Nothing is created in that case: abandoning a drop halfway through should
  * leave no trace, which it cannot do if the file came first.
  */
-export async function decideOn(context: Context, target: TriageTarget, reading: Reading): Promise<TFile | null> {
+export async function decideOn(
+	context: Context,
+	target: TriageTarget,
+	reading: Reading,
+	progress?: Progress,
+): Promise<TFile | null> {
 	const question = asks(reading);
 
 	let reason: string | null = null;
@@ -178,7 +204,7 @@ export async function decideOn(context: Context, target: TriageTarget, reading: 
 	}
 
 	const file = target.kind === 'note' ? target.file : await noteFor(context, target.item);
-	await writeTriage(context, file, { reading, reason });
+	await writeTriage(context, file, { reading, reason, progress });
 	return file;
 }
 
@@ -303,10 +329,12 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 	// The notice comes before `advance` rather than after the whole thing, so
 	// the answer to what you pressed arrives before the news that the pile is
 	// empty. The other way round read as a conclusion before its premise.
-	const decide = async (reading: Reading) => {
-		const file = await decideOn(context, target, reading);
+	const decide = async ({ reading, progress }: { reading: Reading; progress?: Progress }) => {
+		const file = await decideOn(context, target, reading, progress);
 		if (!file) return;
-		say(context, `${title}\n${landing(reading)}`);
+		// Triage answers about a paper nothing has been done to, so the pair the
+		// decision lands on is whatever it just wrote and nothing before it.
+		say(context, `${title}\n${landing({ reading, progress: progress ?? null })}`);
 		await advance(context, file, key);
 	};
 

@@ -19,7 +19,7 @@
 // and title, venue and year come with it. That is what Keshav's first pass is
 // mostly made of, and it is what the twenty seconds are actually spent on.
 import { Modal, setIcon, type App } from 'obsidian';
-import { iconOf, type Reading } from '../core/triage';
+import { iconOf, type Progress, type Reading } from '../core/triage';
 import { notify } from './notify';
 
 /** What Zotero hands over without anything being opened. */
@@ -41,7 +41,7 @@ export interface Triaged {
  * do not, and the third button is the honest extra: some of what you triage
  * turns out to be something you have already read.
  */
-const DECISIONS: { reading: Reading; label: string; hint: string }[] = [
+const DECISIONS: { reading: Reading; progress?: Progress; label: string; hint: string }[] = [
 	{
 		reading: 'dropped',
 		label: 'Drop',
@@ -53,7 +53,8 @@ const DECISIONS: { reading: Reading; label: string; hint: string }[] = [
 		hint: 'Worth a real read. Goes on the reading list.',
 	},
 	{
-		reading: 'read',
+		reading: 'queued',
+		progress: 'read',
 		label: 'Already read',
 		// Not "this one is done", which is what it used to say and what the paper
 		// then was not: `finished` skips the reading list and lands in Claim,
@@ -79,7 +80,7 @@ export class TriageModal extends Modal {
 	constructor(
 		app: App,
 		private loaded: Triaged,
-		private decide: (reading: Reading) => Promise<void>,
+		private decide: (choice: { reading: Reading; progress?: Progress }) => Promise<void>,
 		private readonly onClosed: () => void,
 	) {
 		super(app);
@@ -94,7 +95,7 @@ export class TriageModal extends Modal {
 	 * paper and wrote to another, and the queue never moved past the second.
 	 * Whatever a sitting shows and whatever it writes are one thing.
 	 */
-	show(loaded: Triaged, decide: (reading: Reading) => Promise<void>): void {
+	show(loaded: Triaged, decide: (choice: { reading: Reading; progress?: Progress }) => Promise<void>): void {
 		this.loaded = loaded;
 		this.decide = decide;
 		this.render();
@@ -141,7 +142,7 @@ export class TriageModal extends Modal {
 		const row = parent.createDiv({ cls: 'paper-trail-triage-decisions' });
 		for (const decision of DECISIONS) {
 			const button = row.createEl('button', { attr: { 'aria-label': decision.hint } });
-			setIcon(button.createSpan(), iconOf(decision.reading));
+			setIcon(button.createSpan(), iconOf({ reading: decision.reading, progress: decision.progress ?? null }));
 			button.createSpan({ text: decision.label });
 			button.addEventListener('click', () => {
 				this.answer(decision).catch((error: unknown) => {
@@ -165,6 +166,6 @@ export class TriageModal extends Modal {
 	 * without losing your place in the pile.
 	 */
 	private async answer(decision: (typeof DECISIONS)[number]): Promise<void> {
-		await this.decide(decision.reading);
+		await this.decide({ reading: decision.reading, progress: decision.progress });
 	}
 }
