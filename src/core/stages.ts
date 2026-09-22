@@ -475,15 +475,51 @@ export function nextAfter(rows: Row[], decided: string | null): Row | null {
 }
 
 /**
- * Every row, by stage: the vault's, plus the pending papers at the front of
- * Triage.
+ * When a paper arrived, in epoch milliseconds.
  *
- * Pending first within Triage, because they are the ones that arrived by
- * themselves. A note already marked untriaged is one you made a point of
- * keeping, usually by resetting it to look at again, and it has waited longer
- * than anything the queue has just noticed.
+ * Zotero's own `dateAdded` wherever it is known, for a note as much as for a
+ * paper with no note yet, because that is the thing both kinds actually share.
+ * A note's own creation time is when *you* acted, not when the paper arrived: a
+ * paper sitting in Zotero since 2024 whose note you make today would sort as
+ * the newest thing in its section when it is the oldest.
+ *
+ * Falling back to the note's creation time covers a paper outside the
+ * collection the queue is scoped to, one that has left Zotero, and a Zotero
+ * that is not running. Ordering is then what it always was rather than
+ * arbitrary.
  */
-export function rowsByStage(notes: NoteState[], pending: Pending[], triage: boolean): Map<Task, Row[]> {
+function arrivedAt(row: Row, arrived: ReadonlyMap<string, string>): number {
+	const stamp = (value: string | undefined): number | null => {
+		if (value === undefined) return null;
+		const ms = Date.parse(value);
+		return Number.isNaN(ms) ? null : ms;
+	};
+
+	if (row.kind === 'pending') return stamp(row.item.added) ?? 0;
+	return stamp(row.note.key === null ? undefined : arrived.get(row.note.key)) ?? row.note.created;
+}
+
+/**
+ * Every row, by stage, oldest arrival first.
+ *
+ * One order for the whole section, and that is the point. Pending papers used
+ * to be a block at the front and notes a block behind them, each sorted on a
+ * different key, so acting on a row moved it from one block to the other:
+ * clicking the oldest paper in Reading wrote its note and sent it to the bottom
+ * of the section, having changed nothing about where it sits in the workflow.
+ *
+ * The block order had a reason, and it was a Triage reason: a note already
+ * marked untriaged is one you made a point of keeping. It was applied to
+ * whichever section pending papers land in, which with triage off is Reading,
+ * where it means nothing. Sorting on when the paper arrived says the same thing
+ * where it is true and nothing where it is not.
+ */
+export function rowsByStage(
+	notes: NoteState[],
+	pending: Pending[],
+	triage: boolean,
+	arrived: ReadonlyMap<string, string> = new Map(),
+): Map<Task, Row[]> {
 	const out = new Map<Task, Row[]>();
 	for (const [stage, list] of byStage(notes)) {
 		out.set(
@@ -492,11 +528,18 @@ export function rowsByStage(notes: NoteState[], pending: Pending[], triage: bool
 		);
 	}
 
-	// Whichever section pending papers belong to, they go at the front of it.
-	// They are the ones that arrived by themselves; anything already in the
-	// vault got there by a decision and has waited longer.
+	// A paper Zotero holds that the vault has no note for is asking for whatever
+	// the first thing you do with a paper is, which is what the setting decides.
 	const stage: Task = triage ? 'triage' : 'reading';
-	const rest = out.get(stage) ?? [];
-	out.set(stage, [...pending.map((item) => ({ kind: 'pending' as const, item })), ...rest]);
+	out.set(stage, [...(out.get(stage) ?? []), ...pending.map((item) => ({ kind: 'pending' as const, item }))]);
+
+	for (const [task, rows] of out) {
+		out.set(
+			task,
+			[...rows].sort(
+				(a, b) => arrivedAt(a, arrived) - arrivedAt(b, arrived) || rowTitle(a).localeCompare(rowTitle(b)),
+			),
+		);
+	}
 	return out;
 }

@@ -56,7 +56,7 @@ export async function writeReport(context: Context): Promise<void> {
 	}
 
 	const file: TFile = existing ?? (await app.vault.create(path, markdown));
-	if (existing) await app.vault.modify(existing, markdown);
+	if (existing) await app.vault.process(existing, () => markdown);
 
 	await reveal(app, file);
 	new Notice(`${report.rows.length} of ${report.assessed} assessed papers ruled out.`);

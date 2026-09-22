@@ -154,9 +154,18 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 		});
 	}
 
-	const body = await app.vault.read(file);
-	const updated = replaceRegion(body, renderHighlights(highlights));
-	if (updated !== body) await app.vault.modify(file, updated);
+	// Checked against a cached read, written through `process`. The check is what
+	// keeps a paper nobody has touched in Zotero from having its modified time
+	// moved on every open; `process` is what keeps the write from being an
+	// overwrite. `modify` replaces the whole file with a string decided before
+	// the call, so a note you were typing into when a sync landed had the sync's
+	// idea of the body written over yours, and Obsidian reported the file as
+	// modified externally because from the editor's side it was.
+	const rendered = renderHighlights(highlights);
+	const body = await app.vault.cachedRead(file);
+	if (replaceRegion(body, rendered) === body) return;
+
+	await app.vault.process(file, (current) => replaceRegion(current, rendered));
 }
 
 /**

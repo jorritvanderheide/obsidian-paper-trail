@@ -249,7 +249,45 @@ describe('rowsByStage', () => {
 
 	it('puts pending papers into Triage alongside untriaged notes', () => {
 		const rows = rowsByStage([paper({ state: { reading: 'untriaged', progress: null }, title: 'a note' })], [item('AAAA1111', 'a pending paper')], true);
-		expect(rows.get('triage')?.map(rowTitle)).toEqual(['a pending paper', 'a note']);
+		expect(rows.get('triage')?.map(rowTitle).sort()).toEqual(['a note', 'a pending paper']);
+	});
+
+	// One order for the section, on when the paper arrived, whichever kind of
+	// row it is. Two blocks sorted on different keys meant acting on a row moved
+	// it from one to the other.
+	it('orders a section by arrival rather than by kind', () => {
+		const arrived = new Map([['NOTE0001', '2024-01-01']]);
+		const older = paper({ key: 'NOTE0001', title: 'arrived first', created: 9_999_999_999_999 });
+		const rows = rowsByStage([older], [item('AAAA1111', 'arrived later')], true, arrived);
+		expect(rows.get('triage')?.map(rowTitle)).toEqual(['arrived first', 'arrived later']);
+	});
+
+	// The bug this ordering exists for: clicking a pending row writes its note,
+	// which used to send it from the front of the section to the bottom.
+	it('leaves a row where it was when acting on it gives it a note', () => {
+		const arrived = new Map([['AAAA1111', '2024-01-01'], ['BBBB2222', '2025-01-01']]);
+		const first = { ...item('AAAA1111', 'first'), added: '2024-01-01' };
+		const second = { ...item('BBBB2222', 'second'), added: '2025-01-01' };
+		const before = rowsByStage([], [first, second], true, arrived);
+		// The same paper a moment later: a note, created now, still first.
+		const after = rowsByStage(
+			[paper({ key: 'AAAA1111', title: 'first', created: 9_999_999_999_999 })],
+			[second],
+			true,
+			arrived,
+		);
+		expect(before.get('triage')?.map(rowTitle)).toEqual(['first', 'second']);
+		expect(after.get('triage')?.map(rowTitle)).toEqual(['first', 'second']);
+	});
+
+	// Zotero closed, or a paper outside the collection the queue is scoped to.
+	it('falls back to when the note was made when Zotero knows nothing of it', () => {
+		const rows = rowsByStage(
+			[paper({ key: 'X', title: 'older note', created: 1 }), paper({ path: 'b.md', key: 'Y', title: 'newer note', created: 2 })],
+			[],
+			true,
+		);
+		expect(rows.get('triage')?.map(rowTitle)).toEqual(['older note', 'newer note']);
 	});
 
 	it('keeps a note reset to untriaged, which is the way back from any decision', () => {
@@ -267,7 +305,7 @@ describe('rowsByStage', () => {
 
 	it('marks which source a row came from, because only one of them has a note', () => {
 		const rows = rowsByStage([paper({ state: { reading: 'untriaged', progress: null } })], [item('AAAA1111', 'pending')], true);
-		expect(rows.get('triage')?.map((row) => row.kind)).toEqual(['pending', 'note']);
+		expect(rows.get('triage')?.map((row) => row.kind).sort()).toEqual(['note', 'pending']);
 	});
 
 	it('is just the vault when Zotero has told it nothing', () => {
@@ -501,13 +539,13 @@ describe('a pending paper, with triage on and off', () => {
 		expect(rowsByStage([], [pending.item], false).get('triage')).toHaveLength(0);
 	});
 
-	it('goes at the front of whichever section it lands in, either way', () => {
+	it('lands in whichever section the setting says, either way', () => {
 		for (const triage of [true, false]) {
 			const stage = triage ? 'triage' : 'reading';
 			const already = paper({ state: { reading: triage ? 'untriaged' : 'queued', progress: null }, created: 1 });
-			expect(rowsByStage([already], [pending.item], triage).get(stage)?.map((row) => row.kind)).toEqual([
-				'pending',
+			expect(rowsByStage([already], [pending.item], triage).get(stage)?.map((row) => row.kind).sort()).toEqual([
 				'note',
+				'pending',
 			]);
 		}
 	});

@@ -42,8 +42,19 @@ export function fileOf(app: App, note: NoteState): TFile | null {
  */
 export function queue(context: Context): { notes: NoteState[]; rows: Map<Task, Row[]>; done: Settled[] } {
 	const notes = collect(context);
+	const items = library();
 	const keys = notes.flatMap((note) => (note.key === null ? [] : [note.key]));
-	return { notes, rows: rowsByStage(notes, pendingOf(library(), keys), context.settings.triage), done: settled(notes) };
+
+	// When Zotero got each paper, so a note and a paper with no note yet can be
+	// put in one order. Built from the same read of the library the pending list
+	// comes from, which is already in hand.
+	const arrived = new Map(items.flatMap((item) => (item.data.dateAdded ? [[item.key, item.data.dateAdded]] : [])));
+
+	return {
+		notes,
+		rows: rowsByStage(notes, pendingOf(items, keys), context.settings.triage, arrived),
+		done: settled(notes),
+	};
 }
 
 /** The next paper waiting to be assessed, skipping one you have just ruled on. */
