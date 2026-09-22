@@ -170,11 +170,18 @@ export function iconOf(state: State): string {
  * Named for the section it lands in rather than the decision just taken:
  * whoever pressed the button already knows what they chose, and what they
  * cannot know is what the pane will say about it a second later.
+ *
+ * Where it lands, and not what to do about it, which is a line one of these
+ * crossed. Finishing a reading puts the landing and the question on one
+ * notice, so "Read. Write what it argues, then tick it off." sat directly
+ * above "What does this paper argue? ... Tick it off when you are done." and
+ * said the same thing first and worse. The instruction belongs to the task,
+ * where it is asked at the heading it is about.
  */
 const LANDINGS: Record<string, string> = {
 	Untriaged: 'Back to Triage, to be assessed again.',
 	Queued: 'Queued, and waiting to be read.',
-	Read: 'Read. Write what it argues, then tick it off.',
+	Read: 'Read, and waiting on a claim.',
 	Summarised: 'Summarised, and done with.',
 	Promoted: 'Worth a third pass. The claim comes first.',
 	Assessing: 'Summarised. The assessment is what is left.',
