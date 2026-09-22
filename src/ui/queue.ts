@@ -17,6 +17,7 @@ import { ItemView, Menu, Notice, debounce, setIcon, type App, type WorkspaceLeaf
 import {
 	rowTask,
 	rowTitle,
+	type NoteState,
 	TASKS,
 	visibleStages,
 	type Row,
@@ -401,6 +402,19 @@ function treeRow(parent: HTMLElement, text: string, onClick: () => void, icon?: 
  * great deal of work to move a highlight, and it would throw away the scroll
  * position every time you changed tab.
  */
+/**
+ * Whether a row is the note you are already looking at.
+ *
+ * The same question `highlight` asks to mark a row active, and deliberately
+ * the same answer: the row wearing the active colour is exactly the row whose
+ * click does nothing. `getActiveFile` rather than the active view, because
+ * clicking in this pane is what moves focus into it, and the file you were
+ * last reading is the one that question is about.
+ */
+function showing(app: App, note: NoteState): boolean {
+	return app.workspace.getActiveFile()?.path === note.path;
+}
+
 function highlight(root: HTMLElement, app: App): void {
 	const active = app.workspace.getActiveFile()?.path ?? null;
 	for (const row of Array.from(root.querySelectorAll<HTMLElement>('.tree-item-self[data-path]'))) {
@@ -544,7 +558,19 @@ function sectionRows(
 		// is a list you stop clicking. A pending paper has no note to show, so
 		// clicking it opens the dialog after all, which is the one thing it can
 		// do that is not writing a note to answer the question on your behalf.
+		//
+		// Clicking the row you are already in does nothing. Going somewhere you
+		// already are is not a move, and doing it anyway is felt rather than
+		// ignored: it takes the cursor off whatever you were typing, puts it back
+		// under the heading, and asks the question again. Reading is not covered,
+		// because where that row goes is Zotero and having the note in front of
+		// you says nothing about whether you want the PDF.
+		//
+		// The button beside it is not covered either, and that is what it is for
+		// now: from inside a note scrolled somewhere else, it is how you get back
+		// to the heading you owe.
 		const row = treeRow(children, rowTitle(entry), () => {
+			if (entry.kind === 'note' && task !== 'reading' && showing(context.app, entry.note)) return;
 			if (entry.kind === 'note' && task === 'triage') void openNote(context.app, entry.note);
 			else void act(context, task, entry);
 		});
@@ -676,10 +702,14 @@ function resting(
 	if (!children) return;
 
 	for (const entry of rows) {
+		// Nothing to do for the one you are already reading, and here that is the
+		// whole of it: these rows have no button and no second place to go.
 		const row = treeRow(
 			children,
 			entry.note.title,
-			() => void openNote(context.app, entry.note),
+			() => {
+				if (!showing(context.app, entry.note)) void openNote(context.app, entry.note);
+			},
 			iconOf(entry.note.state),
 		);
 		// The state in words as well as in the icon, because the icon is the only
