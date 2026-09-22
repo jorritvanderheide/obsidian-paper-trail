@@ -1,7 +1,7 @@
 import { PluginSettingTab, type App, type SettingDefinitionItem } from 'obsidian';
-import { parseValues } from '../core/vocabulary';
+import { headingCoverage } from '../core/stages';
 import { collectionPaths } from '../core/collections';
-import { DEFAULT_SETTINGS, loadSettings } from '../core/settings';
+import { loadSettings } from '../core/settings';
 import { collections, forgetLibrary, refreshCollections } from '../library';
 import { lastContact } from '../source';
 import { decorate } from './view-actions';
@@ -22,7 +22,6 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	getControlValue(key: string): unknown {
-		if (key === 'domains') return this.plugin.settings.domains.join(', ');
 		return this.plugin.settings[key as Key];
 	}
 
@@ -66,9 +65,7 @@ export class SettingsTab extends PluginSettingTab {
 	 * settings appear to name.
 	 */
 	async setControlValue(key: string, value: unknown): Promise<void> {
-		if (key === 'domains') this.plugin.settings.domains = parseValues(value, DEFAULT_SETTINGS.domains);
-		else (this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
-
+		(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
 		this.plugin.settings = loadSettings(this.plugin.settings);
 
 		// Another collection means another set of items, so what is cached is the
@@ -117,17 +114,11 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	/**
-	 * The two heading settings are the ones that break silently. A stage ends
-	 * when its heading has something under it, so a heading no paper has is a
-	 * stage no paper ever leaves, and nothing anywhere says why.
-	 *
-	 * The plugin writes the template, but not the notes made before the setting
-	 * was changed, and not a note whose headings someone edited by hand. So the
-	 * check is against the papers that actually exist rather than against the
-	 * template, which would always agree with itself.
+	 * The two heading settings are the ones that break silently, so each says
+	 * whether the vault agrees with it. The counting is `headingCoverage`'s;
+	 * this only sweeps and puts it in words.
 	 */
 	private headingStatus(setting: string, stage: string): string {
-		const heading = setting.trim().toLowerCase();
 		const keyField = this.plugin.settings.keyField;
 
 		const papers = this.app.vault
@@ -135,15 +126,12 @@ export class SettingsTab extends PluginSettingTab {
 			.map((file) => this.app.metadataCache.getFileCache(file))
 			.filter((cache) => typeof cache?.frontmatter?.[keyField] === 'string');
 
-		if (papers.length === 0) return '';
+		const { found, total } = headingCoverage(papers, setting);
 
-		const found = papers.filter((cache) =>
-			(cache?.headings ?? []).some((entry) => entry.heading.trim().toLowerCase() === heading),
-		).length;
-
-		if (found === papers.length) return ` Found in all ${papers.length} papers.`;
+		if (total === 0) return '';
+		if (found === total) return ` Found in all ${total} papers.`;
 		if (found === 0) return ` ⚠ No paper has this heading, so nothing will ever leave ${stage}.`;
-		return ` ⚠ Found in only ${found} of ${papers.length} papers.`;
+		return ` ⚠ Found in only ${found} of ${total} papers.`;
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
@@ -179,11 +167,6 @@ export class SettingsTab extends PluginSettingTab {
 						name: 'Template folder',
 						desc: 'Where Paper.md lives. It is written here the first time a paper note is made, and your edits to it are kept from then on.',
 						control: { type: 'text', key: 'templateFolder' },
-					},
-					{
-						name: 'Domains',
-						desc: 'The contexts you separate your notes by, comma separated. The question this axis answers is whether a note can end up in the thesis, so lead with the one that can.',
-						control: { type: 'text', key: 'domains' },
 					},
 					{
 						name: 'Papers folder',

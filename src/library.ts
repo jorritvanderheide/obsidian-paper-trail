@@ -51,9 +51,9 @@ export function scopeProblem(): string | null {
 /**
  * Forget everything, so the next look reads the library afresh.
  *
- * For when the data directory changes: pointing at another one means another
- * Zotero profile, and nothing read from the last one is known to be true of it.
- * Also for a change of scope, where what is held is simply the wrong set.
+ * For a change of scope, where what is held is not stale but simply the wrong
+ * set: a collection's items are not the library's, and merging one into the
+ * other would answer a question nobody asked.
  */
 export function forgetLibrary(): void {
 	items = [];

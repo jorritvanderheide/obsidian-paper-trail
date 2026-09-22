@@ -8,7 +8,7 @@ import { MarkdownView, type App, type Editor, type TFile, type WorkspaceLeaf } f
 import { headingLine } from '../core/stages';
 
 /** The pane a file is already open in, if any. */
-export function leafShowing(app: App, file: TFile): WorkspaceLeaf | null {
+function leafShowing(app: App, file: TFile): WorkspaceLeaf | null {
 	return (
 		app.workspace.getLeavesOfType('markdown').find((leaf) => leaf.view instanceof MarkdownView && leaf.view.file === file) ??
 		null

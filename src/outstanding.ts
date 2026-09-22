@@ -8,7 +8,7 @@
 // folder, so keying off the frontmatter rather than the path keeps the rules
 // independent of the vault's layout.
 import { TFile, type App } from 'obsidian';
-import { noteState, rowKey, rowsByStage, settled, type NoteState, type Row, type Settled, type Stage } from './core/stages';
+import { nextAfter, noteState, rowsByStage, settled, type NoteState, type Row, type Settled, type Task } from './core/stages';
 import { pendingOf } from './core/pending';
 import { library } from './library';
 import type { Context } from './context';
@@ -22,9 +22,7 @@ export function collect(context: Context): NoteState[] {
 			noteState(
 				context.app.metadataCache.getFileCache(file),
 				{ path: file.path, basename: file.basename, created: file.stat.ctime },
-				context.settings.keyField,
-				context.settings.claimHeading,
-				context.settings.assessmentHeading,
+				context.settings,
 			),
 		);
 }
@@ -42,22 +40,13 @@ export function fileOf(app: App, note: NoteState): TFile | null {
  * twice to answer two halves of one question would double the cost of a redraw
  * that already fires on every metadata change.
  */
-export function queue(context: Context): { notes: NoteState[]; rows: Map<Stage, Row[]>; done: Settled[] } {
+export function queue(context: Context): { notes: NoteState[]; rows: Map<Task, Row[]>; done: Settled[] } {
 	const notes = collect(context);
 	const keys = notes.flatMap((note) => (note.key === null ? [] : [note.key]));
 	return { notes, rows: rowsByStage(notes, pendingOf(library(), keys), context.settings.triage), done: settled(notes) };
 }
 
-/**
- * The next paper waiting to be assessed, skipping one you have just ruled on.
- *
- * The skip is not belt and braces. A decision about a paper Zotero holds and
- * the vault does not writes a note, and that note is on disk before Obsidian
- * has read it, so for a moment the paper still looks like it has none and would
- * be offered straight back. Naming the key that was just answered is what keeps
- * triage from handing you the same paper twice.
- */
+/** The next paper waiting to be assessed, skipping one you have just ruled on. */
 export function nextTriage(context: Context, decided: string | null): Row | null {
-	const rows = queue(context).rows.get('triage') ?? [];
-	return rows.find((row) => rowKey(row) !== decided) ?? null;
+	return nextAfter(queue(context).rows.get('triage') ?? [], decided);
 }

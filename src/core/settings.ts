@@ -4,16 +4,16 @@
 // folder, a heading, a frontmatter property. Getting one of those wrong breaks
 // something silently, so each is worth a field.
 //
-// What deliberately does not live here: the tag axis, the workflow stages,
-// the `reading` vocabulary. Those are the product. Making them
-// configurable would turn an opinionated workflow into a rules engine that asks
-// the user to invent one, which is what Dataview already is.
-
-import { DOMAIN, parseValues, type Vocabulary } from './vocabulary';
+// What deliberately does not live here: the workflow stages and the `reading`
+// vocabulary. Those are the product. Making them configurable would turn an
+// opinionated workflow into a rules engine that asks the user to invent one,
+// which is what Dataview already is.
 
 /**
  * Bumped when a saved key is renamed or its meaning changes, never for adding
- * one: an absent key already falls back to its default.
+ * or removing one: an absent key already falls back to its default, and a key
+ * nothing reads any more is dropped by the loader, which builds a fresh object
+ * out of the names it knows rather than editing the saved one.
  *
  * Data written before versioning existed has no `version` at all, which reads
  * as 0. Establishing that baseline now is the point; doing it after people have
@@ -98,8 +98,6 @@ export interface Settings {
 	 * colliding with a `status/` a vault already uses for something else.
 	 */
 	statusTag: string;
-	/** Values on the `domain/` axis. Per-person by definition, so not in code. */
-	domains: string[];
 	/** Where the paper template is kept, and seeded to when it is missing. */
 	templateFolder: string;
 	/**
@@ -114,7 +112,6 @@ export interface Settings {
 	 * trick the claim heading plays one pass earlier.
 	 */
 	assessmentHeading: string;
-
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -125,7 +122,6 @@ export const DEFAULT_SETTINGS: Settings = {
 	collection: '',
 	papersFolder: 'Literature',
 	statusTag: '',
-	domains: [...DOMAIN],
 	templateFolder: 'Templates',
 	claimHeading: 'Claim',
 	assessmentHeading: 'Assessment',
@@ -151,7 +147,6 @@ export function loadSettings(raw: unknown): Settings {
 		collection: typeof data.collection === 'string' ? data.collection.trim() : DEFAULT_SETTINGS.collection,
 		papersFolder: text(data.papersFolder, DEFAULT_SETTINGS.papersFolder),
 		statusTag: typeof data.statusTag === 'string' ? data.statusTag.trim() : DEFAULT_SETTINGS.statusTag,
-		domains: parseValues(data.domains, DOMAIN),
 		templateFolder: text(data.templateFolder, DEFAULT_SETTINGS.templateFolder),
 		claimHeading: text(data.claimHeading, DEFAULT_SETTINGS.claimHeading),
 		assessmentHeading: text(data.assessmentHeading, DEFAULT_SETTINGS.assessmentHeading),
@@ -177,9 +172,4 @@ export function migrate(data: Record<string, unknown>): Record<string, unknown> 
 	// for (let v = from; v < SETTINGS_VERSION; v++) { ... }
 	out.version = SETTINGS_VERSION;
 	return out;
-}
-
-/** The vocabulary these settings describe, for validation and for pickers. */
-export function vocabularyOf(settings: Settings): Vocabulary {
-	return { domains: settings.domains };
 }

@@ -10,6 +10,7 @@
 import { Notice, type App, type TFile } from 'obsidian';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, SourceError } from '../source';
+import { messageOf } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
 import { applyTriage, asks, iconOf, landing, READING_ORDER, type Reading, type Triage } from '../core/triage';
 import { isPaper, notAPaper } from '../core/paper-note';
@@ -21,7 +22,7 @@ import type { Row } from '../core/stages';
 import type { Context } from '../context';
 
 /** ISO date, which is what the Linter and every Dataview query want. */
-function today(): string {
+export function today(): string {
 	return new Date().toISOString().slice(0, 10);
 }
 
@@ -39,28 +40,16 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
 }
 
 /**
- * Ask whatever the decision owes an answer to, then write it. Returns whether
- * anything was written.
+ * A decision about a paper that already has a note. Returns whether anything
+ * was written.
  *
- * Every route to a decision comes through here: the triage pane, the
- * homepage's Finished button and the status command. The alternative was three
- * copies of "a drop asks why", which is how two of them end up not asking.
- *
- * Escaping the question abandons the change rather than writing it without an
- * answer. A drop with no reason is a deletion with extra steps, and a deferral
- * with no condition is a paper nobody will ever look at again.
+ * `decideOn` with the note already in hand, and nothing else. This was a
+ * second copy of it for a while, which is the exact failure its own comment
+ * warns about: two functions holding "a drop asks why" is how one of them
+ * stops asking.
  */
 export async function decide(context: Context, file: TFile, reading: Reading): Promise<boolean> {
-	const question = asks(reading);
-
-	let reason: string | null = null;
-	if (question) {
-		reason = await prompt(context.app, question.question, { cta: question.cta });
-		if (!reason) return false;
-	}
-
-	await writeTriage(context, file, { reading, reason });
-	return true;
+	return (await decideOn(context, { kind: 'note', file }, reading)) !== null;
 }
 
 /**
@@ -159,9 +148,18 @@ export async function noteFor(context: Context, item: Pending): Promise<TFile> {
 /**
  * Write a decision, making the note first when there is not one.
  *
- * Returns the note it wrote to, or null when the question behind the decision
- * went unanswered. Nothing is created in that case: abandoning a drop halfway
- * through should leave no trace, which it cannot do if the file came first.
+ * Every route to a decision comes through here: the triage pane, the queue's
+ * Finished button, the status command and the title bar. The alternative was
+ * several copies of "a drop asks why", which is how one of them ends up not
+ * asking.
+ *
+ * Escaping the question abandons the change rather than writing it without an
+ * answer. A drop with no reason is a deletion with extra steps, and a deferral
+ * with no condition is a paper nobody will ever look at again.
+ *
+ * Returns the note it wrote to, or null when the question went unanswered.
+ * Nothing is created in that case: abandoning a drop halfway through should
+ * leave no trace, which it cannot do if the file came first.
  */
 export async function decideOn(context: Context, target: TriageTarget, reading: Reading): Promise<TFile | null> {
 	const question = asks(reading);
@@ -283,7 +281,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 				brief = { abstract: abstractOf(item), venue: venueOf(item), year: itemYear(item) };
 			} catch (error) {
 				if (!(error instanceof SourceError)) console.error(error);
-				problem = error instanceof Error ? error.message : String(error);
+				problem = messageOf(error);
 			}
 		}
 	}

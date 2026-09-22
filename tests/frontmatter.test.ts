@@ -17,7 +17,7 @@ describe('sortKeys', () => {
 	});
 
 	it('keeps every value exactly as it was', () => {
-		const tags = ['domain/research', 'type/filed'];
+		const tags = ['project/wp1', 'topic/heat-pumps'];
 		const fm: Record<string, unknown> = { tags, year: 2026, reading: null };
 		sortKeys(fm);
 		expect(fm.tags).toBe(tags);

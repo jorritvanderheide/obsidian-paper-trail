@@ -9,6 +9,7 @@ import type { CachedMetadata } from 'obsidian';
 import { isPaper } from './paper-note';
 import { currentReading, type Reading } from './triage';
 import type { Pending } from './pending';
+import type { Settings } from './settings';
 
 /** Everything the rules need, read from Obsidian's metadata cache. */
 export interface NoteState {
@@ -54,18 +55,50 @@ export interface NoteState {
 export type Task = 'triage' | 'claim' | 'read' | 'assessment';
 
 /**
- * A section of the queue. One per task, which is why this is an alias.
+ * The order a paper passes through them, which is the order the queue is read
+ * downwards and the order `next` walks.
  *
- * Reading and the claim shared a section once, on the grounds that they are
- * one pass. That was right about Keshav and wrong about queues: the section a
- * paper sits in is named for what it is waiting on, and a paper that has been
- * read and not summarised is not waiting on reading. Sharing meant finishing a
- * paper moved nothing, renamed nothing and changed no count, so the one action
- * that ends an hour of work looked like it had failed.
+ * Claim sat above Reading for a while, ordered by what each one costs so that
+ * the cheapest outstanding thing was always at the top. That was a better
+ * argument than it was a list: the sidebar is read downwards as the shape of
+ * the workflow, and a section that comes after Reading in every explanation
+ * and before it on screen is a puzzle to solve rather than a list to read.
+ *
+ * `next` walks this order too, so it prefers a reading to a claim. That costs
+ * less than it sounds: Triage is normally the longest section by an order of
+ * magnitude, so it is what `next` almost always offers whatever comes after.
+ *
+ * Declaration order on the type above is not it, and cannot be: that order is
+ * arbitrary and nothing can depend on it. This is the one that is meant.
  */
-export type Stage = Task;
+const ORDER: readonly Task[] = ['triage', 'read', 'claim', 'assessment'];
 
-export interface TaskAction {
+/**
+ * Everything one task is: the section it heads in the queue, and the work it
+ * is asking for.
+ *
+ * One table rather than two. There was a `Stage` alias for `Task` and a second
+ * list keyed by it, on the grounds that a task is work and a stage is a place
+ * in a list. They are one per one and always were, so all the split bought was
+ * two words for one idea and two places to add a task to.
+ *
+ * That they coincide is the point rather than an accident. Reading and the
+ * claim shared a section once, because they are one of Keshav's passes. That
+ * was right about Keshav and wrong about queues: a section is named for what
+ * the papers in it are waiting on, and a paper that has been read and not
+ * summarised is not waiting on reading. Sharing meant finishing a paper moved
+ * nothing, renamed nothing and changed no count, so the one action that ends
+ * an hour of work looked like it had failed.
+ */
+export interface TaskDefinition {
+	/** Which task this is, so an entry taken out of the table still knows. */
+	task: Task;
+	/** The section heading in the queue. */
+	label: string;
+	/** The task as an icon, at the head of its section. */
+	stageIcon: string;
+	/** What the section is for, as a tooltip on its header. */
+	hint: string;
 	/** The button that takes you to the work, and the tooltip on its icon. */
 	action: string;
 	/**
@@ -134,10 +167,32 @@ export interface TaskAction {
 	prompt?: string;
 }
 
-export const TASKS: Record<Task, TaskAction> = {
-	triage: { action: 'Triage', icon: 'scan-eye', inNote: true },
-	read: { action: 'Open in Zotero', icon: 'external-link', done: 'Finished', doneIcon: 'check', inNote: true },
+export const TASKS: Record<Task, TaskDefinition> = {
+	triage: {
+		task: 'triage',
+		label: 'Triage',
+		stageIcon: 'scan-eye',
+		hint: 'Added, not yet assessed. Twenty seconds on the abstract, or eight minutes if it earns them.',
+		action: 'Triage',
+		icon: 'scan-eye',
+		inNote: true,
+	},
+	read: {
+		task: 'read',
+		label: 'Reading',
+		stageIcon: 'book-open',
+		hint: 'Worth an hour, in Zotero, where your highlights go. Say what came of it when you are done.',
+		action: 'Open in Zotero',
+		icon: 'external-link',
+		done: 'Finished',
+		doneIcon: 'check',
+		inNote: true,
+	},
 	claim: {
+		task: 'claim',
+		label: 'Claim',
+		stageIcon: 'pencil',
+		hint: 'Read, and not yet summarised. Keshav’s second pass ends when you can say what the paper argues, with its evidence, to someone else. Write that and it leaves.',
 		action: 'Write the claim',
 		icon: 'pencil',
 		inNote: false,
@@ -145,6 +200,10 @@ export const TASKS: Record<Task, TaskAction> = {
 		prompt: 'What does this paper argue? One or two sentences, in your own words.',
 	},
 	assessment: {
+		task: 'assessment',
+		label: 'Assessment',
+		stageIcon: 'book-open-check',
+		hint: 'You said this one earns four hours. The assessment is still empty.',
 		action: 'Write the assessment',
 		// The same mark as the claim, because it is the same verb: put the cursor
 		// under a heading and write. Which heading is what the section says.
@@ -155,58 +214,43 @@ export const TASKS: Record<Task, TaskAction> = {
 	},
 };
 
-/** One section of the queue: a heading, a count, and the rows under it. */
-export interface StageAction {
-	stage: Stage;
-	label: string;
-	/** The stage as an icon, at the head of its section. */
-	stageIcon: string;
-	hint: string;
+/** Every section, in the order a paper passes through them. */
+export const STAGES: TaskDefinition[] = ORDER.map((task) => TASKS[task]);
+
+/**
+ * Which sections the queue draws, which is all of them but one.
+ *
+ * A stage keeps its place when it empties. A section that vanished meant the
+ * list moved under the cursor as you worked it, and you could never learn
+ * where Reading sits; a zero is also worth reading, because "nothing to write
+ * up" is different from not being told.
+ *
+ * Triage with triage turned off is the exception: it is not a stage you work,
+ * so a permanent zero teaches nothing and never moves. It comes back the
+ * moment something lands in it, which it still can, from a paper sent back or
+ * a note imported from elsewhere.
+ */
+export function visibleStages(rows: Map<Task, Row[]>, triage: boolean): TaskDefinition[] {
+	return STAGES.filter(({ task }) => !(task === 'triage' && !triage && (rows.get(task) ?? []).length === 0));
 }
 
 /**
- * Every section, in the order a paper passes through them.
+ * How many of a set of papers carry a heading, for a setting that has to say
+ * when it disagrees with the vault.
  *
- * Claim sat above Reading for a while, ordered by what each one costs so that
- * the cheapest outstanding thing was always at the top. That was a better
- * argument than it was a list: the sidebar is read downwards as the shape of
- * the workflow, and a section that comes after Reading in every explanation
- * and before it on screen is a puzzle to solve rather than a list to read.
- *
- * `next` walks this order too, so it prefers a reading to a claim. That costs
- * less than it sounds: Triage is normally the longest section by an order of
- * magnitude, so it is what `next` almost always offers whatever comes after.
+ * A stage ends when its heading has something under it, so a heading no paper
+ * has is a stage no paper ever leaves, and nothing anywhere says why. Counted
+ * against the papers that exist rather than against the template, which would
+ * always agree with itself: the plugin writes the template, but not the notes
+ * made before the setting changed, and not one whose headings were edited by
+ * hand.
  */
-export const STAGES: StageAction[] = [
-	{
-		stage: 'triage',
-		stageIcon: 'scan-eye',
-		label: 'Triage',
-		hint: 'Added, not yet assessed. Twenty seconds on the abstract, or eight minutes if it earns them.',
-	},
-	{
-		stage: 'read',
-		stageIcon: 'book-open',
-		label: 'Reading',
-		hint: 'Worth an hour, in Zotero, where your highlights go. Say what came of it when you are done.',
-	},
-	{
-		stage: 'claim',
-		stageIcon: 'pencil',
-		label: 'Claim',
-		hint: 'Read, and not yet summarised. Keshav’s second pass ends when you can say what the paper argues, with its evidence, to someone else. Write that and it leaves.',
-	},
-	{
-		stage: 'assessment',
-		stageIcon: 'book-open-check',
-		label: 'Assessment',
-		hint: 'You said this one earns four hours. The assessment is still empty.',
-	},
-];
-
-/** The stage a note is at, as the thing that draws its title bar needs it. */
-export function stageActionOf(stage: Stage | null): StageAction | null {
-	return STAGES.find((entry) => entry.stage === stage) ?? null;
+export function headingCoverage(papers: (CachedMetadata | null)[], heading: string): { found: number; total: number } {
+	const wanted = heading.trim().toLowerCase();
+	const found = papers.filter((cache) =>
+		(cache?.headings ?? []).some((entry) => entry.heading.trim().toLowerCase() === wanted),
+	).length;
+	return { found, total: papers.length };
 }
 
 /**
@@ -239,17 +283,6 @@ export function taskOf(note: NoteState): Task | null {
 	// the note, where the record needs it, and not in the machine, where a
 	// parked paper that kept appearing would not be parked.
 	return null;
-}
-
-/**
- * Which section the note sits under, which is simply what it is waiting on.
- *
- * Kept as its own name rather than folded into `taskOf` because the two words
- * answer different questions: a task is work, a stage is a place in a list.
- * That they now coincide is the point of giving the claim its own section.
- */
-export function stageOf(note: NoteState): Stage | null {
-	return taskOf(note);
 }
 
 /**
@@ -301,10 +334,10 @@ export function settled(notes: NoteState[]): Settled[] {
 }
 
 /** Oldest first within each stage, so the pile drains in the order it arrived. */
-export function byStage(notes: NoteState[]): Map<Stage, NoteState[]> {
-	const out = new Map<Stage, NoteState[]>(STAGES.map(({ stage }) => [stage, []]));
+export function byStage(notes: NoteState[]): Map<Task, NoteState[]> {
+	const out = new Map<Task, NoteState[]>(ORDER.map((task) => [task, []]));
 	for (const note of notes) {
-		const stage = stageOf(note);
+		const stage = taskOf(note);
 		if (stage) out.get(stage)?.push(note);
 	}
 	for (const list of out.values()) list.sort((a, b) => a.created - b.created);
@@ -353,15 +386,25 @@ export function hasContentUnder(cache: CachedMetadata | null, heading: string): 
 	);
 }
 
+/**
+ * The settings a note has to be read against: which property names the Zotero
+ * item, and which two headings the second and third passes end under.
+ *
+ * Named as a group rather than passed as three strings, because three strings
+ * in a row is a signature where transposing the last two type-checks silently
+ * and produces a paper that can never leave Claim. Three callers pass exactly
+ * these, and all three have the whole settings object in hand.
+ */
+export type NoteFields = Pick<Settings, 'keyField' | 'claimHeading' | 'assessmentHeading'>;
+
 /** What a note looks like to the rules. Reads the cache, decides nothing. */
 export function noteState(
 	cache: CachedMetadata | null,
 	file: { path: string; basename: string; created: number },
-	keyField: string,
-	claimHeading: string,
-	assessmentHeading: string,
+	fields: NoteFields,
 ): NoteState {
 	const frontmatter = cache?.frontmatter;
+	const { keyField, claimHeading, assessmentHeading } = fields;
 	return {
 		path: file.path,
 		title: typeof frontmatter?.title === 'string' ? frontmatter.title : file.basename,
@@ -411,8 +454,21 @@ export function rowTask(row: Row, triage: boolean): Task | null {
 }
 
 /** The Zotero item a row is about, which is the one name both kinds share. */
-export function rowKey(row: Row): string | null {
+function rowKey(row: Row): string | null {
 	return row.kind === 'note' ? row.note.key : row.item.key;
+}
+
+/**
+ * The first row that is not the one just ruled on.
+ *
+ * The skip is not belt and braces. A decision about a paper Zotero holds and
+ * the vault does not writes a note, and that note is on disk before Obsidian
+ * has read it, so for a moment the paper still looks like it has none and
+ * would be offered straight back. Naming the key that was just answered is
+ * what keeps triage from handing you the same paper twice.
+ */
+export function nextAfter(rows: Row[], decided: string | null): Row | null {
+	return rows.find((row) => rowKey(row) !== decided) ?? null;
 }
 
 /**
@@ -424,8 +480,8 @@ export function rowKey(row: Row): string | null {
  * keeping, usually by resetting it to look at again, and it has waited longer
  * than anything the queue has just noticed.
  */
-export function rowsByStage(notes: NoteState[], pending: Pending[], triage: boolean): Map<Stage, Row[]> {
-	const out = new Map<Stage, Row[]>();
+export function rowsByStage(notes: NoteState[], pending: Pending[], triage: boolean): Map<Task, Row[]> {
+	const out = new Map<Task, Row[]>();
 	for (const [stage, list] of byStage(notes)) {
 		out.set(
 			stage,
@@ -436,7 +492,7 @@ export function rowsByStage(notes: NoteState[], pending: Pending[], triage: bool
 	// Whichever section pending papers belong to, they go at the front of it.
 	// They are the ones that arrived by themselves; anything already in the
 	// vault got there by a decision and has waited longer.
-	const stage: Stage = triage ? 'triage' : 'read';
+	const stage: Task = triage ? 'triage' : 'read';
 	const rest = out.get(stage) ?? [];
 	out.set(stage, [...pending.map((item) => ({ kind: 'pending' as const, item })), ...rest]);
 	return out;

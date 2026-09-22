@@ -14,21 +14,20 @@
 // every write goes through the same commands the palette uses. If this and a
 // note disagree, the note is right.
 import { ItemView, Menu, Notice, debounce, setIcon, type App, type WorkspaceLeaf } from 'obsidian';
-import { rowTask, rowTitle, STAGES, TASKS, type Row, type Settled, type Stage, type StageAction } from '../core/stages';
+import { rowTask, rowTitle, TASKS, visibleStages, type Row, type Settled, type Task, type TaskDefinition } from '../core/stages';
 import { DEFAULT_ROWS, fit } from '../core/fit';
 import { act, finish, next, openNote } from '../commands/workflow';
-import { iconOf } from '../core/triage';
+import { iconOf, label } from '../core/triage';
 import { noteFor, setReading } from '../commands/reading';
-import { label } from '../core/vocabulary';
 import { fileOf, queue } from '../outstanding';
 import { reveal } from './reveal';
+import { notify } from './notify';
 import type { Pending } from '../core/pending';
 import { lastContact } from '../source';
 import { refreshLibrary, scopeProblem } from '../library';
 import type { Context } from '../context';
 
 export const QUEUE_VIEW = 'paper-trail-queue';
-
 
 /**
  * Draw the whole queue into an element, replacing whatever was there.
@@ -67,19 +66,7 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 		return;
 	}
 
-	// Every stage, including the empty ones. A section that vanished when it
-	// emptied meant the list moved under the cursor as you worked it, and you
-	// could never learn where Read sits. A zero is also worth reading: it says
-	// there is nothing to write up, which is different from not being told.
-	//
-	// A stage keeps its place when empty for that reason. Triage with triage
-	// turned off is the exception: it is not a stage you work, so a permanent
-	// zero teaches nothing and never moves. It comes back the moment something
-	// lands in it, which it still can, from a paper sent back or a note
-	// imported from elsewhere.
-	const visible = STAGES.filter(
-		({ stage }) => !(stage === 'triage' && !context.settings.triage && (buckets.get(stage) ?? []).length === 0),
-	);
+	const visible = visibleStages(buckets, context.settings.triage);
 
 	// The pane only. A block is a view of the queue on a note of your own, and a
 	// row of controls at the top of somebody's writing is the plugin making
@@ -98,11 +85,11 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	const files = root.createDiv({ cls: 'nav-files-container paper-trail-stages' });
 	const tree = files.createDiv({ cls: 'paper-trail-tree' });
 
-	const open: { stage: Stage; rows: Row[]; children: HTMLElement }[] = [];
+	const open: { task: Task; rows: Row[]; children: HTMLElement }[] = [];
 	for (const definition of visible) {
-		const rows = buckets.get(definition.stage) ?? [];
+		const rows = buckets.get(definition.task) ?? [];
 		const children = section(tree, context, definition, rows);
-		if (children) open.push({ stage: definition.stage, rows, children });
+		if (children) open.push({ task: definition.task, rows, children });
 	}
 
 	// Drawn before the rows are counted, and it has to be: its header is one of
@@ -124,8 +111,8 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 		// An opened section ignores the budget. You asked to see all of them, and
 		// the container scrolls; overruling that to keep the pane tidy would be
 		// answering a question nobody asked.
-		const shown = expanded.has(entry.stage) ? entry.rows.length : (shares[index] ?? DEFAULT_ROWS);
-		sectionRows(entry.children, context, entry.stage, entry.rows, shown);
+		const shown = expanded.has(entry.task) ? entry.rows.length : (shares[index] ?? DEFAULT_ROWS);
+		sectionRows(entry.children, context, entry.task, entry.rows, shown);
 	});
 }
 
@@ -139,7 +126,7 @@ export function renderQueue(root: HTMLElement, context: Context): void {
  * on the Next button now, where you get it by reaching for the thing it would
  * have made you reach for anyway.
  */
-function toolbar(root: HTMLElement, context: Context, buckets: Map<Stage, Row[]>, visible: StageAction[]): void {
+function toolbar(root: HTMLElement, context: Context, buckets: Map<Task, Row[]>, visible: TaskDefinition[]): void {
 	const buttons = root.createDiv({ cls: 'nav-header' }).createDiv({ cls: 'nav-buttons-container' });
 
 	// The thing the pane is for, beyond reading it: one key, no choice about
@@ -163,17 +150,17 @@ function toolbar(root: HTMLElement, context: Context, buckets: Map<Stage, Row[]>
 	// Only where there is something to fold. Four sections is few enough that
 	// this is a convenience rather than a necessity, but it is the affordance
 	// every other tree in the app has, and its absence is what you notice.
-	const foldable = visible.filter(({ stage }) => (buckets.get(stage) ?? []).length > 0);
+	const foldable = visible.filter(({ task }) => (buckets.get(task) ?? []).length > 0);
 	if (foldable.length === 0) return;
 
-	const anyOpen = foldable.some(({ stage }) => !collapsed.has(stage));
+	const anyOpen = foldable.some(({ task }) => !collapsed.has(task));
 	iconButton(
 		buttons,
 		anyOpen ? 'chevrons-down-up' : 'chevrons-up-down',
 		anyOpen ? 'Collapse all' : 'Expand all',
 		() => {
 			collapsed.clear();
-			if (anyOpen) for (const { stage } of foldable) collapsed.add(stage);
+			if (anyOpen) for (const { task } of foldable) collapsed.add(task);
 			renderQueue(paneOf(root), context);
 		},
 		'nav-action-button',
@@ -310,7 +297,7 @@ function sidebarShowing(app: App): boolean {
  * find one paper rather than a preference, and a queue that came back showing
  * four hundred rows would have given up the cap that makes it readable.
  */
-const expanded = new Set<Stage>();
+const expanded = new Set<Task>();
 
 /**
  * Which sections have been folded away, for as long as the pane stays open.
@@ -320,7 +307,7 @@ const expanded = new Set<Stage>();
  * instruction to hide it, and the queue's whole job is saying what is
  * outstanding. It comes back open, and folding it again is one click.
  */
-const collapsed = new Set<Stage>();
+const collapsed = new Set<Task>();
 
 /**
  * The element the whole queue was drawn into.
@@ -470,7 +457,7 @@ function folder(root: HTMLElement, { label, icon, hint, count, open, toggle }: F
 function section(
 	root: HTMLElement,
 	context: Context,
-	{ stage, stageIcon, label, hint }: StageAction,
+	{ task, stageIcon, label, hint }: TaskDefinition,
 	rows: Row[],
 ): HTMLElement | null {
 	return folder(root, {
@@ -478,10 +465,10 @@ function section(
 		icon: stageIcon,
 		hint,
 		count: rows.length,
-		open: !collapsed.has(stage),
+		open: !collapsed.has(task),
 		toggle: () => {
-			if (collapsed.has(stage)) collapsed.delete(stage);
-			else collapsed.add(stage);
+			if (collapsed.has(task)) collapsed.delete(task);
+			else collapsed.add(task);
 			renderQueue(paneOf(root), context);
 		},
 	});
@@ -499,8 +486,7 @@ async function showPending(context: Context, item: Pending): Promise<void> {
 	try {
 		await reveal(context.app, await noteFor(context, item));
 	} catch (error) {
-		console.error('paper-trail:show', error);
-		new Notice(error instanceof Error ? error.message : String(error));
+		notify(error, 'show');
 	}
 }
 
@@ -508,7 +494,7 @@ async function showPending(context: Context, item: Pending): Promise<void> {
 function sectionRows(
 	children: HTMLElement,
 	context: Context,
-	stage: Stage,
+	stage: Task,
 	rows: Row[],
 	shown: number,
 ): void {

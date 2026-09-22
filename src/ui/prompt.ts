@@ -165,23 +165,3 @@ class Prompt extends Modal {
 export function prompt(app: App, label: string, options: PromptOptions = {}): Promise<string | null> {
 	return new Promise((resolve) => new Prompt(app, label, options.cta ?? 'OK', options.validate ?? (() => null), resolve).open());
 }
-
-class Info extends Modal {
-	constructor(
-		app: App,
-		private readonly heading: string,
-		private readonly body: string,
-	) {
-		super(app);
-	}
-
-	onOpen(): void {
-		this.setTitle(this.heading);
-		for (const line of this.body.split('\n')) this.contentEl.createEl('p', { text: line });
-	}
-}
-
-/** For output worth reading rather than a Notice that slides away, like export warnings. */
-export function info(app: App, heading: string, body: string): void {
-	new Info(app, heading, body).open();
-}

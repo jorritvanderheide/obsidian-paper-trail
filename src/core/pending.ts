@@ -11,7 +11,7 @@
 //
 // Pure: the caller hands over what Zotero said and what the vault holds.
 import type { ApiItem } from './zotero';
-import { abstractOf, itemYear, venueOf } from './zotero';
+import { abstractOf, isPaperItem, itemYear, venueOf } from './zotero';
 
 /** A paper in Zotero with no note here yet, as the queue needs to show it. */
 export interface Pending {
@@ -25,15 +25,12 @@ export interface Pending {
 	added: string;
 }
 
-/** Item types that are never a paper, whatever else they are. */
-const NOT_A_PAPER = new Set(['attachment', 'annotation', 'note']);
-
 export function pendingOf(items: ApiItem[], known: Iterable<string>, ignored: Iterable<string> = []): Pending[] {
 	const have = new Set(known);
 	const skip = new Set(ignored);
 
 	return items
-		.filter((item) => !NOT_A_PAPER.has(item.data.itemType ?? '') && !have.has(item.key) && !skip.has(item.key))
+		.filter((item) => isPaperItem(item) && !have.has(item.key) && !skip.has(item.key))
 		.map((item) => ({
 			key: item.key,
 			title: item.data.shortTitle?.trim() || item.data.title?.trim() || item.key,

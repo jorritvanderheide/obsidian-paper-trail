@@ -227,11 +227,6 @@
 	border-left-color: var(--text-warning);
 }
 
-.paper-trail-orphans {
-	padding-left: var(--size-4-4);
-	margin-top: 0;
-}
-
 /* Said only when Zotero is not answering. Silence means it is. */
 .paper-trail-offline {
 	display: flex;

@@ -13,6 +13,28 @@
 // Plain markdown rather than a Dataview query, because the reason to want it is
 // to put it in a thesis appendix or send it to a supervisor, and neither of
 // those has your plugins installed.
+import { isPaper } from './paper-note';
+import { currentReading } from './triage';
+
+/**
+ * The frontmatter stamped on a generated report, and the test for it.
+ *
+ * The report is written to a fixed path and overwritten on every run, which is
+ * right for a snapshot of a record that lives elsewhere and wrong if the file
+ * at that path is something somebody wrote. "Excluded papers" is a name a
+ * person might well give a note of their own, and losing it would be the one
+ * unforgivable failure this plugin has.
+ *
+ * So a report says it is one, and a file that does not say so is not touched.
+ * The same bargain `createPaperNote` strikes over a colliding note: a plugin
+ * may overwrite what it made, and nothing else.
+ */
+const REPORT_KEY = 'paper-trail';
+const REPORT_VALUE = 'excluded-papers';
+
+export function isReport(frontmatter: Record<string, unknown> | undefined): boolean {
+	return frontmatter?.[REPORT_KEY] === REPORT_VALUE;
+}
 
 /** One paper, as the record sees it. */
 export interface Decided {
@@ -25,6 +47,40 @@ export interface Decided {
 	triaged: string | null;
 	reason: string | null;
 	path: string;
+}
+
+/**
+ * One paper's frontmatter, as the record reads it, or null when the note is
+ * not a paper.
+ *
+ * Here rather than in the command that sweeps the vault, because every line of
+ * it is an interpretation: which property makes a note a paper, that a missing
+ * `reading` means untriaged rather than nothing, that an old spelling is read
+ * as what it is called now, and that a note with no `title` is called by its
+ * filename. `noteState` makes the same calls for the queue, and the two have
+ * to agree or the record is a table of papers the queue never showed you.
+ */
+export function decidedOf(
+	frontmatter: Record<string, unknown> | undefined,
+	file: { path: string; basename: string },
+	keyField: string,
+): Decided | null {
+	if (!isPaper(frontmatter, keyField)) return null;
+
+	const text = (key: string) => (typeof frontmatter[key] === 'string' ? frontmatter[key] : null);
+
+	return {
+		title: text('title') ?? file.basename,
+		authors: text('authors') ?? '',
+		year: typeof frontmatter.year === 'number' ? frontmatter.year : null,
+		citekey: text('citekey'),
+		// A paper with no reading field has not been assessed, which is exactly
+		// what untriaged means.
+		reading: currentReading(text('reading') ?? 'untriaged'),
+		triaged: text('triaged-date'),
+		reason: text('reading-reason'),
+		path: file.path,
+	};
 }
 
 /** The states that mean a paper was considered and is not being read. */
@@ -72,6 +128,12 @@ export function renderReport(report: Report, date: string): string {
 	const { rows, assessed } = report;
 
 	const lines = [
+		// The marker first, so the file declares whose it is before it says
+		// anything else. `isReport` is what reads it back.
+		'---',
+		`${REPORT_KEY}: ${REPORT_VALUE}`,
+		'---',
+		'',
 		'# Excluded papers',
 		'',
 		`${rows.length} of ${assessed} assessed ${assessed === 1 ? 'paper has' : 'papers have'} been ruled out. Generated ${date}.`,

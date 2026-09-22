@@ -37,9 +37,7 @@ export function announce(context: Context, file: TFile): void {
 	const note = noteState(
 		context.app.metadataCache.getFileCache(file),
 		{ path: file.path, basename: file.basename, created: file.stat.ctime },
-		context.settings.keyField,
-		context.settings.claimHeading,
-		context.settings.assessmentHeading,
+		context.settings,
 	);
 
 	const was = before.get(file.path);

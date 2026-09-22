@@ -1,7 +1,6 @@
 // What a triage decision leaves on the literature note. Pure, so the exact
 // frontmatter a decision produces is testable without an Obsidian running.
 import { sortKeys } from './frontmatter';
-import { readTags, setAxis } from './vocabulary';
 
 /**
  * How far a paper is going, in Keshav's terms. `untriaged` is the state a new
@@ -114,6 +113,18 @@ export function iconOf(reading: Reading): string {
 }
 
 /**
+ * The state as a word, for a pill or a row that has to say which one this is.
+ *
+ * Capitalising the stored value rather than carrying a table of display names,
+ * because the six values are already written as the words they should read as.
+ * A table would be six more strings to keep level with `Reading` for no gain,
+ * and the day one of them needs a name of its own is the day `RENAMED` says so.
+ */
+export function label(reading: Reading): string {
+	return reading.charAt(0).toUpperCase() + reading.slice(1);
+}
+
+/**
  * Where a decision leaves the paper, in terms of the homepage.
  *
  * Named for the stage it lands in rather than the decision just taken: whoever
@@ -161,6 +172,31 @@ export const PASS_TWO: { reading: Reading; label: string }[] = [
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];
 
+/** Frontmatter `tags` as a list, whatever shape it was written in. */
+export function readTags(value: unknown): string[] {
+	if (Array.isArray(value)) return value.filter((tag): tag is string => typeof tag === 'string');
+	if (typeof value === 'string') return value.split(/[,\s]+/).filter(Boolean);
+	return [];
+}
+
+/**
+ * Replace the value in one tag namespace, or drop the namespace with null.
+ *
+ * Every tag outside the namespace is passed through untouched, which is the
+ * whole contract: the only namespace this plugin writes is the one you named
+ * in the status tag setting, and everything else on the note belongs to
+ * whoever put it there.
+ *
+ * Sorted on the way out, because the Linter sorts tag arrays ascending and a
+ * note that comes back already sorted does not show up as a diff the next time
+ * it runs.
+ */
+export function setTag(tags: string[], namespace: string, value: string | null): string[] {
+	const rest = tags.filter((tag) => !tag.startsWith(`${namespace}/`));
+	if (value !== null) rest.push(`${namespace}/${value}`);
+	return rest.sort();
+}
+
 /**
  * Mirror the reading status into a tag, for a vault navigated by tag rather
  * than by folder.
@@ -184,7 +220,7 @@ export const PASS_TWO: { reading: Reading; label: string }[] = [
  */
 export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Reading, namespace: string): void {
 	if (namespace.length === 0) return;
-	frontmatter.tags = setAxis(readTags(frontmatter.tags), namespace, reading);
+	frontmatter.tags = setTag(readTags(frontmatter.tags), namespace, reading);
 }
 
 /**
@@ -193,10 +229,10 @@ export function applyStatusTag(frontmatter: Record<string, unknown>, reading: Re
  * Every field a decision owns is written on every decision, so re-triaging a
  * paper cannot leave part of the previous answer behind.
  *
- * It writes no domain or type tag. Nothing reads either on a paper, and
- * stamping one on every decision would overwrite whatever you had set by hand:
- * a write that buys nothing and costs an edit. The status tag below is the
- * exception, and only because you asked for it by naming a namespace.
+ * The status tag is the only tag it writes, and only because you asked for it
+ * by naming a namespace. Every other tag on the note is somebody's own filing
+ * and is passed through: stamping one on every decision would overwrite what
+ * you had set by hand, a write that buys nothing and costs an edit.
  */
 export function applyTriage(frontmatter: Record<string, unknown>, triage: Triage, date: string, statusTag = ''): void {
 	frontmatter.reading = triage.reading;

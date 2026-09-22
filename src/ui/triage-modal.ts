@@ -20,6 +20,7 @@
 // mostly made of, and it is what the twenty seconds are actually spent on.
 import { Modal, Notice, setIcon, type App } from 'obsidian';
 import { iconOf, landing, type Reading } from '../core/triage';
+import { notify } from './notify';
 
 /** What Zotero hands over without anything being opened. */
 export interface Brief {
@@ -131,8 +132,7 @@ export class TriageModal extends Modal {
 			button.createSpan({ text: decision.label });
 			button.addEventListener('click', () => {
 				this.answer(decision).catch((error: unknown) => {
-					console.error('paper-trail:triage', error);
-					new Notice(error instanceof Error ? error.message : String(error));
+					notify(error, 'triage');
 				});
 			});
 		}

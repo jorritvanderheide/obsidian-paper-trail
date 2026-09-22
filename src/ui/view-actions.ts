@@ -187,9 +187,7 @@ function stateOf(context: Context, view: MarkdownView): NoteState | null {
 	return noteState(
 		context.app.metadataCache.getFileCache(file),
 		{ path: file.path, basename: file.basename, created: file.stat.ctime },
-		context.settings.keyField,
-		context.settings.claimHeading,
-		context.settings.assessmentHeading,
+		context.settings,
 	);
 }
 

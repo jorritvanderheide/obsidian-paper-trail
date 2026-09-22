@@ -1,5 +1,6 @@
-// Pure helpers for finding a Zotero item's extracted text. No Obsidian, no fs:
-// the callers in src/source.ts do the I/O.
+// Reading a Zotero item: what it is, who wrote it, where it appeared, and how
+// to link back to it. No Obsidian, no fs: the callers in src/source.ts do the
+// I/O and hand over what Zotero said.
 
 /** A Zotero item, as written into `zotero-key`: `ABCD1234`, or `ABCD1234g5` in group 5. */
 export interface ItemRef {
@@ -80,6 +81,20 @@ export interface ApiItem {
 	};
 }
 
+/**
+ * Item types that are never a paper, whatever else they are.
+ *
+ * Two places subtract them and neither may do it differently: the pending
+ * list, which is what Zotero holds minus what the vault has, and the picker,
+ * which searches the library directly. A search returns notes and annotations
+ * along with everything else, and an attachment is a file rather than a work.
+ */
+const NOT_A_PAPER = new Set(['attachment', 'annotation', 'note']);
+
+export function isPaperItem(item: ApiItem): boolean {
+	return !NOT_A_PAPER.has(item.data.itemType ?? '');
+}
+
 export interface Creator {
 	creatorType?: string;
 	firstName?: string;
@@ -89,7 +104,7 @@ export interface Creator {
 }
 
 /** A creator's full name, however Zotero happens to store it. */
-export function creatorName(creator: Creator): string {
+function creatorName(creator: Creator): string {
 	if (creator.name) return creator.name;
 	return [creator.firstName, creator.lastName].filter(Boolean).join(' ');
 }
@@ -112,7 +127,7 @@ export function authorNames(item: ApiItem): string[] {
  * split: taking the last word of a joined name turns it into "Haer" and does
  * the same to every compound Dutch, German, Spanish and Portuguese surname.
  */
-export function familyName(creator: Creator): string {
+function familyName(creator: Creator): string {
 	return (creator.lastName ?? creator.name ?? '').trim();
 }
 
@@ -160,10 +175,11 @@ const NOT_AN_ABSTRACT = [/^semantic scholar extracted view of\b/i];
 /**
  * The abstract, or null when what Zotero holds is not one.
  *
- * Null rather than the string, because null has somewhere to go: the triage
- * pane falls back to the abstract it can find in the paper's own extracted
- * text. A paper with no abstract is still assessable. A paper with a fake one
- * shows a sentence that answers nothing and looks like it answered.
+ * Null rather than the string, because the two read differently in the dialog:
+ * "Zotero has no abstract for this item" is a fact about the record you can
+ * act on, and a paper with no abstract is still assessable from its title and
+ * venue. A fake one is a sentence that answers nothing and looks like it
+ * answered.
  */
 export function abstractOf(item: ApiItem): string | null {
 	const abstract = item.data.abstractNote?.trim();
@@ -239,7 +255,8 @@ const CONTENT_PRIORITY = ['application/pdf', 'application/epub+zip', 'text/html'
 
 /**
  * Attachment keys from an item's children, most readable first. Linked URLs
- * have no file, so no extracted text.
+ * are a bookmark rather than a file, so there is nothing to open in the reader
+ * and nothing to carry annotations.
  */
 export function attachmentKeys(children: ApiItem[]): string[] {
 	const rank = (item: ApiItem) => {

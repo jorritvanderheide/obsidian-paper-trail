@@ -13,8 +13,6 @@ export default defineConfig(
 		'package.json',
 		'package-lock.json',
 		'tsconfig.json',
-		// Vendored from upstream Speed Reader, kept as is. See src/reader/README.md.
-		'tests/reader',
 	]),
 	{
 		languageOptions: {
@@ -33,7 +31,7 @@ export default defineConfig(
 	...obsidianmd.configs.recommended,
 	{
 		rules: {
-			'obsidianmd/ui/sentence-case': ['warn', { brands: ['Zotero', 'Zotero Speed Reader'] }],
+			'obsidianmd/ui/sentence-case': ['warn', { brands: ['Zotero'] }],
 		},
 	},
 );

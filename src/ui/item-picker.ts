@@ -5,16 +5,14 @@
 // browser a few minutes ago, and asking you to retype its title is asking you
 // to do the search twice.
 import { SuggestModal, type App } from 'obsidian';
-import { authorNames, itemYear, type ApiItem } from '../core/zotero';
+import { authorNames, isPaperItem, itemYear, type ApiItem } from '../core/zotero';
+import { messageOf } from './notify';
 import { recentItems, searchItems } from '../source';
 
 const MIN_QUERY = 2;
 
 /** How many recent items an empty box offers. Enough to recognise what you just saved, not a library browser. */
 const RECENT = 15;
-
-/** Zotero returns notes and annotations from a search too, and neither is a paper. */
-const NOT_A_PAPER = new Set(['note', 'annotation', 'attachment']);
 
 /**
  * A way out of the picker that is not picking something.
@@ -65,10 +63,10 @@ class ItemPicker extends SuggestModal<ApiItem> {
 		try {
 			const items = searching ? await searchItems(text) : await this.recentlyAdded();
 			this.emptyStateText = searching ? 'No matching items.' : 'Nothing in your Zotero library yet.';
-			return items.filter((item) => !NOT_A_PAPER.has(item.data.itemType ?? ''));
+			return items.filter(isPaperItem);
 		} catch (error) {
 			// The modal is the only surface here, so the reason belongs in it.
-			this.emptyStateText = error instanceof Error ? error.message : String(error);
+			this.emptyStateText = messageOf(error);
 			return [];
 		}
 	}

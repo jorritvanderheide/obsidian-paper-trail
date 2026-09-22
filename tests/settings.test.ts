@@ -62,17 +62,6 @@ describe('versioning', () => {
 	});
 });
 
-
-describe('domains as a setting', () => {
-	it('defaults to the shipped list', () => {
-		expect(loadSettings(null).domains).toEqual(['research', 'teaching', 'admin', 'personal']);
-	});
-
-	it('takes what was typed', () => {
-		expect(loadSettings({ domains: 'fieldwork, writing' }).domains).toEqual(['fieldwork', 'writing']);
-	});
-});
-
 /**
  * The settings tab writes values back through `loadSettings`, so anything the
  * loader coerces or rejects is coerced or rejected on the way in too. These

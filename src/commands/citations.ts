@@ -16,7 +16,8 @@
 // stops raising Zotero; the rare one still can.
 import { MarkdownView, Notice } from 'obsidian';
 import { pickItem } from '../ui/item-picker';
-import { pickCitation, SourceError } from '../source';
+import { pickCitation } from '../source';
+import { notify } from '../ui/notify';
 import type { Context } from '../context';
 
 /**
@@ -40,8 +41,7 @@ async function advanced(context: Context): Promise<void> {
 		}
 		editor.replaceSelection(citation);
 	} catch (error) {
-		if (!(error instanceof SourceError)) console.error(error);
-		new Notice(error instanceof Error ? error.message : String(error));
+		notify(error);
 	}
 }
 
@@ -81,8 +81,7 @@ export async function insertCitation(context: Context): Promise<void> {
 		}
 		editor.replaceSelection(wikilink(key));
 	} catch (error) {
-		if (!(error instanceof SourceError)) console.error(error);
-		new Notice(error instanceof Error ? error.message : String(error));
+		notify(error);
 	}
 }
 

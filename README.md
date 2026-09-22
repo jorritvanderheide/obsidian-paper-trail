@@ -140,9 +140,6 @@ Paper Trail has no opinion about them. It writes nothing on a note you wrote,
 asks nothing about it afterwards, and the queue is papers only. Making notes is
 what Obsidian's own Templates plugin is for.
 
-**Retag note** sets a `domain/`, the one tag axis Paper Trail knows, and **Find
-tags nothing recognises** catches the typos that split a tag tree.
-
 **Insert citation** writes `[[citekey]]`, a link rather than pandoc syntax. It
 resolves, because a paper is named for its citation key and carries it as an
 alias either way; it opens the paper; it shows the paper on hover; and every
@@ -228,7 +225,10 @@ Zotero means to you, which is the one thing the plugin cannot work out and the
 one thing that decides whether it asks you a question you have already answered.
 
 The stages and the `reading` vocabulary are not configurable. They are the
-product.
+product. Paper Trail writes no tags of its own either, beyond the reading status
+mirror you get by naming a namespace in **Status tag**: how you file your notes
+is yours, and a plugin that stamped its own vocabulary on them would leave you
+editing every file to undo it.
 
 ## Development
 

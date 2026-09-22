@@ -1,11 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { applyStatusTag, applyTriage, arrivalReading, asks, iconOf, landing, PASS_TWO, READING_ORDER, type Reading } from '../src/core/triage';
+import {
+	applyStatusTag,
+	applyTriage,
+	arrivalReading,
+	asks,
+	iconOf,
+	label,
+	landing,
+	PASS_TWO,
+	readTags,
+	READING_ORDER,
+	setTag,
+	type Reading,
+} from '../src/core/triage';
 
 /** A literature note as it is created, before any decision. */
 const untriaged = () => ({
 	citekey: 'vanderhaerReframingHeatPump2026',
 	reading: 'untriaged',
-	tags: ['type/inbox'],
+	tags: ['topic/heat-pumps'],
 });
 
 describe('applyTriage', () => {
@@ -17,11 +30,11 @@ describe('applyTriage', () => {
 	});
 
 	it('leaves the tags exactly as it found them', () => {
-		// A paper's lifecycle is `reading`. It is not on the type axis, and it
-		// never was truthfully: no value there is right for a paper.
+		// A paper's lifecycle is `reading`, in the frontmatter. Every tag on the
+		// note belongs to whoever put it there.
 		const frontmatter: Record<string, unknown> = untriaged();
 		applyTriage(frontmatter, { reading: 'finished', reason: null }, '2026-09-20');
-		expect(frontmatter.tags).toEqual(['type/inbox']);
+		expect(frontmatter.tags).toEqual(['topic/heat-pumps']);
 	});
 
 	it('keeps the fields it does not own', () => {
@@ -70,9 +83,9 @@ describe('applyTriage', () => {
 	});
 
 	it('does not duplicate an axis when the note is already filed', () => {
-		const frontmatter: Record<string, unknown> = { tags: ['domain/phd', 'type/filed'] };
+		const frontmatter: Record<string, unknown> = { tags: ['project/wp1', 'topic/heat-pumps'] };
 		applyTriage(frontmatter, { reading: 'finished', reason: null }, '2026-09-20');
-		expect(frontmatter.tags).toEqual(['domain/phd', 'type/filed']);
+		expect(frontmatter.tags).toEqual(['project/wp1', 'topic/heat-pumps']);
 	});
 
 	it('copes with a note that has no tags at all, and adds none', () => {
@@ -91,9 +104,9 @@ describe('a decision writes no tags at all', () => {
 	});
 
 	it('keeps what you set by hand rather than overwriting it on every decision', () => {
-		const frontmatter: Record<string, unknown> = { tags: ['domain/teaching', 'type/living'] };
+		const frontmatter: Record<string, unknown> = { tags: ['project/wp1', 'topic/heat-pumps'] };
 		applyTriage(frontmatter, { reading: 'queued', reason: null }, '2026-09-20');
-		expect(frontmatter.tags).toEqual(['domain/teaching', 'type/living']);
+		expect(frontmatter.tags).toEqual(['project/wp1', 'topic/heat-pumps']);
 	});
 });
 
@@ -195,15 +208,15 @@ describe('applyStatusTag', () => {
 	// The one thing this must never do. Every other tag belongs to whoever put
 	// it there.
 	it('leaves every tag outside its namespace alone', () => {
-		const frontmatter: Record<string, unknown> = { tags: ['domain/research', 'type/filed', 'status/untriaged'] };
+		const frontmatter: Record<string, unknown> = { tags: ['project/wp1', 'topic/heat-pumps', 'status/untriaged'] };
 		applyStatusTag(frontmatter, 'dropped', 'status');
-		expect(frontmatter.tags).toEqual(['domain/research', 'status/dropped', 'type/filed']);
+		expect(frontmatter.tags).toEqual(['project/wp1', 'status/dropped', 'topic/heat-pumps']);
 	});
 
 	it('reads tags written as a string, which is a shape Obsidian allows', () => {
-		const frontmatter: Record<string, unknown> = { tags: 'domain/research status/untriaged' };
+		const frontmatter: Record<string, unknown> = { tags: 'topic/heat-pumps status/untriaged' };
 		applyStatusTag(frontmatter, 'finished', 'status');
-		expect(frontmatter.tags).toEqual(['domain/research', 'status/finished']);
+		expect(frontmatter.tags).toEqual(['status/finished', 'topic/heat-pumps']);
 	});
 });
 
@@ -281,5 +294,79 @@ describe('arrivalReading', () => {
 
 	it('never arrives anywhere a paper cannot come back from', () => {
 		for (const triage of [true, false]) expect(asks(arrivalReading(triage))).toBeNull();
+	});
+});
+
+/**
+ * The tag helpers, which serve one caller: the status tag. They used to be the
+ * vocabulary module's, back when the plugin owned a `domain/` axis and validated
+ * values against a configured list. The axis went; these two stayed, because
+ * writing one namespace into somebody's frontmatter without disturbing the rest
+ * is still exactly what `applyStatusTag` has to do.
+ */
+describe('setTag', () => {
+	it('replaces the value in its namespace', () => {
+		expect(setTag(['status/untriaged', 'topic/heat-pumps'], 'status', 'queued')).toEqual([
+			'status/queued',
+			'topic/heat-pumps',
+		]);
+	});
+
+	it('adds the tag when the note has none in that namespace', () => {
+		expect(setTag(['topic/heat-pumps'], 'status', 'queued')).toEqual(['status/queued', 'topic/heat-pumps']);
+	});
+
+	it('drops the namespace entirely when given null', () => {
+		expect(setTag(['status/queued', 'topic/heat-pumps'], 'status', null)).toEqual(['topic/heat-pumps']);
+	});
+
+	// The one thing it must never do.
+	it('leaves every tag outside the namespace alone', () => {
+		expect(setTag(['project/wp1', 'topic/heat-pumps'], 'status', 'dropped')).toEqual([
+			'project/wp1',
+			'status/dropped',
+			'topic/heat-pumps',
+		]);
+	});
+
+	// The Linter sorts tag arrays ascending. A note that comes back already
+	// sorted does not show up as a diff the next time it runs.
+	it('sorts, so a synced note is not a diff for the Linter to fix', () => {
+		expect(setTag(['topic/heat-pumps', 'project/wp1'], 'status', 'queued')).toEqual([
+			'project/wp1',
+			'status/queued',
+			'topic/heat-pumps',
+		]);
+	});
+
+	it('does not mistake a longer namespace for its own', () => {
+		expect(setTag(['status-of/mine'], 'status', 'queued')).toEqual(['status-of/mine', 'status/queued']);
+	});
+});
+
+describe('readTags', () => {
+	it('takes a list as it is', () => {
+		expect(readTags(['project/wp1', 'topic/heat-pumps'])).toEqual(['project/wp1', 'topic/heat-pumps']);
+	});
+
+	// Obsidian allows tags written inline as a string, and a note written by
+	// hand often is.
+	it('splits a string on commas and spaces', () => {
+		expect(readTags('project/wp1, topic/heat-pumps')).toEqual(['project/wp1', 'topic/heat-pumps']);
+	});
+
+	it('reads a note with no tags as no tags rather than failing', () => {
+		expect(readTags(undefined)).toEqual([]);
+		expect(readTags(null)).toEqual([]);
+	});
+
+	it('drops anything in the list that is not a string', () => {
+		expect(readTags(['project/wp1', 3, null])).toEqual(['project/wp1']);
+	});
+});
+
+describe('label', () => {
+	it('gives every state a word, because an icon cannot be read aloud', () => {
+		expect(READING_ORDER.map(label)).toEqual(['Untriaged', 'Queued', 'Finished', 'Promoted', 'Deferred', 'Dropped']);
 	});
 });

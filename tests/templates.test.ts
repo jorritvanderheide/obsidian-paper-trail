@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PAPER, PAPER_TEMPLATE } from '../src/core/templates';
-import { readTags } from '../src/core/vocabulary';
+import { readTags } from '../src/core/triage';
 import { TASKS } from '../src/core/stages';
 
 /** The tag list out of a template's frontmatter, without a YAML parser. */
@@ -34,12 +34,11 @@ describe('the paper template', () => {
 		expect(PAPER).toContain('%%/paper-trail%%');
 	});
 
-	// The values on an axis are the user's, so a template cannot know one: naming
-	// domain/phd stops naming anything real the moment someone edits the list.
+	// How somebody files their notes is theirs. A template that arrived with a
+	// tag on it would put the plugin's filing in every paper you ever made.
 	it('names no tag at all', () => {
 		expect(tagsOf(PAPER)).toEqual([]);
-		expect(PAPER).not.toMatch(/domain\//);
-		expect(PAPER).not.toMatch(/type\//);
+		expect(PAPER).not.toContain('tags:');
 	});
 
 	// "Everything shipped is English" was recorded as done while three templates

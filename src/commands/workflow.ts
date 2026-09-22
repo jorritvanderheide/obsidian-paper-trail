@@ -33,11 +33,10 @@ export async function openNote(app: App, note: NoteState): Promise<void> {
  * frontmatter field is a *select* link, which only highlights the row in the
  * library; reading means the PDF, so this resolves the attachment instead.
  *
- * The attachment key is normally already known, because pass one recorded the
- * one it found text in, and triage always comes before reading. Resolving it
- * again is the fallback for a paper that reached the queue another way. A note
- * body can carry several `zotero://open` links, a snapshot alongside the PDF,
- * so picking the first one there would be a coin flip.
+ * Resolved from Zotero rather than read off the note. A note body can carry
+ * several `zotero://open` links, a snapshot alongside the PDF, so picking the
+ * first one there would be a coin flip; the select link in the frontmatter is
+ * the fallback, and names the item rather than a file.
  */
 async function readingUrl(context: Context, file: TFile): Promise<string | null> {
 	const app = context.app;
@@ -201,8 +200,10 @@ export async function next(context: Context): Promise<void> {
 	const buckets = queue(context).rows;
 	const outstanding = [...buckets.values()].reduce((sum, list) => sum + list.length, 0);
 
-	for (const { stage, label } of STAGES) {
-		const first = buckets.get(stage)?.[0];
+	for (const { task: section, label } of STAGES) {
+		const first = buckets.get(section)?.[0];
+		// The row's own task, not the section's: a pending paper in Reading is
+		// asking to be read whatever the section it was filed under is called.
 		const task = first ? rowTask(first, context.settings.triage) : null;
 		if (!first || !task) continue;
 		new Notice(`${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} outstanding` : ''}`);

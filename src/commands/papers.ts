@@ -23,6 +23,7 @@ import {
 import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
 import { arrivalReading, type Reading } from '../core/triage';
 import { attachmentAnnotations, itemChildren, itemMetadata, SourceError } from '../source';
+import { notify } from '../ui/notify';
 import { ensureFolder, templateBody } from './seed';
 import type { Context } from '../context';
 
@@ -36,7 +37,7 @@ function notePath(context: Context, item: ApiItem): string {
  * reading state; on a later sync it must not, because those are answers the
  * user gave and Zotero knows nothing about them.
  */
-export async function writePaperFrontmatter(
+async function writePaperFrontmatter(
 	context: Context,
 	file: TFile,
 	item: ApiItem,
@@ -181,8 +182,7 @@ export async function refreshPaper(context: Context, target?: TFile): Promise<vo
 		await syncPaper(context, file);
 		new Notice(`${file.basename} is up to date with Zotero.`);
 	} catch (error) {
-		if (!(error instanceof SourceError)) console.error(error);
-		new Notice(error instanceof Error ? error.message : String(error));
+		notify(error);
 	}
 }
 

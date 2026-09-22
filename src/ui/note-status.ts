@@ -16,8 +16,7 @@
 //
 // Wiring only. What the states are and what each one means is core's.
 import { MarkdownRenderChild, setIcon, type MarkdownPostProcessor, type TFile } from 'obsidian';
-import { currentReading, iconOf, landing, READING_ORDER, type Reading } from '../core/triage';
-import { label } from '../core/vocabulary';
+import { currentReading, iconOf, label, landing, READING_ORDER, type Reading } from '../core/triage';
 import { isPaper } from '../core/paper-note';
 import { setReading } from '../commands/reading';
 import type { Context } from '../context';

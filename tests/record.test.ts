@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { excluded, renderReport, type Decided } from '../src/core/record';
+import { decidedOf, excluded, isReport, renderReport, type Decided } from '../src/core/record';
 
 const paper = (over: Partial<Decided> = {}): Decided => ({
 	title: 'Reframing heat pump transitions',
@@ -98,5 +98,102 @@ describe('renderReport', () => {
 	it('is stable: the same record renders the same document', () => {
 		const papers = [paper(), paper({ title: 'another', triaged: '2026-04-01' })];
 		expect(of(papers)).toBe(of(papers));
+	});
+
+	it('stamps the marker, so the writer can tell its own file from somebody else’s', () => {
+		expect(of([paper()]).startsWith('---\npaper-trail: excluded-papers\n---\n')).toBe(true);
+	});
+
+	it('stamps it on an empty record too, or the first run would refuse the second', () => {
+		expect(of([])).toContain('paper-trail: excluded-papers');
+	});
+});
+
+/**
+ * The guard on overwriting. A report is written to a fixed path and replaced
+ * every run, so the only thing standing between that and someone's own
+ * "Excluded papers" note is this test being right.
+ */
+describe('isReport', () => {
+	it('recognises what renderReport wrote', () => {
+		expect(isReport({ 'paper-trail': 'excluded-papers' })).toBe(true);
+	});
+
+	it('refuses a note with no frontmatter at all', () => {
+		expect(isReport(undefined)).toBe(false);
+		expect(isReport({})).toBe(false);
+	});
+
+	it('refuses a paper, which carries plenty of frontmatter and none of it this', () => {
+		expect(isReport({ 'zotero-key': 'ABCD2345', reading: 'dropped', title: 'Excluded papers' })).toBe(false);
+	});
+
+	it('refuses the key carrying some other value, rather than taking the key alone as consent', () => {
+		expect(isReport({ 'paper-trail': true })).toBe(false);
+		expect(isReport({ 'paper-trail': 'something else' })).toBe(false);
+	});
+});
+
+/**
+ * Reading a paper's frontmatter. Every line of this is an interpretation the
+ * queue also makes, and the two agreeing is what keeps the record from being a
+ * table of papers the queue never showed you.
+ */
+describe('decidedOf', () => {
+	const file = { path: 'Literature/vanderhaer2026.md', basename: 'vanderhaer2026' };
+	const of = (frontmatter: Record<string, unknown> | undefined) => decidedOf(frontmatter, file, 'zotero-key');
+
+	it('reads a paper off its frontmatter', () => {
+		expect(
+			of({
+				'zotero-key': 'ABCD2345',
+				title: 'Reframing heat pump transitions',
+				authors: 'Jeltje Van Der Haer',
+				year: 2026,
+				citekey: 'vanderhaer2026',
+				reading: 'dropped',
+				'triaged-date': '2026-03-14',
+				'reading-reason': 'a review, not empirical',
+			}),
+		).toEqual({
+			title: 'Reframing heat pump transitions',
+			authors: 'Jeltje Van Der Haer',
+			year: 2026,
+			citekey: 'vanderhaer2026',
+			reading: 'dropped',
+			triaged: '2026-03-14',
+			reason: 'a review, not empirical',
+			path: 'Literature/vanderhaer2026.md',
+		});
+	});
+
+	it('is nothing at all for a note that names no Zotero item', () => {
+		expect(of({ title: 'my own thinking' })).toBeNull();
+		expect(of(undefined)).toBeNull();
+	});
+
+	it('is nothing under a different key field, which is what makes the setting mean anything', () => {
+		expect(decidedOf({ 'zotero-key': 'ABCD2345' }, file, 'citekey')).toBeNull();
+	});
+
+	// The same call `noteState` makes. A paper nobody has ruled on is untriaged,
+	// not absent from the denominator.
+	it('reads a missing reading field as untriaged', () => {
+		expect(of({ 'zotero-key': 'ABCD2345' })?.reading).toBe('untriaged');
+	});
+
+	it('reads an old spelling as what it is called now', () => {
+		expect(of({ 'zotero-key': 'ABCD2345', reading: 'pass-three' })?.reading).toBe('promoted');
+	});
+
+	it('falls back to the filename when a paper has no title', () => {
+		expect(of({ 'zotero-key': 'ABCD2345' })?.title).toBe('vanderhaer2026');
+	});
+
+	// A cell the table can print. An empty authors field is an empty cell; a
+	// year that is not a number is no year rather than the word it was typed as.
+	it('leaves an unusable field empty rather than printing what was typed', () => {
+		const row = of({ 'zotero-key': 'ABCD2345', authors: 42, year: 'in press', citekey: null });
+		expect(row).toMatchObject({ authors: '', year: null, citekey: null });
 	});
 });

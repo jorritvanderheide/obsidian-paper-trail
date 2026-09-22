@@ -271,7 +271,7 @@ describe('applyPaperFrontmatter', () => {
 		'reading-date': '2026-11-14',
 		'triaged-date': '2026-09-20',
 		'reading-reason': 'kept for the method',
-		tags: ['domain/phd', 'type/filed'],
+		tags: ['project/wp1', 'topic/heat-pumps'],
 		'my-own-field': 'do not touch',
 	});
 
@@ -301,13 +301,12 @@ describe('applyPaperFrontmatter', () => {
 	it('does not restamp the tags on a sync', () => {
 		const fm = lived();
 		applyPaperFrontmatter(fm, managed(), null, 'zotero-key');
-		expect(fm.tags).toEqual(['domain/phd', 'type/filed']);
+		expect(fm.tags).toEqual(['project/wp1', 'topic/heat-pumps']);
 	});
 
 	it('stamps the reading state on creation, and no tags', () => {
-		// A paper is not on the type axis. `stageOf` sends papers to Triage before
-		// it looks at their type, so one tagged as waiting to be filed would never
-		// appear under File.
+		// The reading state is the whole of a paper's lifecycle. Filing is the
+		// user's business, so a new paper arrives carrying no tag of ours at all.
 		const fm: Record<string, unknown> = {};
 		applyPaperFrontmatter(fm, managed(), 'untriaged', 'zotero-key');
 		expect(fm.reading).toBe('untriaged');
@@ -315,9 +314,9 @@ describe('applyPaperFrontmatter', () => {
 	});
 
 	it('leaves tags you added yourself alone on creation', () => {
-		const fm: Record<string, unknown> = { tags: ['domain/teaching'] };
+		const fm: Record<string, unknown> = { tags: ['topic/heat-pumps'] };
 		applyPaperFrontmatter(fm, managed(), 'untriaged', 'zotero-key');
-		expect(fm.tags).toEqual(['domain/teaching']);
+		expect(fm.tags).toEqual(['topic/heat-pumps']);
 	});
 
 	it('removes a citation key that Better BibTeX no longer provides', () => {
@@ -421,7 +420,7 @@ describe('managedDiffers', () => {
 	});
 
 	it('ignores the keys it does not own, however many of them there are', () => {
-		const lived = { ...synced(), reading: 'finished', 'reading-reason': 'a review', tags: ['type/filed'], mine: 1 };
+		const lived = { ...synced(), reading: 'finished', 'reading-reason': 'a review', tags: ['topic/heat-pumps'], mine: 1 };
 		expect(managedDiffers(lived, managed(), 'zotero-key')).toBe(false);
 	});
 

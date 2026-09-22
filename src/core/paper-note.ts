@@ -218,10 +218,9 @@ export function managedDiffers(current: Record<string, unknown> | undefined, man
  * queue is to ask first, `queued` when saving it to Zotero already was the
  * first pass.
  *
- * It gets no tags at all beyond that. No value on the type axis is right for a
- * paper: `inbox` would claim it is waiting to be filed when `stageOf` never
- * sends it to File, `filed` describes a loop it was never in, and `living` is
- * wrong for one you dropped. A paper's lifecycle is `reading`.
+ * It gets no tags at all beyond the status mirror, and only when a namespace
+ * has been named. A paper's lifecycle is `reading`, in the frontmatter, and
+ * how somebody files their notes is theirs.
  */
 export function applyPaperFrontmatter(
 	frontmatter: Record<string, unknown>,

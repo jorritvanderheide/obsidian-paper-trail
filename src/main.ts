@@ -1,12 +1,10 @@
-import { debounce, Notice, Plugin } from 'obsidian';
+import { debounce, Plugin } from 'obsidian';
 import { next } from './commands/workflow';
 import { insertCitation } from './commands/citations';
 import { refreshPaper, syncOnOpen } from './commands/papers';
-import { findOrphans } from './commands/find-orphans';
 import { writeReport } from './commands/report';
 import { setReading } from './commands/reading';
 import { insertBlock, welcome } from './commands/setup';
-import { retag } from './commands/tags';
 import { loadSettings, type Settings } from './core/settings';
 import { SettingsTab } from './ui/settings-tab';
 import { WORKFLOW_BLOCK, WorkflowBlock } from './ui/workflow-block';
@@ -14,6 +12,7 @@ import { openQueue, QUEUE_VIEW, QueueView } from './ui/queue';
 import { decorate, undecorate } from './ui/view-actions';
 import { noteStatus } from './ui/note-status';
 import { announce, forgetCompletions } from './ui/completion';
+import { notify } from './ui/notify';
 
 export default class PaperTrail extends Plugin {
 	settings!: Settings;
@@ -67,9 +66,7 @@ export default class PaperTrail extends Plugin {
 		this.command('insert-block', 'Insert queue block', () => insertBlock(this));
 		this.command('next', 'Next', () => next(this));
 		this.command('refresh-paper', 'Refresh paper from Zotero', () => refreshPaper(this));
-		this.command('retag', 'Retag note', () => retag(this));
 		this.command('excluded', 'Export excluded papers', () => writeReport(this));
-		this.command('find-orphans', 'Find tags nothing recognises', () => Promise.resolve(findOrphans(this)));
 		this.command('set-reading', 'Set reading status', () => setReading(this));
 		this.command('insert-citation', 'Insert citation', () => insertCitation(this));
 
@@ -123,8 +120,7 @@ export default class PaperTrail extends Plugin {
 			name,
 			callback: () => {
 				run().catch((error: unknown) => {
-					console.error(`paper-trail:${id}`, error);
-					new Notice(error instanceof Error ? error.message : String(error));
+					notify(error, id);
 				});
 			},
 		});
