@@ -17,7 +17,6 @@ import { ItemView, Menu, Notice, debounce, setIcon, type App, type WorkspaceLeaf
 import {
 	rowTask,
 	rowTitle,
-	outcomeOf,
 	TASKS,
 	visibleStages,
 	type Row,
@@ -687,19 +686,6 @@ function decidedState(entry: Settled): string {
 }
 
 /**
- * Where a row sits now, for the head of its menu: the section it is in for one
- * still outstanding, and the decision that filed it for one that is not.
- */
-function rowState(row: Row, triage: boolean): { text: string; icon: string } | null {
-	const task = rowTask(row, triage);
-	if (task) return { text: TASKS[task].label, icon: TASKS[task].stageIcon };
-	if (row.kind !== 'note') return null;
-
-	const outcome = outcomeOf(row.note);
-	return outcome ? { text: decidedState({ note: row.note, reading: outcome }), icon: iconOf(row.note.state) } : null;
-}
-
-/**
  * What a row offers besides its own next step: changing where the paper sits.
  *
  * On every row, not just a filed one. Moving a paper between states was only
@@ -713,6 +699,12 @@ function rowState(row: Row, triage: boolean): { text: string; icon: string } | n
  * though: a deferral is a promise to come back and this is where it resurfaces,
  * and a paper dropped on its abstract is exactly the one a citation sends you
  * back to two years later.
+ *
+ * One item, and no heading over it. The state the paper is in was named at the
+ * top for a while, on the grounds that a filed row carries an icon and nothing
+ * else. A menu that opens with a line you cannot press, above a single line you
+ * can, spends most of itself saying what you already knew: you right-clicked
+ * that row. The words are still on the row, as the label a screen reader reads.
  *
  * Not drag and drop, which the shape of the workflow will not support. Claim
  * and Assessment are not states you can put a paper into: they mean the reading
@@ -728,16 +720,6 @@ function rowMenu(context: Context, row: Row, el: HTMLElement, event: MouseEvent)
 
 	event.preventDefault();
 	const menu = new Menu();
-
-	// Where the paper is now, and not as a choice. A filed row carries an icon
-	// and nothing else, and four outcomes is more than one glyph can teach; an
-	// outstanding row says which section it is in, which its own heading is too
-	// far from to read at a glance in a long list.
-	const heading = rowState(row, context.settings.triage);
-	if (heading) {
-		menu.addItem((item) => item.setTitle(heading.text).setIcon(heading.icon).setIsLabel(true));
-		menu.addSeparator();
-	}
 
 	// Through the same chooser the palette offers, so a paper moved from here
 	// lands exactly where one moved from its own note would, and a paper that
