@@ -6,6 +6,7 @@
 //
 // Content only. The seeding lives in commands/seed.ts, so this file stays
 // free of Obsidian and the tests can read it.
+import { REGION_END, REGION_START } from './paper-note';
 
 /**
  * Two empty headings and the managed region, and nothing else.
@@ -30,8 +31,8 @@ export const PAPER = `# {{TITLE}}
 
 ## {{ASSESSMENT}}
 
-%%paper-trail%%
-%%/paper-trail%%
+${REGION_START}
+${REGION_END}
 `;
 
 export interface Template {

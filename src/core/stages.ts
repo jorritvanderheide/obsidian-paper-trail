@@ -389,8 +389,20 @@ export function headingLine(cache: CachedMetadata | null, heading: string): numb
 
 /**
  * Whether a heading has anything under it, judged from the cache alone so that
- * nothing has to read every note in the vault. Comments and the heading itself
- * do not count, which is what makes an untouched template section read as empty.
+ * nothing has to read every note in the vault. The heading itself does not
+ * count, and neither does anything the plugin wrote, which is what makes an
+ * untouched template section read as empty.
+ *
+ * `html` is the load-bearing one, and the reason the managed region is
+ * delimited by HTML comments. The last heading in a paper is the assessment,
+ * and the region opens directly under it, so whatever Obsidian calls that
+ * marker line is what decides whether a promoted paper is asking for a third
+ * pass or has already had one. Under `%%` markers it was read as prose and
+ * every promoted paper went straight to Decided.
+ *
+ * `comment` stays in the list although Obsidian does not document it: the type
+ * union in the API is explicitly non-exhaustive, it costs a comparison, and a
+ * note somebody wrote `%%` into by hand should not read as written-up either.
  */
 export function hasContentUnder(cache: CachedMetadata | null, heading: string): boolean {
 	const headings = cache?.headings ?? [];

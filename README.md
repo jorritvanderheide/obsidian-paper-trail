@@ -184,12 +184,19 @@ Paper Trail owns a fixed set of frontmatter keys (`title`, `aliases`, `authors`,
 one delimited region:
 
 ```
-%%paper-trail%%
+<!--paper-trail-->
 ## Highlights
 
 > a passage you highlighted in Zotero (p. 4) ^zt-ABCD2345
-%%/paper-trail%%
+<!--/paper-trail-->
 ```
+
+The markers are HTML comments, so they are invisible in a rendered note and
+Obsidian's metadata cache calls them `html` rather than prose. That matters
+because the region opens directly under the assessment heading, and what the
+cache calls that line is what decides whether a paper is still owed a third
+pass. Notes written under the older `%%paper-trail%%` markers are recognised
+and converted the next time they sync.
 
 A sync may overwrite those and nothing else. Every other key, every heading and
 every word you wrote is yours. Highlight anchors come from Zotero's annotation

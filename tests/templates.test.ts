@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PAPER, PAPER_TEMPLATE } from '../src/core/templates';
+import { REGION_END, REGION_START } from '../src/core/paper-note';
 import { readTags } from '../src/core/triage';
 import { TASKS } from '../src/core/stages';
 
@@ -30,8 +31,16 @@ describe('the paper template', () => {
 	});
 
 	it('carries the managed region, or a sync has nowhere to put highlights', () => {
-		expect(PAPER).toContain('%%paper-trail%%');
-		expect(PAPER).toContain('%%/paper-trail%%');
+		expect(PAPER).toContain(REGION_START);
+		expect(PAPER).toContain(REGION_END);
+	});
+
+	// The markers are HTML comments because the metadata cache has to call them
+	// something the stage rules ignore, and `html` is a type Obsidian documents.
+	it('delimits the region with something the heading check will not read as prose', () => {
+		expect(REGION_START.startsWith('<!--')).toBe(true);
+		expect(REGION_END.startsWith('<!--')).toBe(true);
+		expect(PAPER).not.toContain('%%');
 	});
 
 	// How somebody files their notes is theirs. A template that arrived with a
@@ -77,7 +86,10 @@ describe('what the template does not carry', () => {
  */
 describe('the prompts the template no longer carries', () => {
 	it('leaves both headings empty, so nothing has to be deleted before writing', () => {
-		expect(PAPER).not.toContain('<!--');
+		// The region markers are HTML comments now, so this asks what it means:
+		// nothing sits under either heading but the region that follows them.
+		const body = PAPER.slice(PAPER.indexOf('## {{CLAIM}}'), PAPER.indexOf(REGION_START));
+		expect(body.replace('## {{CLAIM}}', '').replace('## {{ASSESSMENT}}', '').trim()).toBe('');
 	});
 
 	// `hasContentUnder` ignores comments, so they never satisfied the gate. The

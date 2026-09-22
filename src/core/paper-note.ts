@@ -9,9 +9,37 @@ import { applyStatusTag, NO_STATUS_TAGS, type Reading, type StatusTags } from '.
 import { authorNames, itemYear, readerUrl, type ApiItem, type Highlight, type ItemRef } from './zotero';
 import { sortKeys } from './frontmatter';
 
-/** Wraps the only part of the body a sync is allowed to replace. */
-export const REGION_START = '%%paper-trail%%';
-export const REGION_END = '%%/paper-trail%%';
+/**
+ * Wraps the only part of the body a sync is allowed to replace.
+ *
+ * An HTML comment rather than Obsidian's `%%`, and the difference is not
+ * cosmetic. Both are invisible in a rendered note, but the metadata cache has
+ * to agree, and `html` is a section type Obsidian documents while `comment` is
+ * not one it lists at all. The rule that decides whether a heading has anything
+ * under it works off that cache, so with `%%` markers the one sitting between
+ * the assessment heading and the highlights that follow it read as prose: every
+ * paper promoted to a third pass looked like its assessment was already
+ * written, and went straight to Decided instead of to Assessment.
+ */
+export const REGION_START = '<!--paper-trail-->';
+export const REGION_END = '<!--/paper-trail-->';
+
+/**
+ * What the markers used to be, still recognised so a note made under them is
+ * found rather than given a second region.
+ *
+ * Read in the old spelling, written in the new, exactly as `RENAMED` handles a
+ * renamed reading value. A note converts on its next sync and nothing has to be
+ * edited by hand.
+ */
+const LEGACY_START = '%%paper-trail%%';
+const LEGACY_END = '%%/paper-trail%%';
+
+/** Marker pairs to look for, newest first. */
+const MARKERS = [
+	{ start: REGION_START, end: REGION_END },
+	{ start: LEGACY_START, end: LEGACY_END },
+];
 
 /**
  * Frontmatter keys the plugin writes. Every other key in the file is the
@@ -143,13 +171,17 @@ export function replaceRegion(body: string, contents: string): string {
 	// reason. The trailing one still earns its place: without it the last quote
 	// sits flush against the marker in source view.
 	const region = `${REGION_START}\n${contents}\n\n${REGION_END}`;
-	const start = body.indexOf(REGION_START);
-	const end = body.indexOf(REGION_END);
 
-	if (start === -1 || end === -1 || end < start) {
-		return `${body.replace(/\s*$/, '')}\n\n${region}\n`;
+	// Either spelling of the markers, so a note written under the old ones is
+	// found and rewritten rather than handed a second region below the first.
+	for (const { start, end } of MARKERS) {
+		const from = body.indexOf(start);
+		const to = body.indexOf(end);
+		if (from === -1 || to === -1 || to < from) continue;
+		return body.slice(0, from) + region + body.slice(to + end.length);
 	}
-	return body.slice(0, start) + region + body.slice(end + REGION_END.length);
+
+	return `${body.replace(/\s*$/, '')}\n\n${region}\n`;
 }
 
 /**

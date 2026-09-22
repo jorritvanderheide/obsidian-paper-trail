@@ -490,3 +490,53 @@ describe('isPaper', () => {
 		expect(isPaper({}, 'zotero-key')).toBe(false);
 	});
 });
+
+/**
+ * A note written under the old `%%` markers.
+ *
+ * They were swapped for HTML comments because the metadata cache has to agree
+ * about what they are: the region opens directly under the assessment heading,
+ * and Obsidian read a `%%` line as prose, so every paper promoted to a third
+ * pass looked like it had already had one.
+ *
+ * The risk in swapping them is one thing, and these are here for it: a note
+ * whose old region is not recognised gets a second one appended below the
+ * first, which is the region duplicated and the highlights written twice.
+ */
+describe('replaceRegion, converting the old markers', () => {
+	const legacy = ['# A paper', '', '## Claim', '', '## Assessment', '', '%%paper-trail%%', '## Highlights', '', '> old', '', '%%/paper-trail%%', ''].join('\n');
+
+	it('finds the old region rather than appending a second one', () => {
+		const out = replaceRegion(legacy, '## Highlights\n\n> new');
+		expect(out.match(/<!--paper-trail-->/g)).toHaveLength(1);
+		expect(out).not.toContain('%%');
+	});
+
+	it('writes the new markers in its place', () => {
+		const out = replaceRegion(legacy, '## Highlights');
+		expect(out).toContain('<!--paper-trail-->');
+		expect(out).toContain('<!--/paper-trail-->');
+	});
+
+	it('keeps every word outside the region, which is the whole promise', () => {
+		const out = replaceRegion(legacy, '## Highlights');
+		expect(out).toContain('# A paper');
+		expect(out).toContain('## Claim');
+		expect(out).toContain('## Assessment');
+	});
+
+	it('loses the old contents of the region, which is what replacing it means', () => {
+		expect(replaceRegion(legacy, '## Highlights')).not.toContain('> old');
+	});
+
+	it('is a no-op the second time, because the region is now the new one', () => {
+		const once = replaceRegion(legacy, '## Highlights\n\n> new');
+		expect(replaceRegion(once, '## Highlights\n\n> new')).toBe(once);
+	});
+
+	// Someone's own prose below the region has to survive the swap too.
+	it('keeps what follows the old region', () => {
+		const after = `${legacy}\n## My own notes\n\nkept\n`;
+		expect(replaceRegion(after, '## Highlights')).toContain('## My own notes');
+	});
+});
