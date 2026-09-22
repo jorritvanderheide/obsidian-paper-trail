@@ -8,6 +8,7 @@ import {
 	label,
 	landing,
 	PASS_TWO,
+	readingOf,
 	readTags,
 	READING_ORDER,
 	setTag,
@@ -368,5 +369,33 @@ describe('readTags', () => {
 describe('label', () => {
 	it('gives every state a word, because an icon cannot be read aloud', () => {
 		expect(READING_ORDER.map(label)).toEqual(['Untriaged', 'Queued', 'Finished', 'Promoted', 'Deferred', 'Dropped']);
+	});
+});
+
+/**
+ * A `reading` value nothing here wrote. `RENAMED` exists because values get
+ * renamed, so this is what a future spelling looks like to the version before
+ * it, and what a typo in somebody's frontmatter looks like always.
+ */
+describe('readingOf', () => {
+	it('passes through every state it knows', () => {
+		for (const reading of READING_ORDER) expect(readingOf(reading)).toBe(reading);
+	});
+
+	it('reads the old spelling as what it is called now', () => {
+		expect(readingOf('pass-three')).toBe('promoted');
+	});
+
+	// Untriaged rather than nothing: no opinion the machine can read has been
+	// formed, and that is the answer that puts the paper back in front of you.
+	it('reads a value it does not know as untriaged', () => {
+		expect(readingOf('quued')).toBe('untriaged');
+		expect(readingOf('something a future version writes')).toBe('untriaged');
+	});
+
+	it('reads a missing or non-string value as untriaged', () => {
+		expect(readingOf(undefined)).toBe('untriaged');
+		expect(readingOf(null)).toBe('untriaged');
+		expect(readingOf(42)).toBe('untriaged');
 	});
 });

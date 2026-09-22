@@ -7,7 +7,7 @@
 
 import type { CachedMetadata } from 'obsidian';
 import { isPaper } from './paper-note';
-import { currentReading, type Reading } from './triage';
+import { currentReading, readingOf, type Reading } from './triage';
 import type { Pending } from './pending';
 import type { Settings } from './settings';
 
@@ -264,20 +264,26 @@ export function headingCoverage(papers: (CachedMetadata | null)[], heading: stri
 export function taskOf(note: NoteState): Task | null {
 	if (!note.isPaper) return null;
 
-	if (note.reading === null || note.reading === 'untriaged') return 'triage';
+	// Through `readingOf`, so a value nothing here recognises is read as
+	// untriaged rather than falling out of every branch below. It used to reach
+	// the end and answer null, which put the paper in no section of the queue
+	// and, because it is not a decision either, in no record: a paper the plugin
+	// knew about and could not show you anywhere.
+	const reading = readingOf(note.reading);
+	if (reading === 'untriaged') return 'triage';
 
 	// Queued keeps the paper here even once a claim exists, because the outcome
 	// of the reading is still unrecorded. Letting it leave on the claim alone
 	// would file a paper whose `reading` says it was never finished, and that
 	// field is the record the exclusions report is built from.
-	if (note.reading === 'queued') return 'read';
+	if (reading === 'queued') return 'read';
 
 	// `promoted` and `finished` both mean the second pass happened, so both owe
 	// a claim, and the claim comes first either way: assessing a paper is an
 	// argument with one you can already summarise.
-	const finished = note.reading === 'finished' || note.reading === 'promoted';
+	const finished = reading === 'finished' || reading === 'promoted';
 	if (finished && !note.hasClaim) return 'claim';
-	if (note.reading === 'promoted' && !note.hasAssessment) return 'assessment';
+	if (reading === 'promoted' && !note.hasAssessment) return 'assessment';
 
 	// `dropped` and `deferred` are both off the list. The difference is on
 	// the note, where the record needs it, and not in the machine, where a
@@ -290,19 +296,22 @@ export function taskOf(note: NoteState): Task | null {
  * somebody gave: three ways a paper can be done with you and one way you can
  * be done with it.
  */
-const SETTLED: readonly Reading[] = ['finished', 'promoted', 'deferred', 'dropped'];
-
 /**
  * Where a paper came to rest, or null while it is still outstanding.
  *
- * Deliberately narrower than "taskOf returned null". That is also true of a
- * note you wrote yourself, and of a paper whose `reading` says something no
- * version of this plugin ever wrote. Neither belongs in a record of decisions,
- * because neither records one.
+ * A paper and nothing outstanding is a paper at rest, and there is nothing
+ * further to test: `taskOf` sends untriaged to Triage and queued to Reading, so
+ * what reaches here is always one of the four a decision can leave behind.
+ *
+ * It used to check the value against that list of four as well, and the second
+ * check is what made a fully finished `pass-three` paper vanish. `taskOf` reads
+ * the old spelling as `promoted` and let it out; this compared the raw value,
+ * matched nothing, and answered null, so the paper was in no section and in no
+ * record. One reading of the field, in one place, is what stops that.
  */
 export function settledOf(note: NoteState): Reading | null {
 	if (!note.isPaper || taskOf(note) !== null) return null;
-	return SETTLED.find((value) => value === note.reading) ?? null;
+	return readingOf(note.reading);
 }
 
 /** A paper nothing is outstanding for, and the decision that put it there. */

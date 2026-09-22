@@ -55,7 +55,11 @@ const DECISIONS: { reading: Reading; label: string; hint: string }[] = [
 	{
 		reading: 'finished',
 		label: 'Already read',
-		hint: 'Skip the queue: this one is done.',
+		// Not "this one is done", which is what it used to say and what the paper
+		// then was not: `finished` skips the reading list and lands in Claim,
+		// still owing a summary. `landing` says so a second later, and a hint
+		// disagreeing with it is the wrong one of the two.
+		hint: 'Read already, so it skips the reading list. Goes to Claim, to be summarised.',
 	},
 ];
 

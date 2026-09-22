@@ -16,7 +16,7 @@
 //
 // Wiring only. What the states are and what each one means is core's.
 import { MarkdownRenderChild, setIcon, type MarkdownPostProcessor, type TFile } from 'obsidian';
-import { currentReading, iconOf, label, landing, READING_ORDER, type Reading } from '../core/triage';
+import { iconOf, label, landing, readingOf, type Reading } from '../core/triage';
 import { isPaper } from '../core/paper-note';
 import { setReading } from '../commands/reading';
 import type { Context } from '../context';
@@ -50,9 +50,7 @@ function readingAt(context: Context, path: string): { file: TFile; reading: Read
 	const frontmatter = context.app.metadataCache.getFileCache(file)?.frontmatter;
 	if (!isPaper(frontmatter, context.settings.keyField)) return null;
 
-	const value = typeof frontmatter.reading === 'string' ? currentReading(frontmatter.reading) : 'untriaged';
-	const reading = READING_ORDER.find((known) => known === value);
-	return reading ? { file, reading } : null;
+	return { file, reading: readingOf(frontmatter.reading) };
 }
 
 /**

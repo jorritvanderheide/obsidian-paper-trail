@@ -3,15 +3,6 @@
 import { sortKeys } from './frontmatter';
 
 /**
- * How far a paper is going, in Keshav's terms. `untriaged` is the state a new
- * note is stamped with, never chosen.
- *
- * Two of these are intents rather than reports: `queued` says the paper earned
- * a second pass, `promoted` says it earned a third. What has actually been written
- * is read off the note's headings, so the stage a paper waits at is the pair of
- * the two and neither has to be kept in step with the other.
- */
-/**
  * Values this field used to hold, mapped to what they are called now.
  *
  * `pass-three` named a stage called Third pass, which is now Assessment, and a
@@ -31,6 +22,15 @@ export function currentReading(value: string): string {
 	return RENAMED[value] ?? value;
 }
 
+/**
+ * How far a paper is going, in Keshav's terms. `untriaged` is the state a new
+ * note is stamped with, never chosen.
+ *
+ * Two of these are intents rather than reports: `queued` says the paper earned
+ * a second pass, `promoted` says it earned a third. What has actually been
+ * written is read off the note's headings, so the stage a paper waits at is the
+ * pair of the two and neither has to be kept in step with the other.
+ */
 export type Reading = 'untriaged' | 'dropped' | 'queued' | 'deferred' | 'finished' | 'promoted';
 
 /**
@@ -47,6 +47,30 @@ export type Reading = 'untriaged' | 'dropped' | 'queued' | 'deferred' | 'finishe
  * arbitrary and nothing can depend on it. This is the one that is meant.
  */
 export const READING_ORDER: readonly Reading[] = ['untriaged', 'queued', 'finished', 'promoted', 'deferred', 'dropped'];
+
+/**
+ * A stored `reading` as one of the six states, reading anything else as
+ * untriaged.
+ *
+ * Three places asked this and two of them answered differently, which is what
+ * it is here to stop: a paper whose `reading` says something no version of this
+ * plugin ever wrote showed "Untriaged" in its title bar, no state at all in its
+ * rendered note, and appeared in no section of the queue. Invisible, and lying
+ * about it in one of the two places you could still see it.
+ *
+ * Untriaged rather than nothing, because that is what the value means to the
+ * machine: no opinion it can read has been formed. It is also the answer that
+ * puts the paper back in front of you, which is the only way the frontmatter
+ * gets fixed.
+ *
+ * Not a hypothetical. `RENAMED` exists because values get renamed, and a value
+ * renamed in some future version is exactly this to the version before it.
+ */
+export function readingOf(value: unknown): Reading {
+	if (typeof value !== 'string') return 'untriaged';
+	const current = currentReading(value);
+	return READING_ORDER.find((known) => known === current) ?? 'untriaged';
+}
 
 /**
  * The state a paper arrives in, which is what putting it in Zotero meant.

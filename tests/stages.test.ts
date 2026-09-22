@@ -621,3 +621,66 @@ describe('headingCoverage', () => {
 		expect(headingCoverage([], 'Claim')).toEqual({ found: 0, total: 0 });
 	});
 });
+
+/**
+ * A paper whose `reading` says something no version of this plugin wrote.
+ *
+ * It used to fall out of every branch of `taskOf` and answer null, which put it
+ * in no section; and `settledOf` refuses it too, correctly, because it records
+ * no decision. The paper was in the vault, was a paper, and could not be seen
+ * anywhere in the plugin.
+ */
+describe('a reading value nothing here recognises', () => {
+	const odd = (over: Partial<NoteState> = {}) => paper({ reading: 'quued', ...over });
+
+	it('goes to Triage, the one place that is neither a stage it earned nor a record', () => {
+		expect(taskOf(odd())).toBe('triage');
+	});
+
+	it('goes to Triage whatever has been written in the note', () => {
+		expect(taskOf(odd({ hasClaim: true }))).toBe('triage');
+		expect(taskOf(odd({ hasClaim: true, hasAssessment: true }))).toBe('triage');
+	});
+
+	// It is not a decision, so it does not belong in a record of decisions.
+	it('is not counted as decided', () => {
+		expect(settledOf(odd())).toBeNull();
+		expect(settled([odd()])).toEqual([]);
+	});
+
+	it('is reachable, which is the point: it turns up in a section you work', () => {
+		expect(byStage([odd()]).get('triage')).toHaveLength(1);
+	});
+
+	it('still says nothing about a note that is not a paper', () => {
+		expect(taskOf({ ...odd(), isPaper: false })).toBeNull();
+	});
+});
+
+/**
+ * The old spelling, all the way through.
+ *
+ * `noteState` maps it on the way in, so a note written under it behaves as
+ * `promoted` everywhere. These pin the rules themselves rather than the mapping,
+ * because the two disagreeing is exactly how a finished paper went missing: the
+ * stage rules read the old value as promoted and let it out, and the record
+ * compared the raw value and refused it.
+ */
+describe('a note written under the old pass-three spelling', () => {
+	const old = (over: Partial<NoteState> = {}) => paper({ reading: 'pass-three', ...over });
+
+	it('owes a claim, like any promoted paper', () => {
+		expect(taskOf(old())).toBe('claim');
+	});
+
+	it('owes an assessment once the claim is written', () => {
+		expect(taskOf(old({ hasClaim: true }))).toBe('assessment');
+	});
+
+	it('comes to rest as promoted once both are written', () => {
+		const done = old({ hasClaim: true, hasAssessment: true });
+		expect(taskOf(done)).toBeNull();
+		expect(settledOf(done)).toBe('promoted');
+		expect(settled([done])).toHaveLength(1);
+	});
+});
