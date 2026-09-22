@@ -125,7 +125,7 @@ describe('asks', () => {
 	it('asks nothing of the decisions that leave a paper on the list', () => {
 		expect(asks('queued')).toBeNull();
 		expect(asks('finished')).toBeNull();
-		expect(asks('pass-three')).toBeNull();
+		expect(asks('promoted')).toBeNull();
 		expect(asks('untriaged')).toBeNull();
 	});
 
@@ -137,7 +137,7 @@ describe('asks', () => {
 
 describe('PASS_TWO', () => {
 	it('offers Keshav\'s three, plus abandoning a paper an hour in', () => {
-		expect(PASS_TWO.map((entry) => entry.reading)).toEqual(['finished', 'pass-three', 'deferred', 'dropped']);
+		expect(PASS_TWO.map((entry) => entry.reading)).toEqual(['finished', 'promoted', 'deferred', 'dropped']);
 	});
 
 	it('never offers a state that would send a read paper backwards', () => {
@@ -148,7 +148,7 @@ describe('PASS_TWO', () => {
 
 describe('landing', () => {
 	it('says something different for every state, so no two decisions look alike', () => {
-		const all: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'pass-three'];
+		const all: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
 		expect(new Set(all.map(landing)).size).toBe(all.length);
 	});
 });
@@ -219,12 +219,12 @@ describe('applyTriage with a status tag', () => {
 
 describe('iconOf', () => {
 	it('names an icon for every state, so no chooser can draw a blank', () => {
-		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'pass-three'];
+		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
 		for (const state of states) expect(iconOf(state), state).toBeTruthy();
 	});
 
 	it('gives each state its own, or two decisions would look like one', () => {
-		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'pass-three'];
+		const states: Reading[] = ['untriaged', 'dropped', 'queued', 'deferred', 'finished', 'promoted'];
 		expect(new Set(states.map(iconOf)).size).toBe(states.length);
 	});
 });

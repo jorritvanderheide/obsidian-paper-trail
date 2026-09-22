@@ -75,7 +75,7 @@ A dropped paper is not a deletion. The note stays, and so do:
 
 | | |
 | --- | --- |
-| `reading` | `untriaged`, `queued`, `finished`, `pass-three`, `deferred` or `dropped` |
+| `reading` | `untriaged`, `queued`, `finished`, `promoted`, `deferred` or `dropped` |
 | `reading-date` | when the status last changed |
 | `triaged-date` | when you first formed an opinion, written once |
 | `reading-reason` | why, on a drop or a deferral |

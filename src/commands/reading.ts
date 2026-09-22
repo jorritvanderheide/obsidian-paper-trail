@@ -14,7 +14,7 @@ import { glance, referenceLines, type KnownPaper } from '../core/references';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, loadFulltext, SourceError } from '../source';
 import { PASS_ONE_VIEW, PassOneView, type Brief, type Full } from '../ui/pass-one-view';
-import { applyTriage, asks, iconOf, landing, type Reading, type Triage } from '../core/triage';
+import { applyTriage, asks, currentReading, iconOf, landing, type Reading, type Triage } from '../core/triage';
 import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
@@ -68,7 +68,7 @@ export async function decide(context: Context, file: TFile, reading: Reading): P
 
 const CHOICES: { reading: Reading; label: string }[] = [
 	{ reading: 'finished', label: 'Finished, and that was enough' },
-	{ reading: 'pass-three', label: 'Read, and worth assessing closely' },
+	{ reading: 'promoted', label: 'Read, and worth assessing closely' },
 	{ reading: 'queued', label: 'Queued, worth an hour' },
 	{ reading: 'deferred', label: 'Deferred, come back to it later' },
 	{ reading: 'dropped', label: 'Dropped, not worth reading' },
@@ -134,7 +134,7 @@ function known(context: Context, selfPath: string | null): KnownPaper[] {
 				{
 					path: file.path,
 					titles: titles.length > 0 ? titles : [file.basename],
-					reading: typeof frontmatter.reading === 'string' ? frontmatter.reading : null,
+					reading: typeof frontmatter.reading === 'string' ? currentReading(frontmatter.reading) : null,
 				},
 			];
 		});

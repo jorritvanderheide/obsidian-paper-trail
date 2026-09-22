@@ -6,6 +6,7 @@
 // each paper; this is only a view of it.
 import { Notice, normalizePath, type TFile } from 'obsidian';
 import { excluded, renderReport, type Decided } from '../core/record';
+import { currentReading } from '../core/triage';
 import { isPaper } from '../core/paper-note';
 import { reveal } from '../ui/reveal';
 import type { Context } from '../context';
@@ -31,7 +32,7 @@ function decided(context: Context): Decided[] {
 				citekey: text('citekey'),
 				// A paper with no reading field has not been assessed, which is
 				// exactly what untriaged means.
-				reading: text('reading') ?? 'untriaged',
+				reading: currentReading(text('reading') ?? 'untriaged'),
 				triaged: text('triaged-date'),
 				reason: text('reading-reason'),
 				path: file.path,

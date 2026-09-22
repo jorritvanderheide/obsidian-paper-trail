@@ -58,15 +58,15 @@ describe('stageOf, papers', () => {
 	});
 
 	it('asks a promoted paper for the claim before the third pass', () => {
-		expect(stageOf(paper({ reading: 'pass-three', hasClaim: false }))).toBe('reading');
+		expect(stageOf(paper({ reading: 'promoted', hasClaim: false }))).toBe('reading');
 	});
 
 	it('sends a promoted paper with a claim and no assessment to Assess', () => {
-		expect(stageOf(paper({ reading: 'pass-three', hasClaim: true, hasAssessment: false }))).toBe('assessment');
+		expect(stageOf(paper({ reading: 'promoted', hasClaim: true, hasAssessment: false }))).toBe('assessment');
 	});
 
 	it('is done with a promoted paper once the assessment is written', () => {
-		expect(stageOf(paper({ reading: 'pass-three', hasClaim: true, hasAssessment: true }))).toBeNull();
+		expect(stageOf(paper({ reading: 'promoted', hasClaim: true, hasAssessment: true }))).toBeNull();
 	});
 
 	it('never asks a merely read paper for an assessment', () => {
@@ -315,5 +315,30 @@ describe('the second pass is one section', () => {
 
 	it('lets a decided paper go once the claim is there', () => {
 		expect(stageOf(paper({ reading: 'finished', hasClaim: true }))).toBeNull();
+	});
+});
+
+describe('a note written under the old spelling', () => {
+	// `pass-three` was the value when the section was called Third pass. Nothing
+	// says that any more, so the value is `promoted` now and old notes are read
+	// rather than rewritten: a paper you finished last year goes on behaving
+	// exactly as it did, without the plugin touching it.
+	const old = { path: 'Literature/a.md', basename: 'a', created: 0 };
+	const cached = (reading: string) =>
+		noteState({ frontmatter: { 'zotero-key': 'ABCD2345', reading } }, old, 'zotero-key', 'Claim', 'Assessment');
+
+	it('reads pass-three as promoted', () => {
+		expect(cached('pass-three').reading).toBe('promoted');
+	});
+
+	it('puts it in the same place a newly promoted paper goes', () => {
+		expect(stageOf(cached('pass-three'))).toBe('reading');
+		expect(taskOf(cached('pass-three'))).toBe('claim');
+	});
+
+	it('leaves every other value exactly as it was written', () => {
+		for (const value of ['untriaged', 'queued', 'finished', 'deferred', 'dropped', 'something-of-your-own']) {
+			expect(cached(value).reading, value).toBe(value);
+		}
 	});
 });

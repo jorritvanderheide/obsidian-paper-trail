@@ -7,6 +7,7 @@
 
 import type { CachedMetadata } from 'obsidian';
 import { isPaper } from './paper-note';
+import { currentReading } from './triage';
 import type { Pending } from './pending';
 
 export type Stage = 'triage' | 'reading' | 'assessment';
@@ -150,12 +151,12 @@ export function taskOf(note: NoteState): Task | null {
 	// field is the record the exclusions report is built from.
 	if (note.reading === 'queued') return 'read';
 
-	// `pass-three` and `finished` both mean the second pass happened, so both owe
+	// `promoted` and `finished` both mean the second pass happened, so both owe
 	// a claim, and the claim comes first either way: assessing a paper is an
 	// argument with one you can already summarise.
-	const finished = note.reading === 'finished' || note.reading === 'pass-three';
+	const finished = note.reading === 'finished' || note.reading === 'promoted';
 	if (finished && !note.hasClaim) return 'claim';
-	if (note.reading === 'pass-three' && !note.hasAssessment) return 'assessment';
+	if (note.reading === 'promoted' && !note.hasAssessment) return 'assessment';
 
 	// `dropped` and `deferred` are both off the list. The difference is on
 	// the note, where the record needs it, and not in the machine, where a
@@ -218,7 +219,9 @@ export function noteState(
 		title: typeof frontmatter?.title === 'string' ? frontmatter.title : file.basename,
 		isPaper: isPaper(frontmatter, keyField),
 		key: isPaper(frontmatter, keyField) ? String(frontmatter[keyField]) : null,
-		reading: typeof frontmatter?.reading === 'string' ? frontmatter.reading : null,
+		// Through `currentReading`, so a note written under an older spelling is
+		// read as what that value is called now and nothing below has to know.
+		reading: typeof frontmatter?.reading === 'string' ? currentReading(frontmatter.reading) : null,
 		hasClaim: hasContentUnder(cache, claimHeading),
 		hasAssessment: hasContentUnder(cache, assessmentHeading),
 		created: file.created,

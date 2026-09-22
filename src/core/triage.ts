@@ -8,11 +8,31 @@ import { readTags, setAxis } from './vocabulary';
  * note is stamped with, never chosen.
  *
  * Two of these are intents rather than reports: `queued` says the paper earned
- * a second pass, `pass-three` says it earned a third. What has actually been written
+ * a second pass, `promoted` says it earned a third. What has actually been written
  * is read off the note's headings, so the stage a paper waits at is the pair of
  * the two and neither has to be kept in step with the other.
  */
-export type Reading = 'untriaged' | 'dropped' | 'queued' | 'deferred' | 'finished' | 'pass-three';
+/**
+ * Values this field used to hold, mapped to what they are called now.
+ *
+ * `pass-three` named a stage called Third pass, which is now Assessment, and a
+ * value nothing in the interface says any more is one you meet only in your own
+ * frontmatter and in a `status/` tag, wondering what it meant.
+ *
+ * Read through `currentReading`, written in the new spelling, and old notes are
+ * never rewritten: a promoted paper you finished last year keeps saying
+ * `pass-three` and goes on behaving exactly as it did. Its tag corrects itself
+ * the next time you decide anything about it. Rewriting the vault to tidy a
+ * word would be a worse trade than carrying this table.
+ */
+const RENAMED: Record<string, string> = { 'pass-three': 'promoted' };
+
+/** What a stored `reading` value is called now. Unknown values pass through. */
+export function currentReading(value: string): string {
+	return RENAMED[value] ?? value;
+}
+
+export type Reading = 'untriaged' | 'dropped' | 'queued' | 'deferred' | 'finished' | 'promoted';
 
 export interface Triage {
 	reading: Reading;
@@ -59,7 +79,7 @@ const ICONS: Record<Reading, string> = {
 	queued: 'bookmark',
 	deferred: 'clock',
 	finished: 'check',
-	'pass-three': 'book-open-check',
+	promoted: 'book-open-check',
 };
 
 export function iconOf(reading: Reading): string {
@@ -85,7 +105,7 @@ export function landing(reading: Reading): string {
 			return 'Parked, with the condition on the note.';
 		case 'finished':
 			return 'Finished. It owes a claim.';
-		case 'pass-three':
+		case 'promoted':
 			return 'Worth an assessment. The claim comes first.';
 	}
 }
@@ -101,7 +121,7 @@ export function landing(reading: Reading): string {
  */
 export const PASS_TWO: { reading: Reading; label: string }[] = [
 	{ reading: 'finished', label: 'Enough: I have what I need' },
-	{ reading: 'pass-three', label: 'Worth assessing closely' },
+	{ reading: 'promoted', label: 'Worth assessing closely' },
 	{ reading: 'deferred', label: 'Come back to it later' },
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];
