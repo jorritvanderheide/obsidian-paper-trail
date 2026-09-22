@@ -5,7 +5,7 @@
 // click it again, and there are three. The triage pane had the right behaviour
 // and kept it to itself.
 import { MarkdownView, type App, type Editor, type TFile, type WorkspaceLeaf } from 'obsidian';
-import { headingLine, roomUnder } from '../core/stages';
+import { headingLine, insertHeading, roomUnder } from '../core/stages';
 import { indexed } from './editing';
 
 /** The pane a file is already open in, if any. */
@@ -54,7 +54,12 @@ export async function reveal(app: App, file: TFile): Promise<WorkspaceLeaf | nul
  * False means the heading was not found, which is worth saying out loud: it is
  * the one failure that otherwise shows up as a paper that never leaves.
  */
-export async function openAtHeading(app: App, file: TFile, heading: string): Promise<boolean> {
+export async function openAtHeading(
+	app: App,
+	file: TFile,
+	heading: string,
+	precedes: string | null = null,
+): Promise<boolean> {
 	await reveal(app, file);
 
 	// A note the decision just wrote is on disk before Obsidian has parsed it,
@@ -63,9 +68,6 @@ export async function openAtHeading(app: App, file: TFile, heading: string): Pro
 	// cache was empty, so the answer was none, and the paper that had just been
 	// read was told it had no heading to write under.
 	await indexed(app, file);
-
-	const line = headingLine(app.metadataCache.getFileCache(file), heading);
-	if (line === null) return false;
 
 	const view = app.workspace.getActiveViewOfType(MarkdownView);
 	if (!view || view.file !== file) return false;
@@ -81,11 +83,30 @@ export async function openAtHeading(app: App, file: TFile, heading: string): Pro
 	const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 	if (!editor) return false;
 
-	const target = makeRoom(editor, line);
+	const found = headingLine(app.metadataCache.getFileCache(file), heading);
+	const target = found === null ? writeHeading(editor, heading, precedes) : makeRoom(editor, found);
+
 	editor.setCursor({ line: target, ch: 0 });
-	editor.scrollIntoView({ from: { line, ch: 0 }, to: { line: target, ch: 0 } }, true);
+	editor.scrollIntoView({ from: { line: Math.max(0, target - 2), ch: 0 }, to: { line: target, ch: 0 } }, true);
 	editor.focus();
 	return true;
+}
+
+/**
+ * Write the heading the note has not got, and say which line to write under.
+ *
+ * A paper is made with neither heading in it, so the first time you go to write
+ * one this is what puts it there. Through the editor like the blank lines are,
+ * which is the distinction that makes writing into somebody's note allowable at
+ * all: it joins your undo history, so a heading you did not want costs one
+ * Ctrl+Z.
+ */
+function writeHeading(editor: Editor, heading: string, precedes: string | null): number {
+	const lines = Array.from({ length: editor.lastLine() + 1 }, (_, n) => editor.getLine(n));
+	const { at, text, cursor } = insertHeading(lines, heading, precedes);
+
+	editor.replaceRange(text, { line: at, ch: 0 });
+	return at + cursor;
 }
 
 /**

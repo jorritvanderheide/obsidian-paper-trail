@@ -132,7 +132,11 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
 	const claim = task === 'claim';
 	const heading = claim ? context.settings.claimHeading : context.settings.assessmentHeading;
 
-	if (await openAtHeading(context.app, file, heading)) {
+	// A claim must read above an assessment, so when the note has one and no
+	// claim the heading goes in above it rather than at the region.
+	const precedes = claim ? context.settings.assessmentHeading : null;
+
+	if (await openAtHeading(context.app, file, heading, precedes)) {
 		// One notice rather than two. A caller that has something to say about
 		// how the paper got here says it on the same slip as the question, which
 		// is where you are about to be looking anyway. Finishing a reading used

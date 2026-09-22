@@ -5,6 +5,8 @@ import {
 	byStage,
 	headingCoverage,
 	headingLine,
+	headingSlot,
+	insertHeading,
 	nextAfter,
 	NEXT_ORDER,
 	noteState,
@@ -751,5 +753,67 @@ describe('roomUnder', () => {
 
 	it('counts a line of only spaces as blank, because it reads as one', () => {
 		expect(roomUnder(['   ', '\t', ''])).toBeNull();
+	});
+});
+
+/**
+ * Writing a heading the note has not got.
+ *
+ * A paper is made with neither, so the first time you go to write one it has to
+ * be put there. Everything from the region marker down is the plugin's, so the
+ * note's own shape goes above it.
+ */
+describe('headingSlot', () => {
+	const note = ['# A paper', '', '[Zotero](x)', '', '<!--paper-trail-->', '## Highlights', '<!--/paper-trail-->'];
+
+	it('puts a heading above the managed region', () => {
+		expect(headingSlot(note, null)).toBe(4);
+	});
+
+	it('recognises the older markers too, for a note not yet synced', () => {
+		expect(headingSlot(['# A paper', '', '%%paper-trail%%'], null)).toBe(2);
+	});
+
+	// A claim must read above an assessment, whichever was written first.
+	it('puts a claim above an assessment the note already has', () => {
+		const withAssessment = ['# A paper', '', '## Assessment', '', 'it strains here', '', '<!--paper-trail-->'];
+		expect(headingSlot(withAssessment, 'Assessment')).toBe(2);
+	});
+
+	it('ignores the heading it precedes when the note has not got it', () => {
+		expect(headingSlot(note, 'Assessment')).toBe(4);
+	});
+
+	it('matches a heading whatever its level, case or padding', () => {
+		expect(headingSlot(['#### assessment  ', '<!--paper-trail-->'], 'Assessment')).toBe(0);
+	});
+
+	// A note somebody has taken the region out of. Appending cannot be wrong.
+	it('goes to the end when there is no region and nothing to precede', () => {
+		expect(headingSlot(['# A paper', '', 'my own notes'], null)).toBe(3);
+	});
+});
+
+describe('insertHeading', () => {
+	it('writes the heading with a line to type on under it', () => {
+		const { at, text, cursor } = insertHeading(['# A paper', '', '<!--paper-trail-->'], 'Claim', null);
+		expect(at).toBe(2);
+		expect(text).toBe('## Claim\n\n\n\n');
+		expect(cursor).toBe(2);
+	});
+
+	// The template leaves a blank line before the region, so nothing is needed.
+	it('adds a blank above it only when what it goes under has none', () => {
+		expect(insertHeading(['# A paper', '[Zotero](x)', '<!--paper-trail-->'], 'Claim', null).text).toBe(
+			'\n## Claim\n\n\n\n',
+		);
+	});
+
+	it('moves the cursor down with the blank it added', () => {
+		expect(insertHeading(['# A paper', '[Zotero](x)', '<!--paper-trail-->'], 'Claim', null).cursor).toBe(3);
+	});
+
+	it('writes the heading the setting names, trimmed', () => {
+		expect(insertHeading(['<!--paper-trail-->'], '  Argument ', null).text).toContain('## Argument\n');
 	});
 });

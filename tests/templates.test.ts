@@ -25,9 +25,21 @@ describe('the paper template', () => {
 	});
 
 	it('has the only placeholders the writer supplies', () => {
-		for (const slot of ['TITLE', 'LINKS', 'CLAIM', 'ASSESSMENT']) {
+		for (const slot of ['TITLE', 'LINKS']) {
 			expect(PAPER, slot).toContain(`{{${slot}}}`);
 		}
+	});
+
+	// Every note ever created used to carry an empty Claim and an empty
+	// Assessment: an outline of work that, for a paper dropped on its abstract,
+	// was never going to happen. They arrive when you go to write under one.
+	it('carries no heading of its own but the title', () => {
+		const headings = PAPER.split('\n').filter((line) => line.startsWith('#'));
+		expect(headings).toEqual(['# {{TITLE}}']);
+	});
+
+	it('is short enough that a dropped paper is not an outline of what it is not', () => {
+		expect(PAPER.split('\n').filter((line) => line.trim() !== '')).toHaveLength(4);
 	});
 
 	it('carries the managed region, or a sync has nowhere to put highlights', () => {
@@ -67,14 +79,6 @@ describe('the paper template', () => {
 });
 
 describe('what the template does not carry', () => {
-	// Every heading here is one the plugin watches: Claim and Assessment each
-	// end a stage and each has a setting naming it. "What this changes" had
-	// neither, so it was a prompt in every note, including every dropped one,
-	// for work nothing would ever ask about.
-	it('has only the two headings a stage ends at', () => {
-		const headings = PAPER.split('\n').filter((line) => line.startsWith('## '));
-		expect(headings).toEqual(['## {{CLAIM}}', '## {{ASSESSMENT}}']);
-	});
 });
 
 /**
@@ -92,15 +96,6 @@ describe('the prompts the template no longer carries', () => {
 		expect(body.replace('## {{CLAIM}}', '').replace('## {{ASSESSMENT}}', '').trim()).toBe('');
 	});
 
-	// `hasContentUnder` ignores comments, so they never satisfied the gate. The
-	// cost was elsewhere: one in every paper ever made, including the dropped
-	// ones, going stale the moment the wording changed anywhere else.
-	it('puts nothing between the two headings but a blank line', () => {
-		const lines = PAPER.split('\n');
-		const claim = lines.indexOf('## {{CLAIM}}');
-		const assessment = lines.indexOf('## {{ASSESSMENT}}');
-		expect(lines.slice(claim + 1, assessment).every((line) => line.trim() === '')).toBe(true);
-	});
 
 	it('is asked by the task instead, which is where it can be kept current', () => {
 		expect(TASKS.claim.prompt).toBeTruthy();

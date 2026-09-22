@@ -6,7 +6,7 @@
 // that pretends otherwise just produces false states.
 
 import type { CachedMetadata } from 'obsidian';
-import { isPaper } from './paper-note';
+import { isPaper, isRegionStart } from './paper-note';
 import { stateOf, type Outcome, type State } from './triage';
 import type { Pending } from './pending';
 
@@ -372,6 +372,67 @@ export function byStage(notes: NoteState[]): Map<Task, NoteState[]> {
 	}
 	for (const list of out.values()) list.sort((a, b) => a.created - b.created);
 	return out;
+}
+
+/** Whether a line is a markdown heading with this exact text. */
+function isHeading(line: string, heading: string): boolean {
+	const match = /^#{1,6}\s+(.*)$/.exec(line);
+	return match !== null && match[1]?.trim().toLowerCase() === heading.trim().toLowerCase();
+}
+
+/**
+ * Where a heading the note has not got should be inserted.
+ *
+ * Above the managed region, because everything from the marker down is the
+ * plugin's and the note's own shape belongs above it. Above `precedes` as well
+ * when the note has it, so an assessment written before a claim does not leave
+ * the claim below it.
+ *
+ * The end of the note when it has neither, which is a note somebody has taken
+ * the region out of. Appending is the one answer that cannot be wrong there.
+ */
+export function headingSlot(lines: readonly string[], precedes: string | null): number {
+	const bounds = [
+		lines.findIndex(isRegionStart),
+		precedes === null ? -1 : lines.findIndex((line) => isHeading(line, precedes)),
+	].filter((at) => at !== -1);
+
+	return bounds.length === 0 ? lines.length : Math.min(...bounds);
+}
+
+/** An edit that adds a heading and the room to write under it. */
+export interface Insertion {
+	/** The line to insert at, at column nothing. */
+	at: number;
+	text: string;
+	/** Lines below `at` the cursor ends on. */
+	cursor: number;
+}
+
+/**
+ * The heading, and the blank lines that make it somewhere to write.
+ *
+ * A paper is made with neither heading in it. They were in the template, which
+ * meant every note ever created carried two empty sections, including every
+ * paper dropped on its abstract: an outline of work that was never going to
+ * happen. The same argument took the prompts out of the template, and it
+ * applies to the headings the prompts used to sit under.
+ *
+ * So the heading arrives when you go to write under it, and a paper you drop
+ * stays three lines long.
+ */
+export function insertHeading(lines: readonly string[], heading: string, precedes: string | null): Insertion {
+	const at = headingSlot(lines, precedes);
+
+	// A blank line above it, unless whatever it is going under already ends in
+	// one. Two blanks below: one to separate, one to write on, and a third so
+	// what you write is not pressed against what follows.
+	const spaced = at > 0 && lines[at - 1]?.trim() !== '';
+	return {
+		at,
+		text: `${spaced ? '\n' : ''}## ${heading.trim()}\n\n\n\n`,
+		cursor: (spaced ? 1 : 0) + 2,
+	};
 }
 
 /**

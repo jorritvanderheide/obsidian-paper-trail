@@ -16,7 +16,6 @@ import {
 } from '../src/core/paper-note';
 import type { ApiItem, Highlight, ItemRef } from '../src/core/zotero';
 import { PAPER } from '../src/core/templates';
-import { DEFAULT_SETTINGS } from '../src/core/settings';
 
 const ref: ItemRef = { key: '5UPN73EU', groupID: null };
 
@@ -236,25 +235,21 @@ describe('the shipped paper template', () => {
 		expect(PAPER).toContain(REGION_END);
 	});
 
-	it('asks for the claim heading rather than naming one', () => {
-		// A literal would mean renaming the setting leaves new notes carrying a
-		// heading the workflow is not watching, and nothing leaves Write up.
-		expect(PAPER).toContain('## {{CLAIM}}');
-		expect(fill(PAPER, { CLAIM: DEFAULT_SETTINGS.claimHeading })).toContain(`## ${DEFAULT_SETTINGS.claimHeading}`);
-	});
-
-	it('asks for the assessment heading rather than naming one', () => {
-		// The third pass ends under this heading, so the same argument as the
-		// claim applies: a literal means a promoted paper never leaves the list.
-		expect(PAPER).toContain('## {{ASSESSMENT}}');
-		expect(fill(PAPER, { ASSESSMENT: DEFAULT_SETTINGS.assessmentHeading })).toContain(`## ${DEFAULT_SETTINGS.assessmentHeading}`);
+	// The headings used to be here, as placeholders filled from the settings so
+	// a renamed setting could not leave new notes carrying one the workflow was
+	// not watching. Nothing watches a heading any more, and a note is made
+	// without either: they are written in when you go to write under them.
+	it('carries no Claim or Assessment heading', () => {
+		expect(PAPER).not.toContain('Claim');
+		expect(PAPER).not.toContain('Assessment');
 	});
 
 	it('uses only placeholders the command supplies', () => {
 		const used = [...PAPER.matchAll(/\{\{([A-Z_]+)\}\}/g)].map((m) => m[1]);
-		expect(used.sort()).toEqual(['ASSESSMENT', 'CLAIM', 'LINKS', 'TITLE']);
+		expect(used.sort()).toEqual(['LINKS', 'TITLE']);
 	});
 });
+
 
 /**
  * The frontmatter half of the safety story. A sync reads Zotero, and Zotero

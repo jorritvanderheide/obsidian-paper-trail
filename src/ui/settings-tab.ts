@@ -121,12 +121,17 @@ export class SettingsTab extends PluginSettingTab {
 		return ' ⚠ Zotero has no collection with this key, so no papers are reaching the queue. Pick another, or clear it for the whole library.';
 	}
 
-	/**
-	 * The two heading settings are the ones that break silently, so each says
-	 * whether the vault agrees with it. The counting is `headingCoverage`'s;
-	 * this only sweeps and puts it in words.
+		/**
+	 * How many papers already carry this heading.
+	 *
+	 * Not a warning any more. A paper without the heading is the ordinary case:
+	 * notes are made without either, and the heading is written in the first
+	 * time you go to write under it. What the number is still worth saying is
+	 * the one hazard left, which is renaming this after papers exist. The old
+	 * heading is not found, so a second one is written above it, and the note
+	 * ends up with both.
 	 */
-	private headingStatus(setting: string, stage: string): string {
+	private headingStatus(setting: string): string {
 		const keyField = this.plugin.settings.keyField;
 
 		const papers = this.app.vault
@@ -135,11 +140,9 @@ export class SettingsTab extends PluginSettingTab {
 			.filter((cache) => typeof cache?.frontmatter?.[keyField] === 'string');
 
 		const { found, total } = headingCoverage(papers, setting);
+		if (total === 0 || found === 0) return '';
 
-		if (total === 0) return '';
-		if (found === total) return ` Found in all ${total} papers.`;
-		if (found === 0) return ` ⚠ No paper has this heading, so ${stage} cannot put your cursor where the writing goes.`;
-		return ` ⚠ Found in only ${found} of ${total} papers.`;
+		return ` ${found} of your ${total} papers already use it; renaming it now would leave those behind and write a second heading above them.`;
 	}
 
 	/**
@@ -242,12 +245,12 @@ export class SettingsTab extends PluginSettingTab {
 					},
 					{
 						name: 'Claim heading',
-						desc: `Where the second pass is written. The Claim button puts your cursor under this heading, so it has to match your literature template. What ends the pass is the tick beside it, not what you type here.${this.headingStatus(this.plugin.settings.claimHeading, 'Claim')}`,
+						desc: `What the second pass is written under. A paper is made without it: the heading is written in above the highlights the first time you go to write a claim, so a paper you drop never carries an empty one. What ends the pass is the tick beside the button, not what you type here.${this.headingStatus(this.plugin.settings.claimHeading)}`,
 						control: { type: 'text', key: 'claimHeading' },
 					},
 					{
 						name: 'Assessment heading',
-						desc: `Where the third pass is written, and only papers you promote are asked for one. The Assessment button puts your cursor under this heading, and the tick beside it is what ends the pass.${this.headingStatus(this.plugin.settings.assessmentHeading, 'Assessment')}`,
+						desc: `What the third pass is written under, and only papers you promote are asked for one. Written in the same way as the claim, below it, and ended by the tick beside the button.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
 						control: { type: 'text', key: 'assessmentHeading' },
 					},
 				],

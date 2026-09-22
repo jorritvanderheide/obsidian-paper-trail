@@ -95,11 +95,6 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	const body = fill(await templateBody(app, PAPER_TEMPLATE, context.settings.templateFolder), {
 		TITLE: item.data.shortTitle?.trim() || item.data.title || item.key,
 		LINKS: paperLinks(ref, attachment),
-		// The two headings the workflow watches, one per pass. Literals here
-		// would mean a note whose claim and assessment the plugin is looking
-		// for under names the template does not use.
-		CLAIM: context.settings.claimHeading,
-		ASSESSMENT: context.settings.assessmentHeading,
 	});
 
 	// Created with an empty frontmatter block rather than none.

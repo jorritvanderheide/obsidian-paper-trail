@@ -130,7 +130,11 @@ back up returns it to where it was rather than to the start.
 It is also why **Set reading status** offers five things rather than nine. You
 pick from the judgements; the reports are ticked off on the row that owes them.
 
-The plugin writes none of it. The heading is left empty and the question is put
+The plugin writes none of it. The heading is not even there until you go to
+write under it: a new paper is a title, its links and the highlights region,
+and the Claim heading is written in above the highlights the first time you ask
+for it. A paper you drop on its abstract stays three lines long rather than
+carrying an outline of work that was never going to happen. The question is put
 in the moment you arrive, rather than left lying in the file as a comment you
 would have to type around and then delete.
 

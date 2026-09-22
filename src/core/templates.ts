@@ -9,7 +9,16 @@
 import { REGION_END, REGION_START } from './paper-note';
 
 /**
- * Two empty headings and the managed region, and nothing else.
+ * The managed region, and nothing else.
+ *
+ * The Claim and Assessment headings were here, which meant every note ever
+ * created carried two empty sections: an outline of work that, for every paper
+ * dropped on its abstract, was never going to happen. They arrive when you go
+ * to write under one, put in above the region by `insertHeading`, so a paper
+ * you drop stays three lines long and a paper's outline is what has actually
+ * been written.
+ *
+ * The old note.
  *
  * Each heading carried an HTML comment asking for what goes under it, which
  * was the only way to ask at the point of use back when arriving at the point
@@ -26,10 +35,6 @@ import { REGION_END, REGION_START } from './paper-note';
 export const PAPER = `# {{TITLE}}
 
 {{LINKS}}
-
-## {{CLAIM}}
-
-## {{ASSESSMENT}}
 
 ${REGION_START}
 ${REGION_END}

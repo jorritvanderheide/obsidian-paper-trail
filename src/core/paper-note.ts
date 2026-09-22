@@ -43,6 +43,11 @@ const MARKERS = [
 	{ start: LEGACY_START, end: LEGACY_END },
 ];
 
+/** Whether a line opens the managed region, in either spelling of the markers. */
+export function isRegionStart(line: string): boolean {
+	return MARKERS.some(({ start }) => line.includes(start));
+}
+
 /**
  * Frontmatter keys the plugin writes. Every other key in the file is the
  * user's, including everything you answered: `reading`, `reading-progress`,
