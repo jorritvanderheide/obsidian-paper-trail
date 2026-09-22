@@ -39,18 +39,20 @@ them: **Next**, which takes the top row of the topmost section that has one so
 that working the pile needs no decision about which pile first; ask Zotero now,
 for when it was shut and has come back; and collapse or expand the lot.
 
-Clicking a row shows you the paper: it opens the note, or focuses the tab it is
-already in. The same thing in every section, so the click you make most often
-never starts anything or leaves Obsidian.
+Clicking a row takes you to the work. Reading opens the PDF in Zotero, Claim
+and Assessment drop the cursor under their heading ready to write, and a paper
+still to be triaged opens its dialog. Which is not the same as showing you the
+paper, and it is the section that says where the difference lies: a paper you
+have not read has a note that is a title and a link, so being shown it is being
+shown nothing, while a paper you have read has a note with a section waiting in
+it.
 
-What the paper is waiting for is on a button at the end of its row, appearing
-when you hover. Triage opens the dialog, Reading opens the PDF in Zotero and
-offers a tick for when you are done, Claim and Assessment drop the cursor under
-their heading ready to write. Stages fold away when you are not working them.
+The same thing is on a button at the end of the row, appearing when you hover,
+which is what says in advance where the click will go. Reading also offers a
+tick for when you are done. Stages fold away when you are not working them.
 
-A paper Zotero holds that the vault has no note for has nothing to open yet, so
-clicking it writes the note and shows you that. Opening the PDF is still the
-button's job.
+A paper Zotero holds that the vault has no note for gets one written when you
+open its PDF, so the highlights have somewhere to land when you come back.
 
 **Filed** holds everything that has left: dropped, parked, read, assessed,
 newest first, each with the icon of the decision that put it there. It takes

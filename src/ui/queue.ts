@@ -27,12 +27,9 @@ import {
 import { DEFAULT_ROWS, fit } from '../core/fit';
 import { act, finish, next, openNote } from '../commands/workflow';
 import { iconOf, label } from '../core/triage';
-import { chooseReading, noteFor, targetOf } from '../commands/reading';
+import { chooseReading, targetOf } from '../commands/reading';
 import { queue } from '../outstanding';
-import { reveal } from './reveal';
 import { WhileWriting } from './editing';
-import { notify } from './notify';
-import type { Pending } from '../core/pending';
 import { lastContact } from '../source';
 import { refreshLibrary, scopeProblem } from '../library';
 import type { Context } from '../context';
@@ -512,21 +509,6 @@ function section(
 	});
 }
 
-/**
- * Write the note for a paper that has none, and show it.
- *
- * What clicking a row means, for the one kind of row where the note does not
- * exist yet. It does not open Zotero: that is the button's job, and the row's
- * job is the same in every section, which is to put the paper in front of you
- * without starting anything.
- */
-async function showPending(context: Context, item: Pending): Promise<void> {
-	try {
-		await reveal(context.app, await noteFor(context, item));
-	} catch (error) {
-		notify(error, 'show');
-	}
-}
 
 /** The papers themselves, once it is known how many of them there is room for. */
 function sectionRows(
@@ -544,36 +526,29 @@ function sectionRows(
 		if (!task) continue;
 		const { action, icon, done, doneIcon } = TASKS[task];
 
-		// Clicking a row shows you the paper, and never leaves Obsidian or writes
-		// anything.
+		// Clicking a row does the row's task.
 		//
-		// It carried the task once, so a queued row opened Zotero, and that cost
-		// the one gesture you make most: you could not look at a paper without
-		// starting its next step. The reading row still does not, for that reason
-		// and because Zotero is not somewhere a click on a list should send you.
+		// It used to show you the paper instead, in every section, on the grounds
+		// that the one gesture you make most should be safe: you could not look at
+		// a paper without starting its next step. What that missed is that the
+		// note is not the paper until some of it has been written. A row in
+		// Reading is a paper you have not read, so its note is a title and a link,
+		// and being shown it is being shown nothing; the PDF is the paper, and it
+		// is in Zotero. A row in Claim is a note with a heading waiting in it, so
+		// going to that heading is the same note, scrolled to the part of it the
+		// row is about.
 		//
-		// A claim or an assessment row does, because for those two the difference
-		// went away. The section the paper is waiting on is in the note from the
-		// moment it comes to be waiting on it, so opening at the heading writes
-		// nothing that showing the note would not: it is the same note, scrolled
-		// to the part of it the row is about. Landing at the top of a note whose
-		// whole reason for being in the list is four screens down was a scroll
-		// you had to make every time.
+		// So the safe click was safe about the wrong thing, and the section a
+		// paper is in is exactly what says where looking at it means going.
 		//
-		// A paper Zotero holds and the vault does not has no note to show, so
-		// showing it means writing it. That is still the same promise kept: the
-		// click gives you the note and nothing else, and the paper was already
-		// decided on, in the browser, before it was ever saved.
-		//
-		// Triage is the one row that cannot: deciding is what writes its note,
-		// and writing one first would be answering the question on your behalf.
-		const writes = task === 'claim' || task === 'assessment';
+		// Triage is the exception, and only for a paper that has a note: there the
+		// task is a dialog, and a list that raises one when you click a line in it
+		// is a list you stop clicking. A pending paper has no note to show, so
+		// clicking it opens the dialog after all, which is the one thing it can
+		// do that is not writing a note to answer the question on your behalf.
 		const row = treeRow(children, rowTitle(entry), () => {
-			if (entry.kind !== 'note') {
-				if (task === 'triage') void act(context, task, entry);
-				else void showPending(context, entry.item);
-			} else if (writes) void act(context, task, entry);
-			else void openNote(context.app, entry.note);
+			if (entry.kind === 'note' && task === 'triage') void openNote(context.app, entry.note);
+			else void act(context, task, entry);
 		});
 
 		if (entry.kind === 'note') row.dataset.path = entry.note.path;
@@ -593,11 +568,10 @@ function sectionRows(
 		if (done && doneIcon) {
 			iconButton(actions, doneIcon, done, () => void finish(context, task, entry));
 		}
-		// Still drawn on a claim or an assessment row, where the row click now
-		// does the same thing. Not a duplicate to remove: it is the only visible
-		// sign that those two rows go somewhere different from the rest, and a row
-		// that behaves unlike its neighbours without showing it is a row nobody
-		// finds.
+		// The same thing the row click does, now, and kept for that reason rather
+		// than in spite of it: it is what says in advance where the click goes, and
+		// the sections differ, so a row that gave no sign would have to be tried to
+		// be known. The tooltip is the sentence, the icon is the glance.
 		if (icon) iconButton(actions, icon, action, () => void act(context, task, entry));
 	}
 
