@@ -98,6 +98,7 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 		});
 		decided(tree, context, done);
 		root.style.setProperty('--paper-trail-clearance', `${clearance(root, files)}px`);
+		highlight(root, context.app);
 		return;
 	}
 
@@ -130,6 +131,8 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 		const shown = expanded.has(entry.task) ? entry.rows.length : (shares[index] ?? DEFAULT_ROWS);
 		sectionRows(entry.children, context, entry.task, entry.rows, shown);
 	});
+
+	highlight(root, context.app);
 }
 
 /**
@@ -393,6 +396,25 @@ function treeRow(parent: HTMLElement, text: string, onClick: () => void, icon?: 
 	return self;
 }
 
+/**
+ * Mark the row for the note you are looking at.
+ *
+ * `is-active` is the class the file explorer puts on the file you have open, so
+ * the pane picks up whatever the theme already does for it and a paper is
+ * marked here the same way it would be there.
+ *
+ * Kept off the redraw path on purpose. Following the cursor is a class on one
+ * row; a redraw reads every note in the vault and rebuilds the tree, which is a
+ * great deal of work to move a highlight, and it would throw away the scroll
+ * position every time you changed tab.
+ */
+function highlight(root: HTMLElement, app: App): void {
+	const active = app.workspace.getActiveFile()?.path ?? null;
+	for (const row of Array.from(root.querySelectorAll<HTMLElement>('.tree-item-self[data-path]'))) {
+		row.toggleClass('is-active', row.dataset.path === active);
+	}
+}
+
 /** What a folding section of the tree needs to draw itself. */
 interface Folder {
 	label: string;
@@ -546,6 +568,8 @@ function sectionRows(
 			else void showPending(context, entry.item);
 		});
 
+		if (entry.kind === 'note') row.dataset.path = entry.note.path;
+
 		// Overruling the workflow, on every row rather than only on a filed one.
 		// Moving a paper between states was reachable from inside its note and
 		// nowhere else, which is a long way round for a list whose whole subject
@@ -640,6 +664,7 @@ function decided(root: HTMLElement, context: Context, done: Settled[]): boolean 
 		const row = treeRow(children, entry.note.title, () => void openNote(context.app, entry.note), iconOf(entry.reading));
 		// The state in words as well as in the icon, because the icon is the only
 		// thing distinguishing four outcomes and an icon cannot be read aloud.
+		row.dataset.path = entry.note.path;
 		row.setAttribute('aria-label', decidedState(entry));
 		row.addEventListener('contextmenu', (event) => rowMenu(context, { kind: 'note', note: entry.note }, row, event));
 	}
@@ -830,9 +855,20 @@ export class QueueView extends ItemView {
 		this.registerEvent(this.app.vault.on('rename', this.redraw));
 
 		// Leaving the note is what lets the held change land, and clicking this
-		// pane counts as leaving.
-		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.writing.flush()));
-		this.registerEvent(this.app.workspace.on('file-open', () => this.writing.flush()));
+		// pane counts as leaving. The same two events move the highlight, which
+		// is a class on one row rather than a reason to draw the pane again.
+		this.registerEvent(
+			this.app.workspace.on('active-leaf-change', () => {
+				this.writing.flush();
+				highlight(this.contentEl, this.app);
+			}),
+		);
+		this.registerEvent(
+			this.app.workspace.on('file-open', () => {
+				this.writing.flush();
+				highlight(this.contentEl, this.app);
+			}),
+		);
 
 		// Coming back to Obsidian is the moment you have just saved something in
 		// the browser, so it is the moment worth asking. Asking costs one request
