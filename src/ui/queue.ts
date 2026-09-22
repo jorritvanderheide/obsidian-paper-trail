@@ -44,7 +44,7 @@ export const QUEUE_VIEW = 'paper-trail-queue';
  * living in the sidebar. Neither wants to inherit from the other.
  */
 export function renderQueue(root: HTMLElement, context: Context): void {
-	const { notes, rows: buckets, done } = queue(context);
+	const { notes, rows: buckets, waiting, done } = queue(context);
 
 	root.empty();
 	root.addClass('paper-trail');
@@ -92,7 +92,7 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 			cls: 'pane-empty',
 			text: started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here.',
 		});
-		decided(tree, context, done);
+		foot(tree, context, waiting, done);
 		root.style.setProperty('--paper-trail-clearance', `${clearance(root, files)}px`);
 		highlight(root, context.app);
 		return;
@@ -105,10 +105,10 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 		if (children) open.push({ task: definition.task, rows, children });
 	}
 
-	// Drawn before the rows are counted, and it has to be: its header is one of
-	// the rows the list has to share, so measuring without it would promise room
-	// the record is standing in.
-	const pinned = decided(tree, context, done);
+	// Drawn before the rows are counted, and it has to be: their headers are two
+	// of the rows the list has to share, so measuring without them would promise
+	// room the record is standing in.
+	const pinned = foot(tree, context, waiting, done);
 
 	// Now that every header is in place and no row is, what is left of the
 	// container is exactly what the rows have to share. The record's own rows
@@ -116,10 +116,7 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	// the list scrolls.
 	root.style.setProperty('--paper-trail-clearance', `${clearance(root, files)}px`);
 
-	const shares = fit(
-		open.map((entry) => entry.rows.length),
-		capacity(root, files, open.length + (pinned ? 1 : 0)),
-	);
+	const shares = fit(open.map((entry) => entry.rows.length), capacity(root, files, open.length + pinned));
 	open.forEach((entry, index) => {
 		// An opened section ignores the budget. You asked to see all of them, and
 		// the container scrolls; overruling that to keep the pane tidy would be
@@ -519,9 +516,10 @@ function sectionRows(
 	shown: number,
 ): void {
 	for (const entry of rows.slice(0, shown)) {
-		// The task is the row's, not the section's. Reading holds both halves of
-		// Keshav's second pass, so one row offers Zotero and the next offers the
-		// note, and the icons are how you tell which half a paper is in.
+		// The task is the row's, not the section's. A pending paper sits in the
+		// section the triage setting sends it to, and what it is asking for is what
+		// putting it in Zotero meant, which is not always what the section is named
+		// for.
 		const task = rowTask(entry, context.settings.triage);
 		if (!task) continue;
 		const { action, icon, done, doneIcon } = TASKS[task];
@@ -592,75 +590,115 @@ function sectionRows(
 }
 
 /**
- * Whether the record is open, for as long as the pane stays open.
+ * Whether each of the two resting sections is open, for as long as the pane
+ * stays open.
  *
- * Shut by default, and that is the whole reason this section is allowed to
- * exist. The pane's job is saying what is outstanding, and a list of finished
- * work that opened itself would be taking rows from the backlog to show you
- * something with nothing to do about it. Closed it costs one line and answers
- * the question it is actually there for, which is whether any of this is
- * getting anywhere.
+ * Both shut by default, and that is the whole reason they are allowed to be
+ * here. The pane's job is saying what is outstanding, and a list of work that
+ * is not opening itself would be taking rows from the backlog to show you
+ * something with nothing to do about it. Closed, each costs one line and
+ * answers the question it is there for: whether any of this is getting
+ * anywhere, and how much you have promised yourself you would come back to.
  */
+let openWaiting = false;
 let openDecided = false;
 
 /**
- * What you have already decided, at the foot of the pane.
+ * The two sections under the stages, and how many headers they cost.
  *
- * Four outcomes in one list rather than four sections, because they are not
- * four stages: nothing is outstanding for any of them. What separates them is
- * the icon, which is the same icon the chooser offered when you picked it.
+ * Deferred above Filed, because between them they are the two halves of "not
+ * outstanding" and only one of them is over. A deferral is a promise with a
+ * condition attached, which is what the plugin insists on before it will write
+ * one; filing it with the papers you finished is how that promise goes quiet.
+ * Its own row means a standing count of what you have parked is always in
+ * front of you, and the condition you set is on each row.
  *
- * Never counted in "N outstanding" and never offered by `next`. A paper here
- * is done with, and a record that fed back into the queue would stop being a
- * record.
+ * Neither is counted in "N outstanding" and neither is ever offered by `next`.
+ * A parked paper is parked, and a section that fed back into the queue would
+ * be overruling the decision you made.
+ *
+ * One box, which is the hook the auto margin hangs on. Inside the list rather
+ * than under it: two scrolling boxes in one pane means a wheel that stops
+ * working halfway down for no reason you can see.
  */
-function decided(root: HTMLElement, context: Context, done: Settled[]): boolean {
-	// A box of its own, holding one section, which is the hook the auto margin
-	// hangs on. Inside the list rather than under it: two scrolling boxes in one
-	// pane means a wheel that stops working halfway down for no reason you can
-	// see, and a record capped at some height of its own is a record you cannot
-	// read to the end of.
-	//
-	// Drawn at zero, dimmed, exactly like a stage. It used to be the one section
-	// that vanished when empty, on the grounds that a record has no place to
-	// keep until there is something in it. That is one row's worth of argument
-	// against the reason every other section stays: the pane should be the same
-	// shape every time you look at it, and a dimmed row teaches where the record
-	// will be.
+function foot(root: HTMLElement, context: Context, waiting: Settled[], done: Settled[]): number {
 	const box = root.createDiv({ cls: 'paper-trail-decided' });
 
-	const children = folder(box, {
+	resting(box, context, waiting, {
+		label: 'Deferred',
+		// The same mark the chooser puts on a deferral and the pill shows on the
+		// note, so a parked paper looks like itself wherever you meet it.
+		icon: 'clock',
+		hint: 'Parked, with a condition on it. Right-click one to pick it back up.',
+		open: openWaiting,
+		toggle: () => {
+			openWaiting = !openWaiting;
+			renderQueue(paneOf(root), context);
+		},
+	});
+
+	resting(box, context, done, {
 		label: 'Filed',
 		// A box things go into when they are done with, which is what this is.
-		// Not a tick: that is one outcome of the four in here.
+		// Not a tick: that is one outcome of the three in here.
 		icon: 'archive',
-		hint: 'Papers nothing is outstanding for. Dropped, parked, read, or assessed.',
-		count: done.length,
+		hint: 'Papers nothing is outstanding for. Dropped, read, or assessed.',
 		open: openDecided,
 		toggle: () => {
 			openDecided = !openDecided;
 			renderQueue(paneOf(root), context);
 		},
 	});
-	if (!children) return true;
 
-	// Every one of them. A cap here would hide the oldest decisions, which are
-	// the ones worth the most: the reason to keep a record is the paper you
-	// ruled out long enough ago to have forgotten ruling on.
-	for (const entry of done) {
-		const row = treeRow(children, entry.note.title, () => void openNote(context.app, entry.note), iconOf(entry.note.state));
+	return 2;
+}
+
+/**
+ * One of the two sections of papers nothing is outstanding for.
+ *
+ * Drawn at zero, dimmed, exactly like a stage. Vanishing when empty was the
+ * old behaviour, on the grounds that a record has no place to keep until there
+ * is something in it. That is one row of argument against the reason every
+ * other section stays: the pane should be the same shape every time you look
+ * at it, and a dimmed row teaches where a section will be.
+ *
+ * Every paper in it, uncapped. A cap would hide the oldest decisions, which
+ * are the ones worth the most: the reason to keep a record is the paper you
+ * ruled out long enough ago to have forgotten ruling on.
+ */
+function resting(
+	box: HTMLElement,
+	context: Context,
+	rows: Settled[],
+	spec: Omit<Folder, 'count'>,
+): void {
+	const children = folder(box, { ...spec, count: rows.length });
+	if (!children) return;
+
+	for (const entry of rows) {
+		const row = treeRow(
+			children,
+			entry.note.title,
+			() => void openNote(context.app, entry.note),
+			iconOf(entry.note.state),
+		);
 		// The state in words as well as in the icon, because the icon is the only
-		// thing distinguishing four outcomes and an icon cannot be read aloud.
+		// thing distinguishing the outcomes and an icon cannot be read aloud.
 		row.dataset.path = entry.note.path;
 		row.setAttribute('aria-label', decidedState(entry));
 		row.addEventListener('contextmenu', (event) => rowMenu(context, { kind: 'note', note: entry.note }, row, event));
 	}
-
-	return true;
 }
 
 /**
- * What a decided row is, in words: the state, and when it was reached.
+ * What a resting row is, in words: the state, when it was reached, and what
+ * you said at the time.
+ *
+ * The reason is the point of it on a deferred row, where it is the condition
+ * the paper is waiting on and the row is otherwise a title you have to open
+ * the note to understand. It earns its place on a dropped row too: why you
+ * ruled a paper out is exactly what you will want two years later, and it is
+ * the same sentence the record puts in its table.
  *
  * `landing` is deliberately not used, though it is the obvious candidate. It
  * describes where a decision puts a paper at the moment you take it, so on a
@@ -670,7 +708,8 @@ function decided(root: HTMLElement, context: Context, done: Settled[]): boolean 
 function decidedState(entry: Settled): string {
 	const when = entry.note.decided;
 	const word = label(entry.note.state);
-	return when ? `${word} on ${when}` : word;
+	const said = when ? `${word} on ${when}` : word;
+	return entry.note.reason ? `${said} · ${entry.note.reason}` : said;
 }
 
 /**

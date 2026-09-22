@@ -5,16 +5,27 @@
 // What is outstanding in the first place is worked out in `outstanding.ts`,
 // which triage needs as well and which must not depend on this.
 import { Notice, type App, type TFile } from 'obsidian';
-import { NEXT_ORDER, rowTask, rowTitle, TASKS, type NoteState, type Row, type Task } from '../core/stages';
+import {
+	NEXT_ORDER,
+	outcomeOf,
+	rowTask,
+	rowTitle,
+	TASKS,
+	writtenUnder,
+	type NoteState,
+	type Row,
+	type Task,
+} from '../core/stages';
 import { attachmentKeys, parseItemRef, readerUrl, type ItemRef } from '../core/zotero';
 import { selectUrl } from '../core/paper-note';
-import { itemChildren } from '../source';
-import { decideOn, noteFor, openTriage, targetOf, writeTriage } from './reading';
+import { itemChildren, lastContact } from '../source';
+import { decideOn, openTriage, targetOf, writeTriage } from './reading';
 import { fileOf, queue } from '../outstanding';
 import { iconOf, landing, PASS_PROGRESS, PASS_TWO, type State } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { say } from '../ui/notify';
-import { openAtHeading, reveal } from '../ui/reveal';
+import { openAtHeading, readingView, reveal } from '../ui/reveal';
+import { settle } from '../ui/editing';
 import type { Context } from '../context';
 
 /**
@@ -23,10 +34,19 @@ import type { Context } from '../context';
  * Clicking the same row twice should not give you two tabs of the same paper,
  * which for a list you click through is the fastest way to a workspace full of
  * duplicates.
+ *
+ * A paper nothing is outstanding for opens as a document rather than as an
+ * editor. The four outcomes have one thing in common, which is that the
+ * writing is over: what is left is something to read, and the editor is a
+ * pane of markdown syntax standing between you and it. A paper still owing a
+ * pass opens in source, because you are going there to type.
  */
 export async function openNote(app: App, note: NoteState): Promise<void> {
 	const file = fileOf(app, note);
-	if (file) await reveal(app, file);
+	if (!file) return;
+
+	await reveal(app, file);
+	if (outcomeOf(note) !== null) await readingView(app, file);
 }
 
 /**
@@ -71,6 +91,25 @@ async function attachmentUrl(ref: ItemRef, fallback: string | null): Promise<str
 	}
 }
 
+/**
+ * Hand a paper over to Zotero, and say so when Zotero is not there to take it.
+ *
+ * A `zotero://` link opens nothing at all when Zotero is shut, and the browser
+ * reports nothing back, so the row that leaves Obsidian was the one press in
+ * the plugin that could do visibly nothing. Now that it is the row click
+ * rather than a button, that silence is the commonest gesture in the pane.
+ *
+ * Asked of the last contact rather than of the link, because the link cannot
+ * be asked: resolving the attachment has just been to Zotero and back, or
+ * failed trying, and that is the answer.
+ */
+async function toZotero(url: string | null): Promise<void> {
+	if (url) window.open(url);
+
+	const contact = lastContact();
+	if (contact !== null && !contact.reachable) new Notice(contact.reason);
+}
+
 export async function act(context: Context, task: Task, row: Row): Promise<void> {
 	const app = context.app;
 
@@ -82,14 +121,19 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
 			return;
 		}
 
-		// Reading one does need a note, and now rather than later. You are about
-		// to annotate the paper in Zotero, and the highlights want somewhere to
-		// land when you come back. It arrives queued, because with triage off
-		// that is what putting it in Zotero meant.
+		// Reading writes nothing. It used to make the note first, on the grounds
+		// that the highlights would want somewhere to land, but `createPaperNote`
+		// fetches the annotations when it runs, so a note written after the
+		// reading arrives with all of them in it and the early one bought nothing.
+		// What it cost was a file appearing in the vault because you clicked a row
+		// to look at a PDF.
+		//
+		// Which leaves the rule the rest of the plugin already follows: deciding is
+		// what writes a note. With triage on the deciding has happened and the note
+		// exists; with triage off nothing has been decided until you say what came
+		// of the reading, and that is what writes it.
 		const ref: ItemRef = { key: row.item.key, groupID: null };
-		await noteFor(context, row.item);
-		const url = await attachmentUrl(ref, selectUrl(ref));
-		if (url) window.open(url);
+		await toZotero(await attachmentUrl(ref, selectUrl(ref)));
 		return;
 	}
 
@@ -103,7 +147,7 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
 			return;
 		case 'reading': {
 			const url = await readingUrl(context, file);
-			if (url) window.open(url);
+			if (url) await toZotero(url);
 			else await openNote(app, note);
 			return;
 		}
@@ -182,6 +226,8 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 	const file = fileOf(context.app, row.note);
 	if (!file) return;
 
+	if (!(await confirmed(context, file, pass))) return;
+
 	// The pass, and only the pass. What the paper earns is a judgement you made
 	// and this is a report about you, so ticking a claim off leaves `reading`
 	// exactly as it was. Through `writeTriage` like every other change, so the
@@ -199,6 +245,52 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 	// whether the paper was finished with or had just acquired an assessment to
 	// write. `landing` knows the difference because it reads the pair.
 	say(context, `${rowTitle(row)}\n${landing({ reading: row.note.state.reading, progress: PASS_PROGRESS[pass] })}`);
+}
+
+/**
+ * Make sure the pass being ticked off has something under its heading, and if
+ * not, ask.
+ *
+ * The plugin does not read your prose to decide when a pass is over. It used
+ * to, by watching the heading and calling the pass finished the moment
+ * anything appeared under it, and the tick exists because that was wrong: one
+ * character counted, so a paper left its section mid-sentence. Judging whether
+ * what you wrote is enough would be that mistake again.
+ *
+ * Noticing there is nothing at all is a different question, and it has a
+ * different answer: an empty section is not a claim you consider short, it is
+ * a tick pressed on the wrong row or before the work. So this asks rather than
+ * refuses, and the first answer is the one that does something about it.
+ *
+ * The editor is flushed before the note is read, or a claim typed a moment ago
+ * and not yet saved would read as an empty one, and the tick beside the button
+ * is pressed seconds after the last word.
+ *
+ * True when there is nothing to ask about, so the ordinary press goes straight
+ * through and never sees a dialog.
+ */
+async function confirmed(context: Context, file: TFile, pass: 'claim' | 'assessment'): Promise<boolean> {
+	const heading = pass === 'claim' ? context.settings.claimHeading : context.settings.assessmentHeading;
+
+	await settle(context.app, file);
+	if (writtenUnder((await context.app.vault.read(file)).split('\n'), heading)) return true;
+
+	const choice = await suggest(
+		context.app,
+		[
+			{ write: true, label: `Take me to ${heading}`, icon: 'pencil' },
+			{ write: false, label: 'Tick it off anyway', icon: 'check' },
+		],
+		(entry) => entry.label,
+		`Nothing is written under ${heading}`,
+		undefined,
+		(entry) => entry.icon,
+	);
+	if (!choice) return false;
+	if (!choice.write) return true;
+
+	await writeUnder(context, file, pass);
+	return false;
 }
 
 /**

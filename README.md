@@ -51,16 +51,25 @@ The same thing is on a button at the end of the row, appearing when you hover,
 which is what says in advance where the click will go. Reading also offers a
 tick for when you are done. Stages fold away when you are not working them.
 
-A paper Zotero holds that the vault has no note for gets one written when you
-open its PDF, so the highlights have somewhere to land when you come back.
+Reading writes nothing at all. Opening a PDF is not a decision, so a paper
+Zotero holds and the vault does not still has no note when you come back from
+it; saying what came of the reading is what writes one, and the highlights are
+fetched then, so nothing is lost by waiting. A finished note opens rendered
+rather than in the editor, because the writing is over and what is left is
+something to read.
 
-**Filed** holds everything that has left: dropped, parked, read, assessed,
-newest first, each with the icon of the decision that put it there. It takes
-whatever height the list leaves over, so it sits on the floor of the pane when
-there is room and scrolls along at the end of the list when there is not. Shut
-until you open it, and never counted as outstanding. Every other section
-answers by getting shorter, so this is the only place a morning of triage
-leaves a mark.
+Two sections sit under the stages, for the papers nothing is outstanding for.
+**Deferred** is the papers you parked, each row carrying the condition you set
+when you parked it, so a promise to come back is in front of you with a count
+on it rather than filed away among the finished. **Filed** is the rest:
+dropped, read, assessed, newest first, each with the icon of the decision that
+put it there. Neither is ever counted as outstanding or offered by **Next**,
+and right-clicking a row in either is how a paper comes back.
+
+Between them they take whatever height the list leaves over, so they sit on the
+floor of the pane when there is room and scroll along at the end of the list
+when there is not. Both shut until you open them. Every other section answers
+by getting shorter, so this is the only place a morning of triage leaves a mark.
 
 It lives in the sidebar (ribbon icon, or **Open queue**), and **Insert queue
 block** will put the same list on a note of your own. The block is the list and
@@ -114,6 +123,11 @@ Claim heading, with the highlights Zotero synced sitting right below. Write what
 the paper argues, in your own words, and tick it off. The pencil on the row puts
 you back in the same place whenever you come back to it, and the tick beside it
 is what ends the pass.
+
+The tick asks once, when there is nothing under the heading at all: an empty
+section is a tick pressed on the wrong row or before the work rather than a
+claim you consider short, so it offers to take you there instead. Write one
+word and it never appears.
 
 The tick rather than the prose, and that is a deliberate retreat. The plugin
 used to watch the heading and call the pass finished the moment anything

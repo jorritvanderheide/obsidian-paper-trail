@@ -29,6 +29,14 @@ export interface NoteState {
 	/** Creation time, so a backlog drains in the order things arrived. */
 	created: number;
 	/**
+	 * What you said when you parked or dropped it, or null.
+	 *
+	 * Only the deferred list reads it, and it is the whole reason that list is
+	 * worth drawing: a deferral is a promise with a condition on it, and a row
+	 * saying only the title is a promise with the condition left off.
+	 */
+	reason: string | null;
+	/**
 	 * The `reading-date` property, or null when the note has none.
 	 *
 	 * Only the settled list reads it. A backlog is ordered by when a paper
@@ -120,15 +128,11 @@ export interface TaskDefinition {
 	 * points of label that cannot shrink. The label survives as the tooltip and
 	 * as what a screen reader reads.
 	 *
-	 * Every task has one, and that is load-bearing rather than tidy. Clicking a
-	 * row shows you the paper and does nothing else, so the button is the only
-	 * way the work is reached: a task without one would be a section of the
-	 * queue you could look at and not act on.
-	 *
-	 * Two of them are a jump rather than an opening. The row opens a note at the
-	 * top; the pencil opens it at the heading that is owed, with the cursor on
-	 * an empty line under it. That is the difference between looking a paper up
-	 * and sitting down to write about it.
+	 * Every task has one, and that is load-bearing rather than tidy. The row
+	 * click does the same thing as the button, so the icon is what says in
+	 * advance where the click will take you: Zotero from a reading row, a
+	 * heading in the note from the two that are written. A task without one
+	 * would be a section whose rows went somewhere you had to try them to learn.
 	 */
 	icon?: string;
 	/**
@@ -348,7 +352,7 @@ export interface Settled {
 }
 
 /**
- * Everything decided, newest decision first.
+ * Everything at rest, newest decision first.
  *
  * The one list in the queue that reads backwards, and that is the point. A
  * stage drains oldest first because a backlog is worked from the bottom of the
@@ -360,13 +364,39 @@ export interface Settled {
  * brought in from another vault, or decided before the field existed, is still
  * a decision, and hiding it would make the count disagree with the list.
  */
-export function settled(notes: NoteState[]): Settled[] {
+function atRest(notes: NoteState[]): Settled[] {
 	return notes
 		.flatMap((note) => {
 			const reading = outcomeOf(note);
 			return reading === null ? [] : [{ note, reading }];
 		})
 		.sort((a, b) => (b.note.decided ?? '').localeCompare(a.note.decided ?? '') || b.note.created - a.note.created);
+}
+
+/**
+ * Everything you are done with.
+ *
+ * Three of the four outcomes, because a deferral is not one of them. It is
+ * the one decision that is a promise rather than an ending, and filing it
+ * with the papers you finished is how the promise goes quiet: the section is
+ * shut by default, so a paper you parked until March joins a list you open
+ * once a year to admire.
+ */
+export function settled(notes: NoteState[]): Settled[] {
+	return atRest(notes).filter((entry) => entry.reading !== 'deferred');
+}
+
+/**
+ * Everything you promised to come back to.
+ *
+ * Its own list, above the record and below the stages, which is exactly what
+ * it is: not work outstanding, because you decided it was not, and not
+ * finished either. `next` never offers one and the outstanding count never
+ * includes one; the section is there so that a standing count of parked
+ * papers is in front of you, and the condition you set is on the row.
+ */
+export function parked(notes: NoteState[]): Settled[] {
+	return atRest(notes).filter((entry) => entry.reading === 'deferred');
 }
 
 /** Oldest first within each stage, so the pile drains in the order it arrived. */
@@ -473,6 +503,31 @@ export function roomUnder(following: readonly string[]): Room | null {
 }
 
 /**
+ * Whether anything has been written under a heading.
+ *
+ * For the tick that ends a pass, which records that you consider the work
+ * done. Nothing at all under the heading is the one case where that is almost
+ * certainly not what you meant, and it is the only case this asks about: the
+ * plugin used to watch the heading and call a pass finished as soon as one
+ * character appeared, which is why the tick exists. Reading the prose to
+ * decide whether it is good enough would be that mistake again. Reading it to
+ * notice there is none is a different question.
+ *
+ * The section ends at the next heading or at the managed region, so the
+ * highlights below an assessment are not mistaken for the assessment.
+ */
+export function writtenUnder(lines: readonly string[], heading: string): boolean {
+	const at = headingLineIn(lines, heading);
+	if (at === null) return false;
+
+	for (const line of lines.slice(at + 1)) {
+		if (isRegionStart(line) || /^#{1,6}\s/.test(line)) return false;
+		if (line.trim() !== '') return true;
+	}
+	return false;
+}
+
+/**
  * The line a heading is on in a note's text, or null.
  *
  * The text rather than the cache, for anything about to write to the note. The
@@ -547,10 +602,11 @@ export function noteState(
 		title: typeof frontmatter?.title === 'string' ? frontmatter.title : file.basename,
 		isPaper: isPaper(frontmatter, keyField),
 		key: isPaper(frontmatter, keyField) ? String(frontmatter[keyField]) : null,
-		// Through `stateOf`, so a note written under any older spelling is read
-		// as the pair it means and nothing below has to know which era made it.
+		// Through `stateOf`, so the queue, the record and the pill all read the
+		// pair of fields exactly one way.
 		state: stateOf(frontmatter),
 		created: file.created,
+		reason: typeof frontmatter?.['reading-reason'] === 'string' ? frontmatter['reading-reason'] : null,
 		decided: typeof frontmatter?.['reading-date'] === 'string' ? frontmatter['reading-date'] : null,
 	};
 }

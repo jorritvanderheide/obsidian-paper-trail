@@ -36,6 +36,26 @@ export async function reveal(app: App, file: TFile): Promise<WorkspaceLeaf | nul
 }
 
 /**
+ * Show a note as a document rather than as an editor.
+ *
+ * The counterpart of the switch `openAtHeading` makes in the other direction,
+ * and allowable for the same reason: the mode is being set to match what you
+ * just asked for. Going to a paper nothing is outstanding for is asking to
+ * read it, and an editor there is markdown syntax standing between you and
+ * something finished.
+ *
+ * Only the view that is actually showing this file, and only when it is in
+ * source mode. A note already rendered needs nothing, and a note on a tab you
+ * are not looking at is not this call's business.
+ */
+export async function readingView(app: App, file: TFile): Promise<void> {
+	const view = app.workspace.getActiveViewOfType(MarkdownView);
+	if (!view || view.file !== file || view.getMode() !== 'source') return;
+
+	await view.leaf.setViewState({ ...view.leaf.getViewState(), state: { ...view.getState(), mode: 'preview' } });
+}
+
+/**
  * Open a note with the cursor under one of its headings, ready to type.
  *
  * The last step of a second pass is writing what the paper argues, and it had

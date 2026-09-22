@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CachedMetadata } from 'obsidian';
-import { PASS_PROGRESS, PROGRESS_ORDER, READING_ORDER } from '../src/core/triage';
+import { PASS_PROGRESS, PROGRESS_ORDER, READING_ORDER, type Progress, type Reading } from '../src/core/triage';
 import {
 	byStage,
 	headingCoverage,
@@ -11,6 +11,7 @@ import {
 	nextAfter,
 	NEXT_ORDER,
 	noteState,
+	parked,
 	rowsByStage,
 	rowTask,
 	rowTitle,
@@ -23,6 +24,7 @@ import {
 	TASKS,
 	visibleStages,
 	withHeading,
+	writtenUnder,
 	type NoteState,
 	type Row,
 } from '../src/core/stages';
@@ -34,6 +36,7 @@ const paper = (over: Partial<NoteState> = {}): NoteState => ({
 	key: 'ABCD2345',
 	state: { reading: 'untriaged', progress: null },
 	created: 0,
+	reason: null,
 	decided: null,
 	...over,
 });
@@ -45,6 +48,7 @@ const note = (over: Partial<NoteState> = {}): NoteState => ({
 	key: null,
 	state: { reading: 'untriaged', progress: null },
 	created: 0,
+	reason: null,
 	decided: null,
 	...over,
 });
@@ -394,7 +398,8 @@ describe('settled', () => {
 		const notes = [
 			paper({ path: 'a.md', title: 'old', state: { reading: 'dropped', progress: null }, decided: '2026-01-01' }),
 			paper({ path: 'b.md', title: 'new', state: { reading: 'dropped', progress: null }, decided: '2026-03-01' }),
-			paper({ path: 'c.md', title: 'mid', state: { reading: 'deferred', progress: null }, decided: '2026-02-01' }),
+			// Not a deferral: those have their own list now, above this one.
+			paper({ path: 'c.md', title: 'mid', state: { reading: 'queued', progress: 'summarised' }, decided: '2026-02-01' }),
 		];
 		expect(settled(notes).map((entry) => entry.note.title)).toEqual(['new', 'mid', 'old']);
 	});
@@ -873,5 +878,83 @@ describe('withHeading', () => {
 	// that cannot be wrong, and losing the heading is not an option.
 	it('appends to a note with no region to go above', () => {
 		expect(withHeading('# A paper\n', 'Claim', null)).toContain('## Claim');
+	});
+});
+
+/**
+ * The check the tick makes before it records a pass as done. Not whether what
+ * you wrote is enough, which is the mistake the tick exists to undo, but
+ * whether anything is there at all.
+ */
+describe('writtenUnder', () => {
+	const note = (...body: string[]) => ['# A paper', '', '## Claim', ...body, '<!--paper-trail-->', '<!--/paper-trail-->'];
+
+	it('sees a claim that has been written', () => {
+		expect(writtenUnder(note('', 'It argues that x.', ''), 'Claim')).toBe(true);
+	});
+
+	// Which is the whole case it is for: a heading the plugin put in, with the
+	// blank lines it put in under it, and nothing typed between them.
+	it('sees through the blank lines the heading arrived with', () => {
+		expect(writtenUnder(note('', '', ''), 'Claim')).toBe(false);
+	});
+
+	// The region opens directly under the last heading a paper has, so an
+	// assessment nobody wrote would otherwise be evidenced by the highlights.
+	it('does not read the managed region as the work', () => {
+		const assessed = ['## Assessment', '', '<!--paper-trail-->', '## Highlights', '', '> a passage'];
+		expect(writtenUnder(assessed, 'Assessment')).toBe(false);
+	});
+
+	it('stops at the next heading, so a claim is not evidenced by an assessment', () => {
+		expect(writtenUnder(['## Claim', '', '## Assessment', 'It strains here.'], 'Claim')).toBe(false);
+	});
+
+	it('says no when the note has no such heading', () => {
+		expect(writtenUnder(['# A paper', 'Something.'], 'Claim')).toBe(false);
+	});
+
+	it('matches the heading as loosely as everything else does', () => {
+		expect(writtenUnder(['### claim ', 'It argues that x.'], 'Claim')).toBe(true);
+	});
+});
+
+/**
+ * The two lists under the stages. A deferral is a promise with a condition on
+ * it, so it is not filed with the papers you are done with.
+ */
+describe('parked and settled', () => {
+	const at = (reading: Reading, progress: Progress | null, decided: string) =>
+		paper({ state: { reading, progress }, decided, title: `${reading} ${decided}` });
+
+	const notes = [
+		at('deferred', null, '2026-01-02'),
+		at('dropped', null, '2026-01-03'),
+		at('queued', 'summarised', '2026-01-04'),
+		at('promoted', 'assessed', '2026-01-05'),
+		at('deferred', 'read', '2026-01-06'),
+	];
+
+	it('keeps every deferral out of the record', () => {
+		expect(settled(notes).map((entry) => entry.reading)).not.toContain('deferred');
+	});
+
+	it('holds only deferrals', () => {
+		expect(parked(notes).every((entry) => entry.reading === 'deferred')).toBe(true);
+		expect(parked(notes)).toHaveLength(2);
+	});
+
+	// Or a paper would be in one section or in neither, which is the bug that
+	// made a settled paper vanish once already.
+	it('between them account for every paper at rest, exactly once', () => {
+		expect(parked(notes).length + settled(notes).length).toBe(notes.length);
+	});
+
+	it('reads newest first, like the record it is beside', () => {
+		expect(parked(notes).map((entry) => entry.note.decided)).toEqual(['2026-01-06', '2026-01-02']);
+	});
+
+	it('says nothing about a paper still waiting on something', () => {
+		expect(parked([at('promoted', 'read', '2026-01-07')])).toHaveLength(0);
 	});
 });

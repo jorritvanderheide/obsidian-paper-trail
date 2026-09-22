@@ -8,7 +8,17 @@
 // folder, so keying off the frontmatter rather than the path keeps the rules
 // independent of the vault's layout.
 import { TFile, type App } from 'obsidian';
-import { nextAfter, noteState, rowsByStage, settled, type NoteState, type Row, type Settled, type Task } from './core/stages';
+import {
+	nextAfter,
+	noteState,
+	parked,
+	rowsByStage,
+	settled,
+	type NoteState,
+	type Row,
+	type Settled,
+	type Task,
+} from './core/stages';
 import { pendingOf } from './core/pending';
 import { library } from './library';
 import type { Context } from './context';
@@ -33,14 +43,20 @@ export function fileOf(app: App, note: NoteState): TFile | null {
 }
 
 /**
- * What the queue draws: every row by stage, and everything already decided.
+ * What the queue draws: every row by stage, everything parked, and everything
+ * already decided.
  *
- * `done` is worked out here rather than by the pane because it is the same
+ * All three are worked out here rather than by the pane because they are one
  * sweep of the vault. Reading every note is the expensive half, and doing it
- * twice to answer two halves of one question would double the cost of a redraw
- * that already fires on every metadata change.
+ * three times to answer three halves of one question would treble the cost of
+ * a redraw that already fires on every metadata change.
  */
-export function queue(context: Context): { notes: NoteState[]; rows: Map<Task, Row[]>; done: Settled[] } {
+export function queue(context: Context): {
+	notes: NoteState[];
+	rows: Map<Task, Row[]>;
+	waiting: Settled[];
+	done: Settled[];
+} {
 	const notes = collect(context);
 	const items = library();
 	const keys = notes.flatMap((note) => (note.key === null ? [] : [note.key]));
@@ -53,6 +69,7 @@ export function queue(context: Context): { notes: NoteState[]; rows: Map<Task, R
 	return {
 		notes,
 		rows: rowsByStage(notes, pendingOf(items, keys), context.settings.triage, arrived),
+		waiting: parked(notes),
 		done: settled(notes),
 	};
 }

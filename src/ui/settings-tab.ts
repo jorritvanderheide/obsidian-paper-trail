@@ -245,12 +245,12 @@ export class SettingsTab extends PluginSettingTab {
 					},
 					{
 						name: 'Claim heading',
-						desc: `What the second pass is written under. A paper is made without it: the heading is written in above the highlights the first time you go to write a claim, so a paper you drop never carries an empty one. What ends the pass is the tick beside the button, not what you type here.${this.headingStatus(this.plugin.settings.claimHeading)}`,
+						desc: `What the second pass is written under. A paper is made without it: the heading is written in above the highlights at the moment the paper comes to owe a claim, so a paper you drop never carries an empty one. What ends the pass is the tick beside the button, not what you type here.${this.headingStatus(this.plugin.settings.claimHeading)}`,
 						control: { type: 'text', key: 'claimHeading' },
 					},
 					{
 						name: 'Assessment heading',
-						desc: `What the third pass is written under, and only papers you promote are asked for one. Written in the same way as the claim, below it, and ended by the tick beside the button.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
+						desc: `What the third pass is written under, and only papers you promote are asked for one. Written in the same way as the claim, below it, when the claim is ticked off, and ended by the tick beside the button.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
 						control: { type: 'text', key: 'assessmentHeading' },
 					},
 				],
