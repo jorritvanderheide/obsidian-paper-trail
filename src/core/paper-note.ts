@@ -12,14 +12,16 @@ import { sortKeys } from './frontmatter';
 /**
  * Wraps the only part of the body a sync is allowed to replace.
  *
- * An HTML comment rather than Obsidian's `%%`, and the difference is not
- * cosmetic. Both are invisible in a rendered note, but the metadata cache has
- * to agree, and `html` is a section type Obsidian documents while `comment` is
- * not one it lists at all. The rule that decides whether a heading has anything
- * under it works off that cache, so with `%%` markers the one sitting between
- * the assessment heading and the highlights that follow it read as prose: every
- * paper promoted to a third pass looked like its assessment was already
- * written, and went straight to Decided instead of to Assessment.
+ * An HTML comment rather than Obsidian's `%%`. Both are invisible in a
+ * rendered note, but only `html` is a section type Obsidian documents;
+ * `comment` appears nowhere in its API. That mattered a great deal when the
+ * stage rules read the prose under a heading: the marker sits directly under
+ * the assessment heading, Obsidian called it prose, and every paper promoted to
+ * a third pass looked like its assessment was already written.
+ *
+ * Nothing reads the prose any more, so this no longer decides anything. It
+ * stays because a delimiter the editor is documented to understand is the one
+ * to have, and because going back would mean rewriting every note again.
  */
 export const REGION_START = '<!--paper-trail-->';
 export const REGION_END = '<!--/paper-trail-->';
@@ -43,9 +45,10 @@ const MARKERS = [
 
 /**
  * Frontmatter keys the plugin writes. Every other key in the file is the
- * user's, including the reading decision: `reading`, `reading-date`,
- * `triaged-date` and `reading-reason` are answers a person gave, and a refresh
- * from Zotero has no business resetting them.
+ * user's, including everything you answered: `reading`, `reading-date`,
+ * `triaged-date`, `reading-reason`, `claim-date` and `assessment-date` are
+ * answers a person gave, and a refresh from Zotero has no business resetting
+ * them.
  */
 export const MANAGED_KEYS = ['title', 'aliases', 'authors', 'year', 'citekey', 'zotero'] as const;
 

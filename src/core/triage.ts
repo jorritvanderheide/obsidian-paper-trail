@@ -89,6 +89,49 @@ export interface Triage {
 	reason: string | null;
 }
 
+/** The two passes that end in something written, rather than in a decision. */
+export type Pass = 'claim' | 'assessment';
+
+/**
+ * Where a finished pass is recorded.
+ *
+ * A date, like `reading-date` and `triaged-date`, because the question a record
+ * asks four years later is when rather than whether, and a boolean cannot
+ * answer it. The rules only test whether the key is there.
+ *
+ * It used to be nothing at all: a pass counted as finished when the heading had
+ * anything under it, so the state was read straight off the prose. That is a
+ * lovely property and it cost too much in practice. One character counted, so
+ * the paper left the section mid-sentence, and there was nowhere to put a note
+ * to yourself under a heading without the plugin calling it the claim. Saying
+ * when you are done is one press, and it is a press you can mean.
+ */
+const PASS_DATE: Record<Pass, string> = { claim: 'claim-date', assessment: 'assessment-date' };
+
+/** The date a pass was marked written, or null while it is still owed. */
+export function passDate(frontmatter: Record<string, unknown> | undefined, pass: Pass): string | null {
+	const value = frontmatter?.[PASS_DATE[pass]];
+	return typeof value === 'string' && value.trim() ? value : null;
+}
+
+/**
+ * Record a pass as written. Mutates in place, which is the shape
+ * `processFrontMatter` wants.
+ *
+ * Nothing else is touched, and the prose under the heading least of all: what
+ * you wrote there is yours, and this says only that you consider it done.
+ */
+export function applyPass(frontmatter: Record<string, unknown>, pass: Pass, date: string): void {
+	frontmatter[PASS_DATE[pass]] = date;
+	sortKeys(frontmatter);
+}
+
+/** Take a pass back to owed, for a paper you want to write again. */
+export function clearPass(frontmatter: Record<string, unknown>, pass: Pass): void {
+	delete frontmatter[PASS_DATE[pass]];
+	sortKeys(frontmatter);
+}
+
 /**
  * The question a decision has to answer before it can be written, and the word
  * on the button that writes it.

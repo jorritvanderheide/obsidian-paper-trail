@@ -7,9 +7,8 @@
 
 import type { CachedMetadata } from 'obsidian';
 import { isPaper } from './paper-note';
-import { currentReading, readingOf, type Reading } from './triage';
+import { currentReading, passDate, readingOf, type Reading } from './triage';
 import type { Pending } from './pending';
-import type { Settings } from './settings';
 
 /** Everything the rules need, read from Obsidian's metadata cache. */
 export interface NoteState {
@@ -27,10 +26,10 @@ export interface NoteState {
 	key: string | null;
 	/** The `reading` property, or null when the note has none. */
 	reading: string | null;
-	/** Whether anything has been written under the claim heading. */
-	hasClaim: boolean;
-	/** Whether anything has been written under the assessment heading. */
-	hasAssessment: boolean;
+	/** The date the claim was marked written, or null while it is still owed. */
+	claimed: string | null;
+	/** The date the assessment was marked written, or null while still owed. */
+	assessed: string | null;
 	/** Creation time, so a backlog drains in the order things arrived. */
 	created: number;
 	/**
@@ -120,16 +119,19 @@ export interface TaskDefinition {
 	 */
 	icon?: string;
 	/**
-	 * A second button, for the one task whose end the plugin cannot see.
+	 * A second button, for the three tasks whose end the plugin cannot see.
 	 *
-	 * Every other task ends by doing the thing: a decision is written, a claim
-	 * or an assessment is typed, and the row leaves of its own accord. Reading
-	 * happens in Zotero over days, so nothing in the vault changes when it is
-	 * over. Without this the row would sit there forever.
+	 * Only triage ends by itself, because deciding is the whole of it. Reading
+	 * happens in Zotero over days and changes nothing here; a claim and an
+	 * assessment are prose you write, and the plugin used to watch the heading
+	 * and call the pass finished when anything appeared under it. One character
+	 * counted, so the row left mid-sentence, and there was nowhere to put a note
+	 * to yourself under a heading without it being taken for the work. Saying
+	 * when you are done is one press, and it is a press you can mean.
 	 *
-	 * What it opens is a question rather than a single outcome, because the end
-	 * of a second pass has four answers and picking one for the reader would be
-	 * the same mistake in a smaller place.
+	 * What reading opens is a question rather than a single outcome, because the
+	 * end of a second pass has four answers and picking one for the reader would
+	 * be the same mistake in a smaller place. The other two are a tick.
 	 */
 	done?: string;
 	/** The `done` button as an icon, for the same reason the action has one. */
@@ -153,16 +155,7 @@ export interface TaskDefinition {
 	 * which may not even be running, so nothing here would say anything at all.
 	 */
 	announces: boolean;
-	/**
-	 * What to say when this task ends by itself, for the two that do.
-	 *
-	 * A triage decision and the end of a reading both announce themselves,
-	 * because you pressed something and `landing` answered. A claim and an
-	 * assessment end when prose appears under a heading, which nothing presses
-	 * and nothing answers: the row simply stops being there. That is the one
-	 * completion in the plugin with no acknowledgement, and it is the completion
-	 * the whole stage exists for.
-	 */
+	/** What to say when the tick is pressed, for the two tasks that have one. */
 	completed?: string;
 	/**
 	 * The question to put when you arrive at the heading, for the two tasks that
@@ -208,6 +201,8 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		hint: 'Read, and not yet summarised. Keshav’s second pass ends when you can say what the paper argues, with its evidence, to someone else. Write that and it leaves.',
 		action: 'Write the claim',
 		icon: 'pencil',
+		done: 'Claim written',
+		doneIcon: 'check',
 		inNote: false,
 		announces: true,
 		completed: 'The second pass is done: you can say what it argues.',
@@ -222,6 +217,8 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		// The same mark as the claim, because it is the same verb: put the cursor
 		// under a heading and write. Which heading is what the section says.
 		icon: 'pencil',
+		done: 'Assessment written',
+		doneIcon: 'check',
 		inNote: false,
 		announces: true,
 		completed: 'The third pass is done.',
@@ -297,8 +294,8 @@ export function taskOf(note: NoteState): Task | null {
 	// a claim, and the claim comes first either way: assessing a paper is an
 	// argument with one you can already summarise.
 	const finished = reading === 'finished' || reading === 'promoted';
-	if (finished && !note.hasClaim) return 'claim';
-	if (reading === 'promoted' && !note.hasAssessment) return 'assessment';
+	if (finished && note.claimed === null) return 'claim';
+	if (reading === 'promoted' && note.assessed === null) return 'assessment';
 
 	// `dropped` and `deferred` are both off the list. The difference is on
 	// the note, where the record needs it, and not in the machine, where a
@@ -388,59 +385,18 @@ export function headingLine(cache: CachedMetadata | null, heading: string): numb
 }
 
 /**
- * Whether a heading has anything under it, judged from the cache alone so that
- * nothing has to read every note in the vault. The heading itself does not
- * count, and neither does anything the plugin wrote, which is what makes an
- * untouched template section read as empty.
+ * What a note looks like to the rules. Reads the cache, decides nothing.
  *
- * `html` is the load-bearing one, and the reason the managed region is
- * delimited by HTML comments. The last heading in a paper is the assessment,
- * and the region opens directly under it, so whatever Obsidian calls that
- * marker line is what decides whether a promoted paper is asking for a third
- * pass or has already had one. Under `%%` markers it was read as prose and
- * every promoted paper went straight to Decided.
- *
- * `comment` stays in the list although Obsidian does not document it: the type
- * union in the API is explicitly non-exhaustive, it costs a comparison, and a
- * note somebody wrote `%%` into by hand should not read as written-up either.
+ * Frontmatter only, now that a finished pass says so rather than being read off
+ * the prose under a heading. The headings are still where the cursor goes, but
+ * nothing about which section a paper sits in depends on what is under them.
  */
-export function hasContentUnder(cache: CachedMetadata | null, heading: string): boolean {
-	const headings = cache?.headings ?? [];
-	const index = indexOfHeading(cache, heading);
-	if (index === -1) return false;
-
-	const start = headings[index]?.position.end.line ?? 0;
-	const end = headings[index + 1]?.position.start.line ?? Number.MAX_SAFE_INTEGER;
-
-	return (cache?.sections ?? []).some(
-		(section) =>
-			section.type !== 'heading' &&
-			section.type !== 'html' &&
-			section.type !== 'comment' &&
-			section.position.start.line > start &&
-			section.position.start.line < end,
-	);
-}
-
-/**
- * The settings a note has to be read against: which property names the Zotero
- * item, and which two headings the second and third passes end under.
- *
- * Named as a group rather than passed as three strings, because three strings
- * in a row is a signature where transposing the last two type-checks silently
- * and produces a paper that can never leave Claim. Three callers pass exactly
- * these, and all three have the whole settings object in hand.
- */
-export type NoteFields = Pick<Settings, 'keyField' | 'claimHeading' | 'assessmentHeading'>;
-
-/** What a note looks like to the rules. Reads the cache, decides nothing. */
 export function noteState(
 	cache: CachedMetadata | null,
 	file: { path: string; basename: string; created: number },
-	fields: NoteFields,
+	keyField: string,
 ): NoteState {
 	const frontmatter = cache?.frontmatter;
-	const { keyField, claimHeading, assessmentHeading } = fields;
 	return {
 		path: file.path,
 		title: typeof frontmatter?.title === 'string' ? frontmatter.title : file.basename,
@@ -449,48 +405,11 @@ export function noteState(
 		// Through `currentReading`, so a note written under an older spelling is
 		// read as what that value is called now and nothing below has to know.
 		reading: typeof frontmatter?.reading === 'string' ? currentReading(frontmatter.reading) : null,
-		hasClaim: hasContentUnder(cache, claimHeading),
-		hasAssessment: hasContentUnder(cache, assessmentHeading),
+		claimed: passDate(frontmatter, 'claim'),
+		assessed: passDate(frontmatter, 'assessment'),
 		created: file.created,
 		decided: typeof frontmatter?.['reading-date'] === 'string' ? frontmatter['reading-date'] : null,
 	};
-}
-
-/**
- * What a note owed and what it had, for comparing one reading of it against
- * the next.
- */
-export interface Written {
-	task: Task | null;
-	hasClaim: boolean;
-	hasAssessment: boolean;
-}
-
-export function writtenOf(note: NoteState): Written {
-	return { task: taskOf(note), hasClaim: note.hasClaim, hasAssessment: note.hasAssessment };
-}
-
-/**
- * Which pass was just finished by writing under its heading, or null.
- *
- * The two passes that end this way are the only ones with nothing else to
- * announce them, and telling that apart from every other reason a paper stops
- * owing something is the whole of this.
- *
- * It used to ask whether the task had gone from claim to nothing, which was
- * wrong twice. Drop a paper that owed a claim and it congratulated you on the
- * second pass you had not written. Write the claim on a paper promoted to a
- * third pass and it said nothing, because the task went from claim to
- * assessment rather than to nothing, and that is exactly the completion the
- * message exists for.
- *
- * So it asks what it means: did the heading this paper was waiting on go from
- * empty to written.
- */
-export function finishedByWriting(was: Written, now: Written): Task | null {
-	if (was.task === 'claim' && !was.hasClaim && now.hasClaim) return 'claim';
-	if (was.task === 'assessment' && !was.hasAssessment && now.hasAssessment) return 'assessment';
-	return null;
 }
 
 /**

@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
 	applyStatusTag,
+	applyPass,
 	applyTriage,
+	clearPass,
 	arrivalReading,
 	asks,
 	iconOf,
 	label,
 	landing,
 	NO_STATUS_TAGS,
+	passDate,
 	PASS_TWO,
 	readingOf,
 	readTags,
@@ -474,5 +477,67 @@ describe('retiredTagCount', () => {
 	// report notes it is never going to touch.
 	it('matches the namespace rather than the start of a word', () => {
 		expect(retiredTagCount([['literature-review/methods']], ['literature'])).toBe(0);
+	});
+});
+
+/**
+ * A finished pass, recorded rather than read off the prose.
+ *
+ * The plugin used to call a pass done as soon as the heading had anything under
+ * it. One character counted, so a paper left its section mid-sentence, and
+ * there was nowhere to think under a heading without it being taken for the
+ * work. Saying when you are done is one press.
+ */
+describe('applyPass and passDate', () => {
+	it('records the date the pass was marked written', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyPass(frontmatter, 'claim', '2026-09-22');
+		expect(frontmatter['claim-date']).toBe('2026-09-22');
+		expect(passDate(frontmatter, 'claim')).toBe('2026-09-22');
+	});
+
+	it('keeps the two passes apart', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyPass(frontmatter, 'assessment', '2026-09-22');
+		expect(passDate(frontmatter, 'claim')).toBeNull();
+		expect(passDate(frontmatter, 'assessment')).toBe('2026-09-22');
+	});
+
+	it('reads a paper that has never been marked as owing the pass', () => {
+		expect(passDate({}, 'claim')).toBeNull();
+		expect(passDate(undefined, 'claim')).toBeNull();
+	});
+
+	it('ignores a value that is not a date somebody wrote', () => {
+		expect(passDate({ 'claim-date': true }, 'claim')).toBeNull();
+		expect(passDate({ 'claim-date': '   ' }, 'claim')).toBeNull();
+	});
+
+	// What is under the heading is yours. This says only that you consider it
+	// done, so a claim can be redrafted for a week without the queue minding.
+	it('touches nothing else on the note', () => {
+		const frontmatter: Record<string, unknown> = { reading: 'promoted', tags: ['topic/heat-pumps'], mine: 1 };
+		applyPass(frontmatter, 'claim', '2026-09-22');
+		expect(frontmatter).toMatchObject({ reading: 'promoted', tags: ['topic/heat-pumps'], mine: 1 });
+	});
+
+	it('leaves sorted frontmatter, like every other write', () => {
+		const frontmatter: Record<string, unknown> = { zotero: 'z', authors: 'a' };
+		applyPass(frontmatter, 'claim', '2026-09-22');
+		expect(Object.keys(frontmatter)).toEqual([...Object.keys(frontmatter)].sort());
+	});
+
+	it('takes a pass back to owed, for a paper you want to write again', () => {
+		const frontmatter: Record<string, unknown> = {};
+		applyPass(frontmatter, 'claim', '2026-09-22');
+		clearPass(frontmatter, 'claim');
+		expect('claim-date' in frontmatter).toBe(false);
+		expect(passDate(frontmatter, 'claim')).toBeNull();
+	});
+
+	it('is a no-op clearing a pass that was never marked', () => {
+		const frontmatter: Record<string, unknown> = { reading: 'promoted' };
+		clearPass(frontmatter, 'assessment');
+		expect(frontmatter).toEqual({ reading: 'promoted' });
 	});
 });

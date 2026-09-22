@@ -22,7 +22,7 @@ export function collect(context: Context): NoteState[] {
 			noteState(
 				context.app.metadataCache.getFileCache(file),
 				{ path: file.path, basename: file.basename, created: file.stat.ctime },
-				context.settings,
+				context.settings.keyField,
 			),
 		);
 }

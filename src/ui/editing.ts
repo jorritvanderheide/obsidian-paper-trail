@@ -1,15 +1,14 @@
 // Holding back what a note's own change would do to the rest of the interface,
 // for as long as you are the one writing it.
 //
-// The queue is derived from the vault, so it redraws whenever the metadata
-// cache moves, and the cache moves while you type. Writing a claim therefore
-// rearranged the sidebar under you mid-sentence: the row left its section, two
-// counts changed, the tree rebuilt, and a notice arrived to say the pass was
-// done before the sentence was.
+// The queue redraws whenever the metadata cache moves, and the cache moves
+// while you type. A redraw reads every note in the vault and rebuilds the pane
+// from nothing, which loses the scroll position and whatever you were hovering.
 //
-// That is the right answer arriving at the wrong moment. The rules stay exactly
-// as they are, derived from what is written; only the telling waits until you
-// have finished writing it.
+// Typing no longer moves any row, because a pass ends when you tick it rather
+// than when prose appears under a heading. So this is no longer about the
+// answer being wrong; it is about doing a vault's worth of work, and throwing
+// away where you were in the list, for a keystroke that changes nothing.
 import { MarkdownView, type App, type TFile } from 'obsidian';
 
 /**

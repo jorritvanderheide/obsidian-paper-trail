@@ -9,9 +9,9 @@ import { rowTask, rowTitle, STAGES, TASKS, type NoteState, type Row, type Task }
 import { attachmentKeys, parseItemRef, readerUrl, type ItemRef } from '../core/zotero';
 import { selectUrl } from '../core/paper-note';
 import { itemChildren } from '../source';
-import { decideOn, noteFor, openTriage, targetOf } from './reading';
+import { decideOn, noteFor, openTriage, targetOf, today } from './reading';
 import { fileOf, queue } from '../outstanding';
-import { iconOf, landing, PASS_TWO } from '../core/triage';
+import { applyPass, iconOf, landing, PASS_TWO, type Pass } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { say } from '../ui/notify';
 import { openAtHeading, reveal } from '../ui/reveal';
@@ -124,9 +124,9 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
  * on arrival it is asked once, in the current wording, and is gone as soon as
  * it is answered.
  *
- * A heading the note does not have falls back to the note and says so. It is
- * the one failure in this workflow that is otherwise completely silent: the
- * paper never leaves its section and nothing anywhere explains why.
+ * A heading the note does not have falls back to the note and says so. The
+ * paper can still be ticked off from the row, so this no longer traps it; it
+ * is a setting disagreeing with the vault, and worth a word either way.
  */
 async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assessment', lead?: string): Promise<void> {
 	const claim = task === 'claim';
@@ -147,10 +147,44 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
 		return;
 	}
 
+	// The pass can still be ended from the tick beside this button, so this is
+	// no longer a paper that can never leave. It is still worth saying: the
+	// cursor went nowhere, and a heading the note has not got is a setting that
+	// disagrees with the vault.
 	new Notice(
-		`${file.basename} has no "${heading}" heading, so nothing can ever leave this stage.\n` +
+		`${file.basename} has no "${heading}" heading, so there is nowhere to put the cursor.\n` +
 			`Add it to the note, or change the ${claim ? 'Claim' : 'Assessment'} heading in settings.`,
 	);
+}
+
+/**
+ * Say a pass is written, which is the only thing that ends one.
+ *
+ * The plugin used to decide this for you, by watching the heading and calling
+ * the pass finished as soon as anything appeared under it. That read the state
+ * straight off the prose, which is a lovely property and cost too much: one
+ * character counted, so a paper left its section mid-sentence, and there was
+ * nowhere to put a note to yourself under a heading without it being taken for
+ * the work.
+ *
+ * It writes a date and nothing else. What is under the heading is yours, and
+ * this records only that you consider it done, so a claim can be redrafted for
+ * a week afterwards without the queue having an opinion about it.
+ */
+async function finishPass(context: Context, pass: Pass, row: Row): Promise<void> {
+	// A pass belongs to a note. A paper Zotero holds and the vault does not has
+	// never been read, so it is never in either of these sections.
+	if (row.kind !== 'note') return;
+	const file = fileOf(context.app, row.note);
+	if (!file) return;
+
+	const date = today();
+	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+		applyPass(frontmatter, pass, date);
+	});
+
+	const said = TASKS[pass].completed;
+	if (said) say(context, `${rowTitle(row)}\n${said}`);
 }
 
 /**
@@ -163,6 +197,7 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
  * the state the triage dialog would have left it in.
  */
 export async function finish(context: Context, task: Task, row: Row): Promise<void> {
+	if (task === 'claim' || task === 'assessment') return finishPass(context, task, row);
 	if (task !== 'read') return;
 	const app = context.app;
 

@@ -138,7 +138,7 @@ export class SettingsTab extends PluginSettingTab {
 
 		if (total === 0) return '';
 		if (found === total) return ` Found in all ${total} papers.`;
-		if (found === 0) return ` ⚠ No paper has this heading, so nothing will ever leave ${stage}.`;
+		if (found === 0) return ` ⚠ No paper has this heading, so ${stage} cannot put your cursor where the writing goes.`;
 		return ` ⚠ Found in only ${found} of ${total} papers.`;
 	}
 
@@ -242,12 +242,12 @@ export class SettingsTab extends PluginSettingTab {
 					},
 					{
 						name: 'Claim heading',
-						desc: `The second pass ends here. A paper leaves Reading once this heading has something under it, so it must match your literature template.${this.headingStatus(this.plugin.settings.claimHeading, 'Reading')}`,
+						desc: `Where the second pass is written. The Claim button puts your cursor under this heading, so it has to match your literature template. What ends the pass is the tick beside it, not what you type here.${this.headingStatus(this.plugin.settings.claimHeading, 'Claim')}`,
 						control: { type: 'text', key: 'claimHeading' },
 					},
 					{
 						name: 'Assessment heading',
-						desc: `The third pass ends here, and only papers you promote to it are asked for one.${this.headingStatus(this.plugin.settings.assessmentHeading, 'Assessment')}`,
+						desc: `Where the third pass is written, and only papers you promote are asked for one. The Assessment button puts your cursor under this heading, and the tick beside it is what ends the pass.${this.headingStatus(this.plugin.settings.assessmentHeading, 'Assessment')}`,
 						control: { type: 'text', key: 'assessmentHeading' },
 					},
 				],

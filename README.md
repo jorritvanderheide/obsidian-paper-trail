@@ -109,15 +109,24 @@ can. This is where you make good on it.
 
 Saying so takes you straight to the note, cursor on an empty line under the
 Claim heading, with the highlights Zotero synced sitting right below. Write what
-the paper argues, in your own words, and it leaves. The pencil on the row puts
-you back in the same place whenever you come back to it.
+the paper argues, in your own words, and tick it off. The pencil on the row puts
+you back in the same place whenever you come back to it, and the tick beside it
+is what ends the pass.
+
+The tick rather than the prose, and that is a deliberate retreat. The plugin
+used to watch the heading and call the pass finished the moment anything
+appeared under it, which read the state straight off what you had written and
+needed no extra press. One character counted, so the paper left the section
+mid-sentence, and there was nowhere to leave yourself a note under a heading
+without it being taken for the work. What is under the heading is yours; the
+date says only that you consider it done.
 
 The plugin writes none of it. The heading is left empty and the question is put
 in the moment you arrive, rather than left lying in the file as a comment you
 would have to type around and then delete.
 
-**Assessment** is for the few papers you promote, and ends when it is written.
-It is Keshav's third pass: arguing with a paper you can already summarise.
+**Assessment** is for the few papers you promote, and ends the same way. It is
+Keshav's third pass: arguing with a paper you can already summarise.
 
 ## The record
 
@@ -129,8 +138,10 @@ A dropped paper is not a deletion. The note stays, and so do:
 | `reading-date` | when the status last changed |
 | `triaged-date` | when you first formed an opinion, written once |
 | `reading-reason` | why, on a drop or a deferral |
+| `claim-date` | when you ticked the second pass off |
+| `assessment-date` | when you ticked the third pass off |
 
-Nothing about Zotero overwrites those four. **Export excluded papers** turns
+Nothing about Zotero overwrites those. **Export excluded papers** turns
 them into a plain markdown table, oldest first, every row linking back to the
 paper, ready for an appendix.
 

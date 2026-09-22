@@ -11,8 +11,6 @@ import { WORKFLOW_BLOCK, WorkflowBlock } from './ui/workflow-block';
 import { openQueue, QUEUE_VIEW, QueueView } from './ui/queue';
 import { decorate, undecorate } from './ui/view-actions';
 import { noteStatus } from './ui/note-status';
-import { announce, forgetCompletions } from './ui/completion';
-import { WhileWriting } from './ui/editing';
 import { notify } from './ui/notify';
 
 export default class PaperTrail extends Plugin {
@@ -33,7 +31,6 @@ export default class PaperTrail extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file) => {
 				if (file) void syncOnOpen(this, file);
-				this.completions.flush();
 				this.decorate();
 			}),
 		);
@@ -42,24 +39,13 @@ export default class PaperTrail extends Plugin {
 		// back to the tab you left. `layout-change` also covers the editing and
 		// reading toggle, which rebuilds the button away.
 		this.registerEvent(this.app.workspace.on('layout-change', () => this.decorate()));
-		this.registerEvent(
-			this.app.workspace.on('active-leaf-change', () => {
-				this.completions.flush();
-				this.decorate();
-			}),
-		);
+		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.decorate()));
 		// Whether a note is a paper is read from the metadata cache, and a note
 		// that has just been created is not in it yet: a note written by a triage
 		// decision opened with its buttons hidden until you switched tabs and
 		// back. This is the cache catching up, which is when the answer changes.
 		this.registerEvent(
-			this.app.metadataCache.on('changed', (file) => {
-				// Held while the change is your own typing, so "the second pass is
-				// done" arrives when you put the pen down rather than partway
-				// through the sentence it is congratulating you for. The title bar
-				// is not held: it is in the note you are looking at, and it says
-				// what the paper is rather than what just happened to it.
-				this.completions.changed(file);
+			this.app.metadataCache.on('changed', () => {
 				this.decorate();
 			}),
 		);
@@ -93,16 +79,9 @@ export default class PaperTrail extends Plugin {
 		}
 	}
 
-	/**
-	 * The completion notice, held while you are writing the pass it is about.
-	 */
-	private readonly completions = new WhileWriting(this.app, (file) => announce(this, file));
-
 	onunload() {
 		this.unloaded = true;
-		this.completions.forget();
-		forgetCompletions();
-		undecorate(this.app);
+				undecorate(this.app);
 	}
 
 	async saveSettings() {
