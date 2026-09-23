@@ -8,6 +8,7 @@ import {
 	judgementIcon,
 	label,
 	landing,
+	moves,
 	NO_STATUS_TAGS,
 	PASS_TWO,
 	READ_AGAIN,
@@ -631,5 +632,41 @@ describe('judgementIcon', () => {
 
 	it('gives the five judgements five different icons', () => {
 		expect(new Set(READING_ORDER.map(judgementIcon)).size).toBe(READING_ORDER.length);
+	});
+});
+
+/**
+ * Whether a line in the chooser would do anything. The chooser used to offer
+ * Queued and Promoted on an assessed paper, and picking either changed a
+ * field and nothing on screen.
+ */
+describe('moves', () => {
+	const assessed: State = { reading: 'promoted', progress: 'assessed' };
+
+	it('does not count rewriting the judgement on a paper already assessed', () => {
+		expect(moves(assessed, { reading: 'queued', progress: 'assessed' })).toBe(false);
+		expect(moves(assessed, { reading: 'promoted', progress: 'assessed' })).toBe(false);
+	});
+
+	it('counts every way an assessed paper can actually go somewhere', () => {
+		for (const reading of ['untriaged', 'deferred', 'dropped'] as const) {
+			expect(moves(assessed, { reading, progress: 'assessed' }), reading).toBe(true);
+		}
+		expect(moves(assessed, { reading: 'queued', progress: null }), 'read again').toBe(true);
+	});
+
+	it('never offers a paper where it already is', () => {
+		for (const reading of READING_ORDER) {
+			for (const progress of [null, ...PROGRESS_ORDER]) {
+				const state = { reading, progress };
+				expect(moves(state, state), `${reading}/${progress}`).toBe(false);
+			}
+		}
+	});
+
+	// The case that is not a no-op, and must stay offered: promoting a paper
+	// you have summarised is what gives it an assessment to write.
+	it('counts promoting a summarised paper, which gives it an assessment to owe', () => {
+		expect(moves({ reading: 'queued', progress: 'summarised' }, { reading: 'promoted', progress: 'summarised' })).toBe(true);
 	});
 });

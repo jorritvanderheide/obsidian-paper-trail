@@ -209,6 +209,11 @@ a judgement leaves progress alone and Queued on its own would leave a finished
 paper exactly where it is. The claim and the assessment stay in the note, to be
 read against on the way back through.
 
+It only offers what would move the paper. On an assessed paper, Queued and
+Promoted would each rewrite a field and change nothing you can see, because the
+question of whether it earned a third pass was answered by doing one, so neither
+is in the list. Where the paper is now is in the title instead.
+
 The plugin writes none of it, only the heading it goes under. A new paper is a
 title, its links and the highlights region; the Claim heading is written in
 above the highlights at the moment the paper comes to owe a claim, and the

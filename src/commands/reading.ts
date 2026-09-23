@@ -17,8 +17,11 @@ import { TriageModal, type Brief } from '../ui/triage-modal';
 import {
 	applyTriage,
 	asks,
+	arrivalReading,
 	judgementIcon,
+	label,
 	landing,
+	moves,
 	READ_AGAIN,
 	READING_ORDER,
 	stateOf,
@@ -171,35 +174,46 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 }
 
 /**
- * Put the six states to someone and write the one they pick.
+ * Put the judgements to someone and write the one they pick.
  *
  * Takes a target rather than a file, so a queue row can offer it whether or not
  * the paper has a note yet: for one that has none, deciding is what writes it,
  * exactly as it is in the triage dialog.
  *
- * Every state, including the ones no button offers, because the reason to reach
- * for this is to correct a record rather than to make a decision. `landing`
- * rides along on each option so the list says where a paper will end up, which
- * is the thing you cannot know from the word alone.
+ * Every judgement that would move the paper, including the ones no button
+ * offers, because the reason to reach for this is to correct a record rather
+ * than to make a decision. `landing` rides along on each option so the list
+ * says where a paper will end up, which is the thing you cannot know from the
+ * word alone.
  */
 export async function chooseReading(context: Context, target: TriageTarget, name: string): Promise<void> {
-	// Where each judgement lands depends on what has been written as well as on
-	// what you pick, so the progress the paper already has rides along: a paper
-	// you have summarised goes straight back to Filed when you queue it again,
-	// and the list should say so rather than promise Reading.
-	const progress = target.kind === 'note' ? stateOf(context.app.metadataCache.getFileCache(target.file)?.frontmatter).progress : null;
-	const after = (entry: Choice): State => ({ reading: entry.reading, progress: entry.progress === null ? null : progress });
+	// Where the paper is now. A paper with no note is wherever the queue shows
+	// it, which is what putting it in Zotero meant: Triage with triage on,
+	// Reading with it off.
+	const now: State =
+		target.kind === 'note'
+			? stateOf(context.app.metadataCache.getFileCache(target.file)?.frontmatter)
+			: { reading: arrivalReading(context.settings.triage), progress: null };
+	// Where each option lands. A judgement leaves progress alone, so it rides
+	// along; `READ_AGAIN` is the one option that clears it.
+	const after = (entry: Choice): State => ({
+		reading: entry.reading,
+		progress: entry.progress === null ? null : now.progress,
+	});
 
 	// Beside Queued, and only for a paper that has been read, which is the one
-	// case where Queued on its own would leave the paper exactly where it is.
-	const choices =
-		progress === null ? CHOICES : CHOICES.flatMap((entry) => (entry.reading === 'queued' ? [entry, READ_AGAIN] : [entry]));
+	// case where Queued on its own could not send it back to be read.
+	const offered =
+		now.progress === null ? CHOICES : CHOICES.flatMap((entry) => (entry.reading === 'queued' ? [entry, READ_AGAIN] : [entry]));
+	const choices = offered.filter((entry) => moves(now, after(entry)));
 
 	const choice = await suggest(
 		context.app,
 		choices,
 		(entry) => entry.label,
-		`Reading status of ${name}`,
+		// Where it is now goes in the title, because it is no longer in the list:
+		// the line that would have said so was the one line that did nothing.
+		`Reading status of ${name} · ${label(now)}`,
 		(entry) => landing(after(entry)),
 		// The icon is the judgement being offered, and where it lands is the line
 		// under it. Drawing the landing as the icon as well put the Assessed mark

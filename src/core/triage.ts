@@ -207,6 +207,25 @@ const LANDINGS: Record<string, string> = {
 	Dropped: 'Dropped, and off the list.',
 };
 
+/**
+ * Whether a decision would move a paper anywhere you could see.
+ *
+ * For the chooser, which should not offer a line that leaves the paper where
+ * it is. It did: on an assessed paper, Queued rewrote `reading` from promoted
+ * to queued, and nothing on screen changed, because once the assessment is
+ * written the question of whether it was worth one has been answered by
+ * doing it. Promoted did the same, being the value already there.
+ *
+ * Compared by label, because the label is where a paper is as far as
+ * everything drawn from it is concerned: the pill, the section, the Filed
+ * row and the status tag. Two states with one label look the same in all of
+ * them. It also takes the current state out of its own list, which is right:
+ * choosing where a paper already is is not a choice.
+ */
+export function moves(from: State, to: State): boolean {
+	return label(from) !== label(to);
+}
+
 export function landing(state: State): string {
 	return LANDINGS[label(state)] ?? '';
 }
