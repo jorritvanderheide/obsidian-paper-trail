@@ -50,12 +50,6 @@
 	border-color: var(--interactive-accent);
 }
 
-.paper-trail-prompt-error {
-	color: var(--text-error);
-	font-size: var(--font-ui-smaller);
-	min-height: var(--font-ui-smaller);
-	margin-top: var(--size-2-2);
-}
 
 /*
  * The queue is a nav tree, and says so in markup rather than in CSS.

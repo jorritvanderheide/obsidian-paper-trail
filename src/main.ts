@@ -88,7 +88,7 @@ export default class PaperTrail extends Plugin {
 
 	onunload() {
 		this.unloaded = true;
-				undecorate(this.app);
+		undecorate(this.app);
 	}
 
 	async saveSettings() {

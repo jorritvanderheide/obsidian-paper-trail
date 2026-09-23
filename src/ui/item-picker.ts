@@ -1,9 +1,9 @@
-// Pick an item from your Zotero library.
+// Pick an item from your Zotero library, to cite it.
 //
 // It opens on what you added most recently rather than on an empty list,
-// because the paper you want a note for is nearly always one you saved from the
-// browser a few minutes ago, and asking you to retype its title is asking you
-// to do the search twice.
+// because the paper you are writing about is often one you saved not long ago,
+// and an empty box asks you to remember a title before it will show you
+// anything.
 import { SuggestModal, type App } from 'obsidian';
 import { authorNames, isPaperItem, itemYear, type ApiItem } from '../core/zotero';
 import { messageOf } from './notify';

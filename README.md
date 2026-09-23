@@ -155,7 +155,7 @@ be read.
 
 **Triage** is what Zotero holds that your vault has no note for. It is computed,
 not stored, so importing four hundred search results gives you four hundred rows
-and zero files. Nothing is written until you act on one, and acting is what
+and zero files. Nothing is written until you decide on one, and deciding is what
 makes the note.
 
 If your Zotero is older than this thesis, point **Papers from** at one

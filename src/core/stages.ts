@@ -31,9 +31,10 @@ export interface NoteState {
 	/**
 	 * What you said when you parked or dropped it, or null.
 	 *
-	 * Only the deferred list reads it, and it is the whole reason that list is
-	 * worth drawing: a deferral is a promise with a condition on it, and a row
-	 * saying only the title is a promise with the condition left off.
+	 * The Deferred and Filed rows read it. It is the whole reason the Deferred
+	 * list is worth drawing: a deferral is a promise with a condition on it, and
+	 * a row saying only the title is a promise with the condition left off. On a
+	 * dropped paper it is why you ruled it out, which is what year four asks.
 	 */
 	reason: string | null;
 	/**
@@ -59,7 +60,7 @@ export type Task = 'triage' | 'claim' | 'reading' | 'assessment';
 
 /**
  * The order a paper passes through them, which is the order the queue is read
- * downwards and the order `next` walks.
+ * downwards. `next` has an order of its own, below.
  *
  * Claim sat above Reading for a while, ordered by what each one costs so that
  * the cheapest outstanding thing was always at the top. That was a better
@@ -67,10 +68,7 @@ export type Task = 'triage' | 'claim' | 'reading' | 'assessment';
  * the workflow, and a section that comes after Reading in every explanation
  * and before it on screen is a puzzle to solve rather than a list to read.
  *
- * `next` walks this order too, so it prefers a reading to a claim. That costs
- * less than it sounds: Triage is normally the longest section by an order of
- * magnitude, so it is what `next` almost always offers whatever comes after.
- *
+
  * Declaration order on the type above is not it, and cannot be: that order is
  * arbitrary and nothing can depend on it. This is the one that is meant.
  */
@@ -134,7 +132,7 @@ export interface TaskDefinition {
 	 * heading in the note from the two that are written. A task without one
 	 * would be a section whose rows went somewhere you had to try them to learn.
 	 */
-	icon?: string;
+	icon: string;
 	/**
 	 * A second button, for the three tasks whose end the plugin cannot see.
 	 *
@@ -246,15 +244,12 @@ export function visibleStages(rows: Map<Task, Row[]>, triage: boolean): TaskDefi
 }
 
 /**
- * How many of a set of papers carry a heading, for a setting that has to say
- * when it disagrees with the vault.
+ * How many of a set of papers carry a heading, for the setting that names it.
  *
- * A stage ends when its heading has something under it, so a heading no paper
- * has is a stage no paper ever leaves, and nothing anywhere says why. Counted
- * against the papers that exist rather than against the template, which would
- * always agree with itself: the plugin writes the template, but not the notes
- * made before the setting changed, and not one whose headings were edited by
- * hand.
+ * Renaming a heading after papers carry it leaves them behind: the old heading
+ * is not found any more, so the next time one of those papers needs the
+ * section it gets a second heading. Counted against the papers that exist
+ * rather than against the template, which never carries either heading.
  */
 export function headingCoverage(papers: (CachedMetadata | null)[], heading: string): { found: number; total: number } {
 	const wanted = heading.trim().toLowerCase();
@@ -265,9 +260,7 @@ export function headingCoverage(papers: (CachedMetadata | null)[], heading: stri
 }
 
 /**
- * A missing `reading` counts as untriaged rather than as nothing at all. A note
- * brought in from somewhere else, or written before the field existed, has no
- * opinion recorded on it, and an unrecorded opinion is one not yet formed.
+ * What a note is waiting on, or null when nothing is outstanding.
  *
  * Only papers can be outstanding. A note you wrote yourself is finished when
  * you stop typing, and the plugin has no business having an opinion about it.
@@ -440,14 +433,14 @@ export interface Insertion {
  * happen. The same argument took the prompts out of the template, and it
  * applies to the headings the prompts used to sit under.
  *
- * So the heading arrives when you go to write under it, and a paper you drop
+ * So the heading arrives when the paper comes to owe it, and a paper you drop
  * stays three lines long.
  */
 export function insertHeading(lines: readonly string[], heading: string, precedes: string | null): Insertion {
 	const at = headingSlot(lines, precedes);
 
 	// A blank line above it, unless whatever it is going under already ends in
-	// one. Two blanks below: one to separate, one to write on, and a third so
+	// one. Three blank lines below: one to separate, one to write on, and one so
 	// what you write is not pressed against what follows.
 	const spaced = at > 0 && lines[at - 1]?.trim() !== '';
 	return {
@@ -574,7 +567,6 @@ export function withHeading(content: string, heading: string, precedes: string |
 	return at === 0 ? text + tail : `${lines.slice(0, at).join('\n')}\n${text}${tail}`;
 }
 
-
 /**
  * What a note looks like to the rules. Reads the cache, decides nothing.
  *
@@ -627,8 +619,8 @@ export function rowTitle(row: Row): string {
  * triage on it wants ruling on; with triage off that ruling already happened,
  * in the browser, and what it wants is reading.
  *
- * Either way nothing is written until you act on it, and acting is what gives
- * it a note.
+ * Either way nothing is written until you decide on it, and deciding is what
+ * gives it a note.
  */
 export function rowTask(row: Row, triage: boolean): Task | null {
 	if (row.kind !== 'pending') return taskOf(row.note);

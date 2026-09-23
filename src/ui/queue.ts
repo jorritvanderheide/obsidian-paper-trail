@@ -583,20 +583,19 @@ function sectionRows(
 		// is what state things are in.
 		row.addEventListener('contextmenu', (event) => rowMenu(context, entry, row, event));
 
-		// At the trailing edge, on the same line as the title. A task with no
-		// icon has no button here: its action is opening the note, which the
-		// row it sits on already does.
+		// At the trailing edge, on the same line as the title.
 		const actions = row.createDiv({ cls: 'paper-trail-workflow-actions' });
 		// The task's own end first, where it is reachable: a row you are
 		// coming back to is more often finished than started again.
 		if (done && doneIcon) {
 			iconButton(actions, doneIcon, done, () => void finish(context, task, entry));
 		}
-		// The same thing the row click does, now, and kept for that reason rather
-		// than in spite of it: it is what says in advance where the click goes, and
-		// the sections differ, so a row that gave no sign would have to be tried to
-		// be known. The tooltip is the sentence, the icon is the glance.
-		if (icon) iconButton(actions, icon, action, () => void act(context, task, entry));
+		// The same thing the row click does, and kept for that reason rather than in
+		// spite of it: it is what says in advance where the click goes, and the
+		// sections differ, so a row that gave no sign would have to be tried to be
+		// known. It also still acts on the row you are already in, where the click
+		// does nothing: from further down a note, it is the way back to the heading.
+		iconButton(actions, icon, action, () => void act(context, task, entry));
 	}
 
 	// The count is honest even when the list is not, because a backlog you
@@ -843,10 +842,9 @@ export class QueueView extends ItemView {
 	/**
 	 * The redraw a note's own change asks for, held while you are writing it.
 	 *
-	 * Writing a claim moved its row out of Claim, changed two counts and rebuilt
-	 * the tree, all mid-sentence. The rules are unchanged: the paper does leave
-	 * Claim the moment there is something under the heading. This only waits
-	 * until you have stopped writing to show you.
+	 * Typing in a paper changes the metadata cache, and the queue redraws on every
+	 * change: it reads every note in the vault and rebuilds the tree, mid-sentence,
+	 * for a keystroke that moves no row. This holds it until you leave the note.
 	 */
 	private readonly writing = new WhileWriting(this.app, () => this.redraw());
 

@@ -49,7 +49,8 @@ export interface Template {
  * There were others, for the notes you write yourself, and they went with the
  * notes folder. What a reading note should look like is a method, and shipping
  * one would be shipping a discipline's method to everyone; Obsidian's own
- * Templates plugin is for those. This one is here only because the workflow
- * has to know where the claim and the assessment headings are.
+ * Templates plugin is for those. This one is here because the plugin owns the
+ * note: it has to know where the managed region is, and where the claim and
+ * the assessment headings will go when a paper comes to owe them.
  */
 export const PAPER_TEMPLATE: Template = { file: 'Paper.md', content: PAPER };

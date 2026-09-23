@@ -10,12 +10,14 @@ import { sortKeys } from './frontmatter';
  * these was a list of two questions at once: "Queued, worth an hour" is a
  * judgement about the paper and "Summarised, and done with" is a report about
  * you, and picking from one list meant answering whichever the label happened
- * to be about. The chooser offers these five and nothing else.
+ * to be about. The chooser offers these five, less any that would leave the
+ * paper where it is, and one more for a paper that has been read: `READ_AGAIN`.
  */
 export type Reading = 'untriaged' | 'queued' | 'promoted' | 'deferred' | 'dropped';
 
 /**
- * How far you have got, which only ever moves forwards.
+ * How far you have got. It moves forwards, except when you send a paper back
+ * to be read again, which clears it.
  *
  * Never chosen from a list. `read` is set by the question at the end of a
  * reading; the other two by the tick on the row that owes them.
@@ -38,7 +40,7 @@ export interface State {
 }
 
 /** The frontmatter key holding the progress half. */
-export const PROGRESS_KEY = 'reading-progress';
+const PROGRESS_KEY = 'reading-progress';
 
 export const READING_ORDER: readonly Reading[] = ['untriaged', 'queued', 'promoted', 'deferred', 'dropped'];
 export const PROGRESS_ORDER: readonly Progress[] = ['read', 'summarised', 'assessed'];
@@ -245,8 +247,8 @@ export function landing(state: State): string {
 /**
  * What can be decided at the end of the second pass.
  *
- * Keshav's three, in his order: it was enough, come back to it after reading
- * something else, or persevere to the third pass. The fourth is not his and is
+ * Keshav's three: it was enough, persevere to the third pass, or come back to
+ * it after reading something else. The fourth is not his and is
  * not optional: an hour in, you sometimes know the paper is not worth
  * finishing, and the honest thing is to record that rather than leave it queued
  * forever or mark it read when it was not.

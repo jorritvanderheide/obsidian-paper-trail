@@ -193,8 +193,7 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
 	// claim the heading goes in above it rather than at the region.
 	const precedes = claim ? context.settings.assessmentHeading : null;
 
-	const arrival = await openAtHeading(context.app, file, heading, precedes);
-	if (arrival === 'shut') {
+	if (!(await openAtHeading(context.app, file, heading, precedes))) {
 		// The pass can still be ended from the tick beside this button, so this is
 		// not a paper that can never leave. It is still worth saying, because the
 		// press did nothing and nothing else would account for that.

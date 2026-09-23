@@ -130,15 +130,14 @@ export class SettingsTab extends PluginSettingTab {
 		return ' ⚠ Zotero has no collection with this key, so no papers are reaching the queue. Pick another, or clear it for the whole library.';
 	}
 
-		/**
+	/**
 	 * How many papers already carry this heading.
 	 *
-	 * Not a warning any more. A paper without the heading is the ordinary case:
-	 * notes are made without either, and the heading is written in the first
-	 * time you go to write under it. What the number is still worth saying is
-	 * the one hazard left, which is renaming this after papers exist. The old
-	 * heading is not found, so a second one is written above it, and the note
-	 * ends up with both.
+	 * Not a warning about the papers without it, which are the ordinary case:
+	 * notes are made with neither heading, and each is written in when a paper
+	 * comes to owe it. What the number is worth saying for is renaming this after
+	 * papers exist. The old heading is not found any more, so a paper that needs
+	 * the section again gets a second heading, and the note ends up with both.
 	 */
 	private headingStatus(setting: string): string {
 		const keyField = this.plugin.settings.keyField;

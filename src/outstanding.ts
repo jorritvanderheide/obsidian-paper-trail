@@ -24,7 +24,7 @@ import { library } from './library';
 import type { Context } from './context';
 
 /** Every note in the vault, as the rules see it. Templates are not notes. */
-export function collect(context: Context): NoteState[] {
+function collect(context: Context): NoteState[] {
 	return context.app.vault
 		.getMarkdownFiles()
 		.filter((file) => !file.path.startsWith(`${context.settings.templateFolder}/`))

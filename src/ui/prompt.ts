@@ -81,26 +81,21 @@ export function suggest<T>(
 	});
 }
 
-/** Returns why the value is unusable, or null when it is fine. */
-export type Validate = (value: string) => string | null;
 
 export interface PromptOptions {
 	/** The confirm button's text. It names the outcome, so it differs per caller. */
 	cta?: string;
-	validate?: Validate;
 }
 
 class Prompt extends Modal {
 	private value = '';
 	private submitted = false;
-	private error!: HTMLElement;
 	private button: ButtonComponent | null = null;
 
 	constructor(
 		app: App,
 		private readonly label: string,
 		private readonly cta: string,
-		private readonly validate: Validate,
 		private readonly done: (value: string | null) => void,
 	) {
 		super(app);
@@ -110,7 +105,6 @@ class Prompt extends Modal {
 		this.setTitle(this.label);
 
 		const input = this.contentEl.createEl('input', { cls: 'paper-trail-prompt-input', attr: { type: 'text' } });
-		this.error = this.contentEl.createDiv({ cls: 'paper-trail-prompt-error' });
 		input.addEventListener('input', () => {
 			this.value = input.value;
 			this.check();
@@ -138,16 +132,14 @@ class Prompt extends Modal {
 	}
 
 	/**
-	 * Report the problem while it is still cheap to fix. An empty field is not an
-	 * error yet, it is just not submittable, so the message stays quiet until
-	 * there is something to complain about.
+	 * Whether there is anything to submit. An empty answer is not an answer: the
+	 * two questions this asks are why a paper was dropped and what a deferral is
+	 * waiting on, and a blank is the one reply neither can take.
 	 */
 	private check(): boolean {
-		const value = this.value.trim();
-		const message = value.length === 0 ? null : this.validate(value);
-		this.error.setText(message ?? '');
-		this.button?.setDisabled(value.length === 0 || message !== null);
-		return value.length > 0 && message === null;
+		const ready = this.value.trim().length > 0;
+		this.button?.setDisabled(!ready);
+		return ready;
 	}
 
 	private submit(): void {
@@ -163,5 +155,5 @@ class Prompt extends Modal {
 }
 
 export function prompt(app: App, label: string, options: PromptOptions = {}): Promise<string | null> {
-	return new Promise((resolve) => new Prompt(app, label, options.cta ?? 'OK', options.validate ?? (() => null), resolve).open());
+	return new Promise((resolve) => new Prompt(app, label, options.cta ?? 'OK', resolve).open());
 }

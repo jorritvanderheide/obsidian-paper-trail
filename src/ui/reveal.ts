@@ -2,8 +2,7 @@
 //
 // `getLeaf('tab')` always makes a tab, so every route that used it left you
 // with two copies of a note you already had open: click a row in the queue,
-// click it again, and there are three. The triage pane had the right behaviour
-// and kept it to itself.
+// click it again, and there are three.
 import { MarkdownView, type App, type Editor, type TFile, type WorkspaceLeaf } from 'obsidian';
 import { headingLineIn, insertHeading, roomUnder, writtenUnder } from '../core/stages';
 import { caughtUp } from './editing';
@@ -16,24 +15,16 @@ function leafShowing(app: App, file: TFile): WorkspaceLeaf | null {
 	);
 }
 
-/**
- * Bring a file into view, reusing the pane it is already in.
- *
- * Returns the leaf only when it had to open one, so a caller that opened a note
- * to do something with it can put the workspace back afterwards without closing
- * a tab the user opened themselves.
- */
-export async function reveal(app: App, file: TFile): Promise<WorkspaceLeaf | null> {
+/** Bring a file into view, reusing the pane it is already in. */
+export async function reveal(app: App, file: TFile): Promise<void> {
 	const open = leafShowing(app, file);
 	if (open) {
 		await app.workspace.revealLeaf(open);
 		app.workspace.setActiveLeaf(open, { focus: true });
-		return null;
+		return;
 	}
 
-	const leaf = app.workspace.getLeaf('tab');
-	await leaf.openFile(file);
-	return leaf;
+	await app.workspace.getLeaf('tab').openFile(file);
 }
 
 /**
@@ -113,27 +104,18 @@ export async function openedIn(app: App, file: TFile, finished: boolean): Promis
  * and a claim composed in a modal cannot see the evidence it is supposed to
  * summarise.
  *
- * Which of the three happened is the answer, because the caller has something
- * different to say about each.
+ * False when the note would not open, so nothing happened at all.
  */
-export type Arrival =
-	/** The cursor is on an empty line under the heading, waiting for the work. */
-	| 'ready'
-	/** Something was already written there. You were taken to it and nothing moved. */
-	| 'written'
-	/** The note could not be opened, so nothing happened at all. */
-	| 'shut';
-
 export async function openAtHeading(
 	app: App,
 	file: TFile,
 	heading: string,
 	precedes: string | null = null,
-): Promise<Arrival> {
+): Promise<boolean> {
 	await reveal(app, file);
 
 	const view = app.workspace.getActiveViewOfType(MarkdownView);
-	if (!view || view.file !== file) return 'shut';
+	if (!view || view.file !== file) return false;
 
 	// Reading view has no cursor to place. Switching is the right intrusion
 	// here and nowhere else: the action you just took was "write the claim".
@@ -143,7 +125,7 @@ export async function openAtHeading(
 	// above belongs to a view that no longer exists.
 	const current = app.workspace.getActiveViewOfType(MarkdownView);
 	const editor = current?.editor;
-	if (!current || !editor) return 'shut';
+	if (!current || !editor) return false;
 
 	// The decision that sent you here has usually just written to this note, and
 	// if it was already open the editor has not caught up with that yet.
@@ -168,7 +150,7 @@ export async function openAtHeading(
 	// and a scroll moves nothing.
 	if (found !== null && writtenUnder(lines, heading)) {
 		scrollTo(editor, found);
-		return 'written';
+		return true;
 	}
 
 	const target = found === null ? writeHeading(editor, lines, heading, precedes) : makeRoom(editor, found);
@@ -176,7 +158,7 @@ export async function openAtHeading(
 	editor.setCursor({ line: target, ch: 0 });
 	scrollTo(editor, target);
 	editor.focus();
-	return 'ready';
+	return true;
 }
 
 /** Put a line on screen, with a little of what is above it for context. */

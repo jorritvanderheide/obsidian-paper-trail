@@ -2,7 +2,7 @@
 // hand afterwards.
 //
 // The pane is one way in, but not the only one. A paper that has actually been
-// read needs a way out of the queue, or it sits in the Read stage forever and
+// read needs a way out of the queue, or it sits in Reading forever and
 // `next` keeps offering it, and only you know when you finished reading.
 //
 // Every route goes through applyTriage, so the frontmatter a decision leaves
@@ -130,9 +130,9 @@ async function fitNote(context: Context, file: TFile, state: State): Promise<voi
  * at the end. What you have done is not chosen here; it is ticked off on the
  * row that owes it.
  *
- * Worded as states rather than as actions, unlike the second-pass chooser,
- * which asks what just happened. So "Queued" rather than "worth an hour": you
- * are correcting a record, not making a decision about reading.
+ * The state first and what it means after it, unlike the second-pass chooser,
+ * which asks what came of a reading. Here you are correcting a record rather
+ * than making a decision about reading, so the state is what leads.
  */
 const CHOICE_LABELS: Record<Reading, string> = {
 	untriaged: 'Untriaged, assess it again',
@@ -142,11 +142,6 @@ const CHOICE_LABELS: Record<Reading, string> = {
 	dropped: 'Dropped, not worth reading',
 };
 
-/**
- * Built from `READING_ORDER` rather than written out, so the list cannot come
- * to disagree with the pane by someone adding a state in the wrong place. The
- * record shape also means a new state is a compile error until it is labelled.
- */
 /** One line of the chooser. `progress` and `icon` are set only by `READ_AGAIN`. */
 interface Choice {
 	reading: Reading;
@@ -155,6 +150,11 @@ interface Choice {
 	icon?: string;
 }
 
+/**
+ * Built from `READING_ORDER` rather than written out, so the list cannot come
+ * to disagree with the pane by someone adding a state in the wrong place. The
+ * record shape also means a new state is a compile error until it is labelled.
+ */
 const CHOICES: Choice[] = READING_ORDER.map((reading) => ({
 	reading,
 	label: CHOICE_LABELS[reading],
@@ -275,9 +275,9 @@ async function noteFor(context: Context, item: Pending): Promise<TFile> {
  * Write a decision, making the note first when there is not one.
  *
  * Every route to a decision comes through here: the triage dialog, the queue's
- * Finished button, the status command and the title bar. The alternative was
- * several copies of "a drop asks why", which is how one of them ends up not
- * asking.
+ * Reading finished button, the status command and the title bar. The
+ * alternative was several copies of "a drop asks why", which is how one of
+ * them ends up not asking.
  *
  * Escaping the question abandons the change rather than writing it without an
  * answer. A drop with no reason is a deletion with extra steps, and a deferral
@@ -338,7 +338,6 @@ async function advance(context: Context, decided: TFile, key: string | null): Pr
 	open?.close();
 	say(context, 'Nothing left to triage.');
 }
-
 
 /**
  * Show a paper in the triage dialog.

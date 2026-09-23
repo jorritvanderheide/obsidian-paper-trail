@@ -73,7 +73,7 @@ class Welcome extends Modal {
 		el.createEl('p', { cls: 'paper-trail-welcome-lead', text: 'Decide what to read before you read it.' });
 		el.createEl('p', {
 			cls: 'paper-trail-welcome-body',
-			text: 'Your library stays in Zotero. Everything it holds that this vault has no note for turns up in the queue, and nothing is written until you act on one.',
+			text: 'Your library stays in Zotero. Everything it holds that this vault has no note for turns up in the queue, and nothing is written until you decide on one.',
 		});
 
 		this.status = el.createDiv({ cls: 'paper-trail-welcome-status' });

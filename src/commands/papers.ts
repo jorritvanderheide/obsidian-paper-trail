@@ -55,15 +55,16 @@ async function writePaperFrontmatter(
 /**
  * Write the note for a paper, and hand it back.
  *
- * Two things make one, so neither may do it differently: the command, and a
- * triage decision about a paper Zotero holds and the vault has no note for.
+ * Only a decision makes one: the first judgement about a paper Zotero holds
+ * and the vault has no note for, whether it comes from the triage dialog, the
+ * end of a reading or the status chooser.
  */
 export async function createPaperNote(context: Context, item: ApiItem, ref: ItemRef): Promise<TFile> {
 	const app = context.app;
 
 	// A note that is already there is the note, not a name collision to fail on.
-	// Two routes can now reach a pending paper at once, the row and its button,
-	// and the queue takes a moment to notice the first one landed. Checking the
+	// A second decision can reach a pending paper before the queue has noticed
+	// the first one's note, from the chooser or the title bar. Checking the
 	// key as well as the path is what keeps this from adopting somebody else's
 	// note that happens to be called the same thing.
 	const path = notePath(context, item);

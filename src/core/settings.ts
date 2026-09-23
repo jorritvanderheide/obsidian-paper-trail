@@ -68,7 +68,7 @@ export interface Settings {
 	 * Whether a paper Zotero holds and the vault has no note for arrives to be
 	 * triaged, or arrives already queued to read.
 	 *
-	 * Off, so it arrives queued. This is the one setting here with an opinion in
+	 * Off, so it arrives queued. One of the few settings here with an opinion in
 	 * it rather than an address, and it earns the exception by recording
 	 * something only you can know: what putting an item in Zotero means to you.
 	 *
@@ -137,9 +137,9 @@ export interface Settings {
 	/** Where the paper template is kept, and seeded to when it is missing. */
 	templateFolder: string;
 	/**
-	 * The heading the second pass is written under. Nothing is read from it: it
-	 * is where the Claim button puts the cursor, and the tick beside that button
-	 * is what ends the pass.
+	 * The heading the second pass is written under. It is written into a paper
+	 * when the paper comes to owe a claim, and it is where the pencil puts the
+	 * cursor; the tick beside the pencil ends the pass, not what is under it.
 	 */
 	claimHeading: string;
 	/**
@@ -219,7 +219,6 @@ export function loadSettings(raw: unknown): Settings {
 			typeof data.assessmentPrompt === 'string' ? data.assessmentPrompt.trim() : DEFAULT_SETTINGS.assessmentPrompt,
 	};
 }
-
 
 /** A saved list of namespaces, trimmed and deduplicated, blanks dropped. */
 function namespaces(value: unknown): string[] {

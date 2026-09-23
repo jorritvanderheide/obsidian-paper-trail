@@ -253,7 +253,7 @@ export function passage(text: string): string {
 /**
  * Annotations, in the order they appear in the document.
  *
- * Zotero sorts by `annotationSortIndex`, a string of space-separated numbers
+ * Zotero sorts by `annotationSortIndex`, a string of pipe-separated numbers
  * like "00003|001234|00567". Comparing it as text gives document order because
  * every field is zero-padded, which is the whole point of the format.
  */
