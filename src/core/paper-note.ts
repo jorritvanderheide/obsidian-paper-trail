@@ -138,20 +138,12 @@ export function renderHighlights(list: Highlight[]): string {
  * overreach this model exists to prevent.
  */
 export function replaceRegion(body: string, contents: string): string {
-	// A blank line inside each marker. They are invisible in reading view and
-	// the blank lines around them are not, which is the whole of why this is
-	// worth a comment: the region is the only part of the note whose whitespace
-	// nobody can see while editing it.
-	//
-	// The one after the opening marker was left out on purpose once, on the
-	// grounds that it pushed the Highlights heading down a line for no reason.
-	// The reason is that every other heading in the note is pushed down by
-	// exactly that much: Claim and Assessment each have a blank line above them,
-	// so Highlights without one rendered a line tighter than its neighbours and
-	// read as part of the assessment rather than as the section after it.
-	//
-	// The one before the closing marker earns its place differently: without it
-	// the last quote sits flush against the marker in source view.
+	// A blank line inside each marker, for source view, where the markers are
+	// text you can see and a heading pressed against one reads as belonging to
+	// it. Neither line does anything in reading view: a blank line separates
+	// markdown blocks and adds no rendered height, and the gap above the
+	// Highlights heading is set by CSS, which is where it is fixed. See the last
+	// rule in `styles.css` for why that needed fixing at all.
 	const region = `${REGION_START}\n\n${contents}\n\n${REGION_END}`;
 
 	const from = body.indexOf(REGION_START);

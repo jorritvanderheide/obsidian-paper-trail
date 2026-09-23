@@ -330,10 +330,10 @@ describe('applyPaperFrontmatter', () => {
 });
 
 describe('the region breathes', () => {
-	// The markers do not render, so the Highlights heading is spaced by whatever
-	// blank lines sit around them. Without this one it came out a line tighter
-	// than Claim and Assessment, which have one above each.
-	it('gives its heading the same space above it as every other heading has', () => {
+	// Source view only. Nothing in reading view depends on it, which is the
+	// mistake this test was written under: a blank line separates markdown
+	// blocks and adds no rendered height.
+	it('opens on a blank line, so the heading is not pressed against the marker', () => {
 		const out = replaceRegion('# A paper', '## Highlights\n\n> a quote ^zt-A');
 		expect(out).toContain(`${REGION_START}\n\n## Highlights`);
 	});

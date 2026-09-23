@@ -450,3 +450,36 @@
 	color: var(--text-normal);
 }
 
+
+/*
+ * The heading under the region marker, spaced like every other heading.
+ *
+ * Obsidian gives a heading its full `--heading-spacing` only when the block
+ * directly above it is a paragraph, list, table, quote or code block:
+ *
+ *   .markdown-rendered div:is(.el-blockquote,.el-p,…) + div > :is(h1,…,h6)
+ *
+ * The region opens with an HTML comment, and a comment is not an element, so
+ * the block Obsidian wraps it in never gets an `el-` class: the wrapper class
+ * is built from `firstChild.tagName` and a comment node has none. That breaks
+ * the adjacency, so `## Highlights` fell back to `--p-spacing`, which is two
+ * and a half times smaller, and read as part of the assessment above it
+ * rather than as the section after it.
+ *
+ * Restoring Obsidian's own rule across a block that renders as nothing. It can
+ * only add the margin its author intended, never take one away, and there is
+ * no blank line that could do this instead: a blank line separates markdown
+ * blocks and adds no rendered height.
+ *
+ * Not scoped to papers, because nothing distinguishes a rendered paper from
+ * any other note. It applies wherever a comment sits between a paragraph and a
+ * heading, which outside this plugin is somebody else's marker with the same
+ * problem.
+ */
+.markdown-rendered
+	div:is(.el-blockquote, .el-p, .el-pre, .el-table, .el-ul, .el-ol)
+	+ div:empty
+	+ div
+	> :is(h1, h2, h3, h4, h5, h6) {
+	margin-top: var(--heading-spacing);
+}
