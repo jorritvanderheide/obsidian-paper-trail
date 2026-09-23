@@ -7,9 +7,11 @@
 import { Notice, type App, type TFile } from 'obsidian';
 import {
 	NEXT_ORDER,
+	noteState,
 	outcomeOf,
 	rowTask,
 	rowTitle,
+	taskFor,
 	TASKS,
 	writtenUnder,
 	type NoteState,
@@ -24,7 +26,7 @@ import { fileOf, queue } from '../outstanding';
 import { iconOf, landing, PASS_PROGRESS, PASS_TWO, type State } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { say } from '../ui/notify';
-import { openAtHeading, readingView, reveal } from '../ui/reveal';
+import { openAtHeading, openedIn, reveal } from '../ui/reveal';
 import { settle } from '../ui/editing';
 import type { Context } from '../context';
 
@@ -35,18 +37,33 @@ import type { Context } from '../context';
  * which for a list you click through is the fastest way to a workspace full of
  * duplicates.
  *
+ * Whether it opens rendered is not decided here, because it is not only the
+ * queue that opens papers: `opening` does it for every route in.
+ */
+export async function openNote(app: App, note: NoteState): Promise<void> {
+	const file = fileOf(app, note);
+	if (file) await reveal(app, file);
+}
+
+/**
+ * A note has just been opened in a pane, by anything at all.
+ *
  * A paper nothing is outstanding for opens as a document rather than as an
  * editor. The four outcomes have one thing in common, which is that the
  * writing is over: what is left is something to read, and the editor is a
  * pane of markdown syntax standing between you and it. A paper still owing a
- * pass opens in source, because you are going there to type.
+ * pass opens as your default has it, because you may be going there to type.
+ *
+ * Taking a paper out of Deferred or Filed takes this with it, because nothing
+ * was written to ask for it: the next time it opens, it is not finished.
  */
-export async function openNote(app: App, note: NoteState): Promise<void> {
-	const file = fileOf(app, note);
-	if (!file) return;
-
-	await reveal(app, file);
-	if (outcomeOf(note) !== null) await readingView(app, file);
+export async function opening(context: Context, file: TFile): Promise<void> {
+	const note = noteState(
+		context.app.metadataCache.getFileCache(file),
+		{ path: file.path, basename: file.basename, created: file.stat.ctime },
+		context.settings.keyField,
+	);
+	await openedIn(context.app, file, outcomeOf(note) !== null);
 }
 
 /**
@@ -245,7 +262,20 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 	// the tick can be pressed over an empty heading, and it said the same thing
 	// whether the paper was finished with or had just acquired an assessment to
 	// write. `landing` knows the difference because it reads the pair.
-	say(context, `${rowTitle(row)}\n${landing({ reading: row.note.state.reading, progress: PASS_PROGRESS[pass] })}`);
+	const at: State = { reading: row.note.state.reading, progress: PASS_PROGRESS[pass] };
+	const landed = `${rowTitle(row)}\n${landing(at)}`;
+
+	// A promoted paper whose claim has just been ticked owes an assessment, and
+	// goes straight to it, the way finishing a reading goes straight to the
+	// claim. It is the same moment for the same reason: the claim is what you
+	// argue with, and it has never been fresher than it is now. The note opens
+	// if it is shut and comes forward if it is not.
+	if (taskFor(at) === 'assessment') {
+		await writeUnder(context, file, 'assessment', landed);
+		return;
+	}
+
+	say(context, landed);
 }
 
 /**

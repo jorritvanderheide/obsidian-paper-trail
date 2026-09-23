@@ -55,9 +55,12 @@ Reading writes nothing at all. Opening a PDF is not a decision, so a paper
 Zotero holds and the vault does not still has no note when you come back from
 it; saying what came of the reading is what writes one, and the highlights are
 fetched then, so nothing is lost by waiting. A finished note opens rendered
-rather than in the editor, because the writing is over and what is left is
-something to read, and the copy you already had open turns rendered the moment
-you tick the last pass it owed.
+rather than in the editor, whatever your default view and however you opened
+it, because the writing is over and what is left is something to read. The copy
+you already had open turns rendered the moment you tick the last pass it owed.
+Switch one to editing and it stays there until that pane opens something else;
+take a paper out of Deferred or Filed and it opens as your default has it again,
+because nothing was written to the note to ask for any of this.
 
 Two sections sit under the stages, for the papers nothing is outstanding for.
 **Deferred** is the papers you parked, each row carrying the condition you set
@@ -201,6 +204,10 @@ back up returns it to where it was rather than to the start.
 
 It is also why **Set reading status** offers five things rather than nine. You
 pick from the judgements; the reports are ticked off on the row that owes them.
+A paper you have already read gets a sixth, **Queued, read it again**, because
+a judgement leaves progress alone and Queued on its own would leave a finished
+paper exactly where it is. The claim and the assessment stay in the note, to be
+read against on the way back through.
 
 The plugin writes none of it, only the heading it goes under. A new paper is a
 title, its links and the highlights region; the Claim heading is written in
@@ -213,7 +220,10 @@ than left lying in the file as a comment you would have to type around and then
 delete.
 
 **Assessment** is for the few papers you promote, and ends the same way. It is
-Keshav's third pass: arguing with a paper you can already summarise.
+Keshav's third pass: arguing with a paper you can already summarise. Ticking off
+the claim on a promoted paper takes you straight to the assessment, the way
+finishing a reading takes you to the claim: the claim is what you are about to
+argue with, and it will never be fresher.
 
 ## The record
 

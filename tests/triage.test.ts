@@ -5,10 +5,12 @@ import {
 	arrivalReading,
 	asks,
 	iconOf,
+	judgementIcon,
 	label,
 	landing,
 	NO_STATUS_TAGS,
 	PASS_TWO,
+	READ_AGAIN,
 	readTags,
 	retiredTagCount,
 	progressOf,
@@ -590,4 +592,44 @@ describe('retiredTagCount', () => {
 	});
 });
 
+/**
+ * Sending a paper back to be read. A judgement leaves progress alone, which is
+ * why queueing a summarised paper used to leave it in Filed; this is the one
+ * decision that clears it.
+ */
+describe('READ_AGAIN', () => {
+	const summarised = () => ({ reading: 'queued', 'reading-progress': 'summarised' }) as Record<string, unknown>;
 
+	it('clears progress, so the paper is waiting to be read', () => {
+		const fm = summarised();
+		applyTriage(fm, { reading: READ_AGAIN.reading, reason: null, progress: READ_AGAIN.progress }, '2026-09-24');
+		expect(stateOf(fm)).toEqual({ reading: 'queued', progress: null });
+		expect(fm).not.toHaveProperty('reading-progress');
+	});
+
+	// The other half of the split. Without it, a paper deferred halfway through
+	// its claim would go back to the start of the queue rather than to Claim.
+	it('leaves a plain Queued decision keeping the progress it found', () => {
+		const fm = summarised();
+		applyTriage(fm, { reading: 'queued', reason: null }, '2026-09-24');
+		expect(stateOf(fm).progress).toBe('summarised');
+	});
+
+	it('lands where Queued lands on a paper nobody has read', () => {
+		expect(landing({ reading: READ_AGAIN.reading, progress: READ_AGAIN.progress })).toBe(landing({ reading: 'queued', progress: null }));
+	});
+});
+
+describe('judgementIcon', () => {
+	// The chooser drew each option with the icon of where it landed, so on a
+	// paper already assessed Queued and Promoted both wore the Assessed mark.
+	it('draws a judgement as itself, whatever the paper has been through', () => {
+		expect(judgementIcon('queued')).toBe(iconOf({ reading: 'queued', progress: null }));
+		expect(judgementIcon('promoted')).toBe(iconOf({ reading: 'promoted', progress: 'read' }));
+		expect(judgementIcon('queued')).not.toBe(iconOf({ reading: 'queued', progress: 'assessed' }));
+	});
+
+	it('gives the five judgements five different icons', () => {
+		expect(new Set(READING_ORDER.map(judgementIcon)).size).toBe(READING_ORDER.length);
+	});
+});

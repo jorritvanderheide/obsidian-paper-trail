@@ -1,5 +1,5 @@
 import { debounce, Plugin } from 'obsidian';
-import { next } from './commands/workflow';
+import { next, opening } from './commands/workflow';
 import { insertCitation } from './commands/citations';
 import { refreshPaper, syncOnOpen } from './commands/papers';
 import { writeReport } from './commands/report';
@@ -28,9 +28,13 @@ export default class PaperTrail extends Plugin {
 		// Opening a paper is what refreshes it, so that the common case needs no
 		// command and cannot be forgotten. It writes only when Zotero actually
 		// has something different, and says nothing when Zotero is not there.
+		// It is also when a finished paper is put into reading view.
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file) => {
-				if (file) void syncOnOpen(this, file);
+				if (file) {
+					void opening(this, file);
+					void syncOnOpen(this, file);
+				}
 				this.decorate();
 			}),
 		);

@@ -56,10 +56,45 @@ export async function reveal(app: App, file: TFile): Promise<WorkspaceLeaf | nul
 export async function readingView(app: App, file: TFile): Promise<void> {
 	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
 		const view = leaf.view;
-		if (!(view instanceof MarkdownView) || view.file !== file || view.getMode() !== 'source') continue;
-
-		await leaf.setViewState({ ...leaf.getViewState(), state: { ...view.getState(), mode: 'preview' } });
+		if (view instanceof MarkdownView && view.file === file) await setMode(view, 'preview');
 	}
+}
+
+/** Put a view into a mode, if it is not in it already. */
+async function setMode(view: MarkdownView, mode: 'source' | 'preview'): Promise<void> {
+	if (view.getMode() === mode) return;
+	await view.leaf.setViewState({ ...view.leaf.getViewState(), state: { ...view.getState(), mode } });
+}
+
+/**
+ * The note each pane last opened, so coming back to a tab is not opening it.
+ *
+ * `file-open` fires whenever the active file changes, which includes switching
+ * to a tab that was already showing the note. Without this, a finished paper
+ * you had put into editing view on purpose would be put back into reading view
+ * every time you clicked its tab.
+ */
+const opened = new WeakMap<WorkspaceLeaf, string>();
+
+/**
+ * Open a finished paper rendered, however it was opened.
+ *
+ * Whatever your default view is, and from a link, the quick switcher or the
+ * queue alike. No property on the note asks for it: Obsidian itself reads no
+ * per-note view mode, so a key would only work because this plugin read it,
+ * and what it would say is already said by `reading` and `reading-progress`.
+ * A second copy of the state is a copy that can disagree with the first, and
+ * one that every change of state would have to remember to write and remove.
+ *
+ * Once per opening. Switch the pane to editing and it stays there until the
+ * pane opens something else.
+ */
+export async function openedIn(app: App, file: TFile, finished: boolean): Promise<void> {
+	const view = app.workspace.getActiveViewOfType(MarkdownView);
+	if (!view || view.file !== file || opened.get(view.leaf) === file.path) return;
+
+	opened.set(view.leaf, file.path);
+	if (finished) await setMode(view, 'preview');
 }
 
 /**
@@ -101,9 +136,7 @@ export async function openAtHeading(
 
 	// Reading view has no cursor to place. Switching is the right intrusion
 	// here and nowhere else: the action you just took was "write the claim".
-	if (view.getMode() !== 'source') {
-		await view.leaf.setViewState({ ...view.leaf.getViewState(), state: { ...view.getState(), mode: 'source' } });
-	}
+	await setMode(view, 'source');
 
 	// Re-read the editor: changing the mode rebuilds it, so the one captured
 	// above belongs to a view that no longer exists.

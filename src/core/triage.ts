@@ -92,7 +92,11 @@ export function arrivalReading(triage: boolean): Reading {
 export interface Triage {
 	reading: Reading;
 	reason: string | null;
-	progress?: Progress;
+	/**
+	 * Left alone when absent, written when given, and cleared by null, which
+	 * only sending a paper back to be read again does.
+	 */
+	progress?: Progress | null;
 }
 
 /** What the tick on each of the two written passes records. */
@@ -165,6 +169,19 @@ export function iconOf(state: State): string {
 }
 
 /**
+ * The icon for a judgement on its own, whatever has been done to the paper.
+ *
+ * For the chooser, where each line offers a judgement and the line under it
+ * says where the paper lands. `iconOf` answers for the pair, so asked about
+ * each option on a paper already assessed it drew the Assessed mark on Queued
+ * and on Promoted alike: two options that looked like the paper rather than
+ * like themselves.
+ */
+export function judgementIcon(reading: Reading): string {
+	return iconOf({ reading, progress: null });
+}
+
+/**
  * Where a decision leaves the paper, in terms of the queue.
  *
  * Named for the section it lands in rather than the decision just taken:
@@ -214,6 +231,29 @@ export const PASS_TWO: { reading: Reading; progress?: Progress; label: string }[
 	{ reading: 'deferred', label: 'Worth another hour, but not now' },
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];
+
+/**
+ * Sending a paper back to be read, which none of the five judgements can do.
+ *
+ * A judgement leaves progress alone, and it has to: a paper deferred halfway
+ * through its claim returns to Claim when you queue it again, not to the
+ * start. The same rule made queueing a summarised paper do nothing at all. It
+ * went to Queued, stayed summarised, and so stayed in Filed, which is right
+ * about the record and wrong about what somebody picking "Queued" on a paper
+ * they have finished almost always wants, which is to read it again.
+ *
+ * Two meanings, so two options, and this one says which. It clears progress
+ * and nothing else: the claim and the assessment are prose, and stay in the
+ * note to be read against on the way back through.
+ *
+ * Offered only to a paper that has progress to clear.
+ */
+export const READ_AGAIN = {
+	reading: 'queued',
+	progress: null,
+	label: 'Queued, read it again',
+	icon: 'rotate-ccw',
+} as const;
 
 /** Frontmatter `tags` as a list, whatever shape it was written in. */
 export function readTags(value: unknown): string[] {
@@ -339,7 +379,8 @@ export function applyTriage(
 ): void {
 	frontmatter.reading = triage.reading;
 	frontmatter['reading-date'] = date;
-	if (triage.progress !== undefined) frontmatter[PROGRESS_KEY] = triage.progress;
+	if (triage.progress === null) delete frontmatter[PROGRESS_KEY];
+	else if (triage.progress !== undefined) frontmatter[PROGRESS_KEY] = triage.progress;
 
 	// Read back rather than assumed, so the tag follows the pair the note now
 	// holds however much of it this decision touched.

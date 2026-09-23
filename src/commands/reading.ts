@@ -17,8 +17,9 @@ import { TriageModal, type Brief } from '../ui/triage-modal';
 import {
 	applyTriage,
 	asks,
-	iconOf,
+	judgementIcon,
 	landing,
+	READ_AGAIN,
 	READING_ORDER,
 	stateOf,
 	type Progress,
@@ -135,7 +136,15 @@ const CHOICE_LABELS: Record<Reading, string> = {
  * to disagree with the pane by someone adding a state in the wrong place. The
  * record shape also means a new state is a compile error until it is labelled.
  */
-const CHOICES: { reading: Reading; label: string }[] = READING_ORDER.map((reading) => ({
+/** One line of the chooser. `progress` and `icon` are set only by `READ_AGAIN`. */
+interface Choice {
+	reading: Reading;
+	label: string;
+	progress?: null;
+	icon?: string;
+}
+
+const CHOICES: Choice[] = READING_ORDER.map((reading) => ({
 	reading,
 	label: CHOICE_LABELS[reading],
 }));
@@ -179,20 +188,29 @@ export async function chooseReading(context: Context, target: TriageTarget, name
 	// you have summarised goes straight back to Filed when you queue it again,
 	// and the list should say so rather than promise Reading.
 	const progress = target.kind === 'note' ? stateOf(context.app.metadataCache.getFileCache(target.file)?.frontmatter).progress : null;
-	const at = (reading: Reading): State => ({ reading, progress });
+	const after = (entry: Choice): State => ({ reading: entry.reading, progress: entry.progress === null ? null : progress });
+
+	// Beside Queued, and only for a paper that has been read, which is the one
+	// case where Queued on its own would leave the paper exactly where it is.
+	const choices =
+		progress === null ? CHOICES : CHOICES.flatMap((entry) => (entry.reading === 'queued' ? [entry, READ_AGAIN] : [entry]));
 
 	const choice = await suggest(
 		context.app,
-		CHOICES,
+		choices,
 		(entry) => entry.label,
 		`Reading status of ${name}`,
-		(entry) => landing(at(entry.reading)),
-		(entry) => iconOf(at(entry.reading)),
+		(entry) => landing(after(entry)),
+		// The icon is the judgement being offered, and where it lands is the line
+		// under it. Drawing the landing as the icon as well put the Assessed mark
+		// on both Queued and Promoted for a paper already assessed, which read as
+		// two wrong icons rather than as one fact said three times.
+		(entry) => entry.icon ?? judgementIcon(entry.reading),
 	);
 	if (!choice) return;
-	if (!(await decideOn(context, target, choice.reading))) return;
+	if (!(await decideOn(context, target, choice.reading, choice.progress))) return;
 
-	say(context, `${name}\n${landing(at(choice.reading))}`);
+	say(context, `${name}\n${landing(after(choice))}`);
 }
 
 /**
@@ -250,7 +268,7 @@ export async function decideOn(
 	context: Context,
 	target: TriageTarget,
 	reading: Reading,
-	progress?: Progress,
+	progress?: Progress | null,
 ): Promise<TFile | null> {
 	const question = asks(reading);
 
