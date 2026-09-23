@@ -135,6 +135,29 @@ describe('renderAnnotation', () => {
 	it('gives the same id every time, so links survive a re-sync', () => {
 		expect(renderAnnotation(annotation())).toBe(renderAnnotation(annotation()));
 	});
+
+	// A passage across a paragraph break. Quoting only its first line ended the
+	// blockquote at the gap, and the rest read as the note's own prose.
+	it('keeps a passage with a blank line in it inside one quote', () => {
+		expect(renderAnnotation(annotation({ text: 'first part\n\nsecond part' }))).toBe(
+			'> first part\n>\n> second part (p. 842) ^zt-2SQ873XZ',
+		);
+	});
+
+	it('quotes every line of a passage that wraps without a gap', () => {
+		expect(renderAnnotation(annotation({ text: 'one\ntwo', page: null }))).toBe('> one\n> two ^zt-2SQ873XZ');
+	});
+
+	// Two trailing spaces are a line break in markdown.
+	it('drops trailing spaces and reads Windows line endings', () => {
+		expect(renderAnnotation(annotation({ text: 'one  \r\n\r\ntwo', page: null }))).toBe('> one\n>\n> two ^zt-2SQ873XZ');
+	});
+
+	it('keeps a comment under the whole quote, not inside it', () => {
+		expect(renderAnnotation(annotation({ text: 'a\n\nb', page: null, comment: 'mine' }))).toBe(
+			'> a\n>\n> b ^zt-2SQ873XZ\n\nmine',
+		);
+	});
 });
 
 describe('renderAnnotations', () => {
