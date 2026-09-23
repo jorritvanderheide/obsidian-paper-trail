@@ -93,7 +93,7 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 			cls: 'pane-empty',
 			text: started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here.',
 		});
-		foot(tree, context, waiting, done);
+		if (sidebar) foot(tree, context, waiting, done);
 		root.style.setProperty('--paper-trail-clearance', `${clearance(root, files)}px`);
 		highlight(root, context.app);
 		return;
@@ -109,7 +109,7 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	// Drawn before the rows are counted, and it has to be: their headers are two
 	// of the rows the list has to share, so measuring without them would promise
 	// room the record is standing in.
-	const pinned = foot(tree, context, waiting, done);
+	const pinned = sidebar ? foot(tree, context, waiting, done) : 0;
 
 	// Now that every header is in place and no row is, what is left of the
 	// container is exactly what the rows have to share. The record's own rows
@@ -630,6 +630,15 @@ let openDecided = false;
 
 /**
  * The two sections under the stages, and how many headers they cost.
+ *
+ * In the pane only. A block is a guest on somebody's note and carries what is
+ * outstanding, which these two are not by definition. Filed is also uncapped
+ * on purpose, which is right in a pane that scrolls and wrong in a note, where
+ * opening it would push the note's own writing down by every paper you have
+ * ever finished; and the open state is shared, so opening it in the pane would
+ * open it there too. Anyone who works from a block alone still has the pane a
+ * click away, and Export excluded papers lists every deferral with its
+ * condition.
  *
  * Deferred above Filed, because between them they are the two halves of "not
  * outstanding" and only one of them is over. A deferral is a promise with a

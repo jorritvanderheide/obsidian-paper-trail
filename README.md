@@ -81,10 +81,11 @@ when there is not. Both shut until you open them. Every other section answers
 by getting shorter, so this is the only place a morning of triage leaves a mark.
 
 It lives in the sidebar (ribbon icon, or **Open queue**), and **Insert queue
-block** will put the same list on a note of your own. The block is the list and
-nothing else: the three buttons stay in the pane, where the plugin lives, rather
-than sitting on top of your writing. Its rows still act, and **Next** is in the
-palette.
+block** will put the stages on a note of your own. The block is what is
+outstanding and nothing else: the three buttons stay in the pane, where the
+plugin lives, rather than sitting on top of your writing, and so do Deferred and
+Filed, which are not outstanding and would pour a record of everything you have
+finished into your note. Its rows still act, and **Next** is in the palette.
 
 Nothing here refuses: there is no order you have to work in and no stage that
 locks until an earlier one is clear.
