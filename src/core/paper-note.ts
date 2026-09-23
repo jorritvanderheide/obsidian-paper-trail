@@ -115,23 +115,10 @@ export function renderAnnotation(annotation: Annotation): string {
 	const lines: string[] = [];
 	if (annotation.text) {
 		const page = annotation.page ? ` (p. ${annotation.page})` : '';
-
-		// Every line quoted, the blank ones as a bare `>`. A passage that spans a
-		// paragraph break arrives with an empty line in it, and quoting only the
-		// first line ended the blockquote at the gap: the rest of the passage came
-		// out as ordinary paragraphs, reading as your prose rather than the
-		// paper's. Trailing spaces go, because two of them are a line break in
-		// markdown and a PDF selection is full of them.
-		const quoted = annotation.text
-			.split(/\r?\n/)
-			.map((line) => line.trimEnd())
-			.map((line) => (line === '' ? '>' : `> ${line}`));
-
-		// The page and the id on the last line, so they close the passage rather
-		// than interrupt it. The id is derived, not generated, so it survives
-		// every re-sync and a link to one passage keeps resolving.
-		quoted[quoted.length - 1] += `${page} ^zt-${annotation.key}`;
-		lines.push(...quoted);
+		// One line, because `passage` made it one when it was read. The id is
+		// derived, not generated, so it survives every re-sync and a link to one
+		// passage keeps resolving.
+		lines.push(`> ${annotation.text}${page} ^zt-${annotation.key}`);
 	}
 	if (annotation.comment) {
 		if (lines.length > 0) lines.push('');

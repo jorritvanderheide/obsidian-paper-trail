@@ -231,6 +231,26 @@ export interface Annotation {
 }
 
 /**
+ * A selected passage as the one line it is.
+ *
+ * Zotero extracts the selection from the PDF as laid out, so a passage that
+ * crosses a column or a page arrives with a line break, often a blank line,
+ * wherever it crossed: one sentence came through as "authenticity of written",
+ * an empty line, and "information uses a handwritten signature". Nothing in
+ * the text tells a column break from a paragraph break, and a highlight is a
+ * sentence or two far more often than it spans paragraphs, so every run of
+ * whitespace becomes one space.
+ *
+ * Except after a hyphen joined to a word, which closes up instead: a word
+ * hyphenated at the break reads "well-known" rather than "well- known". It
+ * keeps the hyphen, because a real compound needs it and a split word is still
+ * readable with it.
+ */
+export function passage(text: string): string {
+	return text.replace(/(\p{L})-[ \t]*\r?\n\s*/gu, '$1-').replace(/\s+/g, ' ').trim();
+}
+
+/**
  * Annotations, in the order they appear in the document.
  *
  * Zotero sorts by `annotationSortIndex`, a string of space-separated numbers
@@ -242,7 +262,7 @@ export function annotations(items: ApiItem[]): Annotation[] {
 		.filter((item) => item.data.itemType === 'annotation')
 		.map((item) => ({
 			key: item.key,
-			text: (item.data.annotationText ?? '').trim(),
+			text: passage(item.data.annotationText ?? ''),
 			comment: (item.data.annotationComment ?? '').trim(),
 			page: item.data.annotationPageLabel?.trim() || null,
 			sortIndex: item.data.annotationSortIndex ?? '',

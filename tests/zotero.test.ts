@@ -6,6 +6,7 @@ import {
 	libraryPath,
 	authorNames,
 	annotations,
+	passage,
 	itemYear,
 	noteName,
 	parseItemRef,
@@ -302,5 +303,42 @@ describe('abstractOf', () => {
 	it('keeps a real abstract that merely mentions Semantic Scholar', () => {
 		const real = 'We mined Semantic Scholar for citation graphs across four disciplines.';
 		expect(abstractOf(of(real))).toBe(real);
+	});
+});
+
+/**
+ * A passage as one line. Zotero extracts a selection as laid out on the page,
+ * so crossing a column or a page puts a break in the middle of a sentence.
+ */
+describe('passage', () => {
+	// The one that was reported, verbatim: a column break mid-sentence.
+	it('closes a blank line left by a column break', () => {
+		expect(passage('The traditional mechanism for guaranteeing authenticity of written\n\ninformation uses a handwritten signature')).toBe(
+			'The traditional mechanism for guaranteeing authenticity of written information uses a handwritten signature',
+		);
+	});
+
+	it('closes a single line break, and a Windows one', () => {
+		expect(passage('one\ntwo')).toBe('one two');
+		expect(passage('one\r\ntwo')).toBe('one two');
+	});
+
+	it('collapses runs of spaces a PDF selection is full of', () => {
+		expect(passage('  one   two  ')).toBe('one two');
+	});
+
+	// Keeps the hyphen, so a real compound survives and a split word still reads.
+	it('closes up a word hyphenated across the break', () => {
+		expect(passage('a well-\nknown result')).toBe('a well-known result');
+	});
+
+	// A dash with space before it is punctuation, not a split word.
+	it('leaves a spaced dash at the break as a dash between words', () => {
+		expect(passage('this -\nthat')).toBe('this - that');
+	});
+
+	it('is what annotations() reads the selected text through', () => {
+		const [first] = annotations([{ key: 'K', data: { itemType: 'annotation', annotationText: 'written\n\ninformation' } }]);
+		expect(first?.text).toBe('written information');
 	});
 });
