@@ -186,8 +186,10 @@ describe('STAGES', () => {
 		for (const task of ['claim', 'assessment'] as const) expect(TASKS[task].inNote).toBe(false);
 	});
 
+	// Named for what it ends, like the other two. "Finished" on its own was the
+	// one tick that did not say what it was finishing.
 	it('gives reading a way to end, because nothing in the vault records that it happened', () => {
-		expect(TASKS.reading.done).toBe('Finished');
+		expect(TASKS.reading.done).toBe('Reading finished');
 	});
 
 	// The two passes that end in prose end when you say so. The plugin used to

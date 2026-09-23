@@ -655,7 +655,7 @@ function foot(root: HTMLElement, context: Context, waiting: Settled[], done: Set
 		// The same mark the chooser puts on a deferral and the pill shows on the
 		// note, so a parked paper looks like itself wherever you meet it.
 		icon: 'clock',
-		hint: 'Parked, with a condition on it. Right-click one to pick it back up.',
+		hint: 'Papers you deferred, each with the condition you gave. Right-click one to pick it back up.',
 		open: openWaiting,
 		toggle: () => {
 			openWaiting = !openWaiting;

@@ -181,17 +181,14 @@ export class SettingsTab extends PluginSettingTab {
 					{
 						name: 'Papers from',
 						desc:
-							'Which part of your Zotero library reaches the queue. The whole library is right when it is the corpus for this vault, and a collection is right when it is not: a Zotero carried through a masters and two side projects is several corpora, and only one of them is this thesis.' +
-							' Nothing is copied either way. Papers outside the collection that already have a note keep working, so this narrows what arrives rather than what counts as a paper.' +
+							'Which part of your Zotero library reaches the queue. A collection is right when your Zotero holds more than this thesis: nothing is copied either way, and papers outside it that already have a note keep working.' +
 							this.scopeStatus(),
 						control: { type: 'dropdown', key: 'collection', options: this.scopeOptions() },
 					},
 					{
 						name: 'Triage before reading',
 						desc:
-							'Off, so a paper you save to Zotero arrives already queued to read. Turn this on if Zotero is where you collect things you have not decided about yet, and the queue will ask first: drop it and say why, queue it, or mark it already read.' +
-							' Leave it off if you read the abstract in the browser and only save what you want, because then the deciding has happened and Zotero’s save button was the answer.' +
-							' Either way Triage still exists, and still holds any paper you send back to it.',
+							'Off, so a paper you save to Zotero arrives already queued to read. Turn it on if Zotero is where you put things you have not decided about, and each one comes up first with its abstract: drop it and say why, queue it, or mark it already read.',
 						control: { type: 'toggle', key: 'triage' },
 					},
 				],
@@ -213,7 +210,7 @@ export class SettingsTab extends PluginSettingTab {
 					{
 						name: 'Status tag',
 						desc:
-							'Mirror each paper’s reading status into a tag, for browsing by tag rather than by folder. "status" gives status/queued, status/dropped and so on. Empty writes no tags. The frontmatter stays the real value either way, so this changes nothing except what a tag explorer can see.' +
+							'Mirror each paper’s reading status into a tag, for browsing by tag rather than by folder. "status" gives status/queued and status/dropped, empty writes none, and the frontmatter stays the real value either way.' +
 							this.statusTagStatus(),
 						control: { type: 'text', key: 'statusTag' },
 					},
@@ -225,32 +222,29 @@ export class SettingsTab extends PluginSettingTab {
 				items: [
 					{
 						name: 'Item key property',
-						desc: 'The frontmatter property naming the Zotero item. A note that has it is a paper. Set this once, before you start: point it at the property your existing literature notes already use and they are recognised, but changing it later leaves every note made under the old name unrecognised.',
+						desc: 'The frontmatter property naming the Zotero item, and what makes a note a paper. Set it once before you start, pointed at whatever your existing literature notes use: changing it later leaves every note made under the old name unrecognised.',
 						control: { type: 'text', key: 'keyField' },
 					},
 					{
 						name: 'Show reading status on papers',
 						desc:
-							'Puts a paper’s state where you are reading it, and opens the chooser when you click it: in the title bar while you edit, and at the top of the note itself in reading view, embeds and hover previews.' +
-							' On, for anyone who keeps the properties panel shut and would otherwise have nowhere to see it while actually reading the paper.' +
-							' Turn it off if you keep properties open, where it is the same word twice. It changes nothing that is written either way: the frontmatter is the record.',
+							'Shows a paper’s state in the title bar while you edit and at the top of the note in reading view, and opens the chooser when you click it. Turn it off if you keep the properties panel open, where it is the same word twice.',
 						control: { type: 'toggle', key: 'statusPill' },
 					},
 					{
 						name: 'Quieter notifications',
 						desc:
-							'Stops Paper Trail saying what you can already see: where a decision put a paper, that a pass is finished, that the pile is empty. Each of those follows something you pressed, and the queue has already moved to show it.' +
-							' Failures are always shown, and so is the question asked when you land at a heading, which is what tells you what goes there.',
+							'Stops Paper Trail saying what you can already see: where a decision put a paper, that a pass is finished, that the pile is empty. Failures are always shown, and so is the question asked when you land at a heading.',
 						control: { type: 'toggle', key: 'quietNotices' },
 					},
 					{
 						name: 'Claim heading',
-						desc: `What the second pass is written under. A paper is made without it: the heading is written in above the highlights at the moment the paper comes to owe a claim, so a paper you drop never carries an empty one. What ends the pass is the tick beside the button, not what you type here.${this.headingStatus(this.plugin.settings.claimHeading)}`,
+						desc: `What the second pass is written under. The heading is written in when a paper comes to owe a claim, so one you drop never carries an empty section.${this.headingStatus(this.plugin.settings.claimHeading)}`,
 						control: { type: 'text', key: 'claimHeading' },
 					},
 					{
 						name: 'Assessment heading',
-						desc: `What the third pass is written under, and only papers you promote are asked for one. Written in the same way as the claim, below it, when the claim is ticked off, and ended by the tick beside the button.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
+						desc: `What the third pass is written under, and only papers you promote are asked for one. It arrives the same way, below the claim, when the claim is ticked off.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
 						control: { type: 'text', key: 'assessmentHeading' },
 					},
 				],

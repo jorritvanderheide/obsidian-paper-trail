@@ -208,7 +208,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		hint: 'Worth an hour, in Zotero, where your highlights go. Say what came of it when you are done.',
 		action: 'Open in Zotero',
 		icon: 'external-link',
-		done: 'Finished',
+		done: 'Reading finished',
 		doneIcon: 'check',
 		inNote: true,
 		announces: false,
@@ -217,7 +217,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		task: 'claim',
 		label: 'Claim',
 		stageIcon: 'pencil',
-		hint: 'Read, and not yet summarised. Keshav’s second pass ends when you can say what the paper argues, with its evidence, to someone else. Write that, then tick it off.',
+		hint: 'Read, and not yet summarised. Say what the paper argues, with its evidence, then tick it off.',
 		action: 'Write the claim',
 		icon: 'pencil',
 		done: 'Claim written',
@@ -240,7 +240,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		// half you remember. Without it a note is named for author, title and year,
 		// `[[` finds them perfectly, and there is no key to link to anyway.
 		prompt:
-			'What does this paper argue, and what does it sit with or against? One or two sentences, in your own words. Insert citation makes the link. Tick it off when you are done.',
+			'What does this paper argue, and what does it sit with or against? One or two sentences of your own; Insert citation makes the link.',
 	},
 	assessment: {
 		task: 'assessment',
@@ -255,7 +255,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		doneIcon: 'check',
 		inNote: false,
 		announces: true,
-		prompt: 'Where does it strain? What is it assuming? What is the evidence actually doing? Tick it off when you are done.',
+		prompt: 'Where does it strain? What is it assuming? What is the evidence actually doing?',
 	},
 };
 

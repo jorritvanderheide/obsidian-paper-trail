@@ -177,12 +177,22 @@ describe('PASS_TWO', () => {
 		]);
 	});
 
-	// Keshav's own test for the end of a second pass is that you can summarise
-	// the paper to someone else, so the button claims exactly that and the next
-	// screen asks you to make good on it. It used to say "Enough: I have what I
-	// need", which is completion language for a paper that then does not leave.
-	it('words the first as the test it is, not as a completion', () => {
-		expect(PASS_TWO[0]?.label).toBe('I can summarise it');
+	// One question, one grammar. These were a first-person statement, two
+	// verdicts and an imperative, which is four shapes for four answers to one
+	// question. They are verdicts on the paper now, because that is what the
+	// question asks for.
+	//
+	// The first gave up something real: Keshav's own test for the end of a
+	// second pass is that you can summarise the paper to someone else, which is
+	// a claim about you rather than about the paper. It survives in the Claim
+	// section's tooltip and in the question asked at the heading.
+	it('answers the one question in one grammar', () => {
+		expect(PASS_TWO.map((entry) => entry.label)).toEqual([
+			'Worth summarising',
+			'Worth a third pass',
+			'Worth another hour, but not now',
+			'Not worth finishing',
+		]);
 	});
 
 	it('gives every option a label', () => {

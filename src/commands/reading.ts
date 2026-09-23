@@ -149,7 +149,7 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 	const app = context.app;
 	const file = target ?? app.workspace.getActiveFile();
 	if (!file) {
-		new Notice('No active note.');
+		new Notice('Open a paper first.');
 		return;
 	}
 

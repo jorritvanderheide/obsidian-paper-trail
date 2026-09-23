@@ -179,14 +179,14 @@ export function iconOf(state: State): string {
  * where it is asked at the heading it is about.
  */
 const LANDINGS: Record<string, string> = {
-	Untriaged: 'Back to Triage, to be assessed again.',
+	Untriaged: 'Untriaged, and back in Triage.',
 	Queued: 'Queued, and waiting to be read.',
 	Read: 'Read, and waiting on a claim.',
 	Summarised: 'Summarised, and done with.',
-	Promoted: 'Worth a third pass. The claim comes first.',
-	Assessing: 'Summarised. The assessment is what is left.',
+	Promoted: 'Promoted, and owing a claim first.',
+	Assessing: 'Summarised, and owing an assessment.',
 	Assessed: 'Assessed, and done with.',
-	Deferred: 'Parked, with the condition on the note.',
+	Deferred: 'Deferred, with the condition on the note.',
 	Dropped: 'Dropped, and off the list.',
 };
 
@@ -209,9 +209,9 @@ export function landing(state: State): string {
  * it was rather than to the start.
  */
 export const PASS_TWO: { reading: Reading; progress?: Progress; label: string }[] = [
-	{ reading: 'queued', progress: 'read', label: 'I can summarise it' },
+	{ reading: 'queued', progress: 'read', label: 'Worth summarising' },
 	{ reading: 'promoted', progress: 'read', label: 'Worth a third pass' },
-	{ reading: 'deferred', label: 'Come back to it later' },
+	{ reading: 'deferred', label: 'Worth another hour, but not now' },
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];
 

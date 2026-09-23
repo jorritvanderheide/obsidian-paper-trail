@@ -162,9 +162,9 @@ abstract, and three buttons: drop it and say why, queue it, or mark it already
 read.
 
 **Reading** holds what triage kept. Its button opens the paper in Zotero, where
-your highlights belong. When you are done, **Finished** asks what came of it, in
-Keshav's terms: *I can summarise it*, *worth a third pass*, *come back to it
-later*, or *not worth finishing*.
+your highlights belong. When you are done, **Reading finished** asks what came
+of it, in Keshav's terms: *worth summarising*, *worth a third pass*, *worth
+another hour, but not now*, or *not worth finishing*.
 
 **Claim** is the other half of that pass, and it has its own section because it
 is different work. Keshav's test for the second pass is not that you have

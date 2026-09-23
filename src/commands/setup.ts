@@ -25,7 +25,7 @@ export async function insertBlock(context: Context): Promise<void> {
 	}
 
 	if (view.getMode() !== 'source') {
-		new Notice('Switch to editing view first: reading view has nowhere to put the cursor.');
+		new Notice('Switch to editing view and put the cursor where the queue should go.');
 		return;
 	}
 

@@ -48,7 +48,7 @@ async function advanced(context: Context): Promise<void> {
 export async function insertCitation(context: Context): Promise<void> {
 	const app = context.app;
 	if (!app.workspace.getActiveViewOfType(MarkdownView)) {
-		new Notice('Put the cursor where the citation should go.');
+		new Notice('Open a note and put the cursor where the citation should go.');
 		return;
 	}
 
