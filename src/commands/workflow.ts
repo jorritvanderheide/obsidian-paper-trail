@@ -176,17 +176,14 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
 }
 
 /**
- * Go to the heading a paper is waiting on, put the cursor under it, and ask
- * for what goes there.
+ * Go to the heading a paper is waiting on, and put the cursor under it.
  *
- * The question is put here rather than left in the note. It used to be an HTML
- * comment the template wrote under each heading, which was the only way to ask
- * at the point of use when arriving at the point of use meant scrolling. Asked
- * on arrival it is asked once, in the current wording, and is gone as soon as
- * it is answered.
- *
- * What is said depends on what was found there, because a question already
- * answered is not a question.
+ * What goes there is not said here. It was, on a notice every time you
+ * arrived, which taught the question once and then repeated it at somebody
+ * who knew it: by the tenth claim it was a popup restating what you were
+ * about to type. The question is drawn on the line itself now, by the editor
+ * extension in `ui/ghost.ts`, where it is there when you look and gone when
+ * you type.
  */
 async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assessment', lead?: string): Promise<void> {
 	const claim = task === 'claim';
@@ -205,22 +202,9 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
 		return;
 	}
 
-	// One notice rather than two. A caller that has something to say about how
-	// the paper got here says it on the same slip as the question, which is
-	// where you are about to be looking anyway. Finishing a reading used to
-	// raise both, and they largely said the same thing twice.
-	//
-	// The prompt is never silenced by the quiet setting: it is the question that
-	// replaced the ones the template used to carry, and a heading with no
-	// question is the state this plugin moved away from. The lead is an answer
-	// and can be.
-	//
-	// It is silenced by an answer, though. Arriving at a claim you have already
-	// written and being asked what the paper argues is the template's old fault
-	// in a new place: a prompt sitting over work already done.
-	const answer = context.settings.quietNotices ? undefined : lead;
-	const said = [answer, arrival === 'ready' ? TASKS[task].prompt : undefined].filter(Boolean).join('\n');
-	if (said) new Notice(said);
+	// Where the paper went, when a caller has that to say. An answer, so the
+	// quiet setting can silence it.
+	if (lead) say(context, lead);
 }
 
 /**

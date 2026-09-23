@@ -172,22 +172,6 @@ export interface TaskDefinition {
 	 * which may not even be running, so nothing here would say anything at all.
 	 */
 	announces: boolean;
-	/**
-	 * The question to put when you arrive at the heading, for the two tasks that
-	 * are answered by writing under one.
-	 *
-	 * These lived in the note, as HTML comments the template left under each
-	 * heading. That was the only way to ask at the point of use when there was
-	 * no moment to ask at. Now that landing on the heading is a moment, the
-	 * instruction belongs to it: asked once, always current, and gone the
-	 * instant it is answered, rather than sitting in every paper you ever made
-	 * including the ones you dropped.
-	 *
-	 * Being current is what lets one of them name a command. A prompt in a
-	 * template could not, because a template is written once and read for years
-	 * after the command it named was renamed.
-	 */
-	prompt?: string;
 }
 
 export const TASKS: Record<Task, TaskDefinition> = {
@@ -224,23 +208,6 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		doneIcon: 'check',
 		inNote: false,
 		announces: true,
-		// Two questions, because the second is only answerable here. A literature
-		// review is a claim about a field rather than a list of papers: who agrees
-		// with whom, what is assumed in common, where the gap is. Those are edges
-		// between papers, and nothing in the workflow used to ask for one.
-		//
-		// This is the moment it can be asked at. Having just said what a paper
-		// claims is exactly when you know whether it contradicts something you read
-		// in March, and it is the last such moment: a week later the paper is filed
-		// and you are reading the next one.
-		//
-		// It names `Insert citation` because the link is not a thing you would
-		// guess your way to. With Better BibTeX a note is named for its citation
-		// key, so typing `[[` finds papers by key and not by title, which is the
-		// half you remember. Without it a note is named for author, title and year,
-		// `[[` finds them perfectly, and there is no key to link to anyway.
-		prompt:
-			'What does this paper argue, and what does it sit with or against? One or two sentences of your own; Insert citation makes the link.',
 	},
 	assessment: {
 		task: 'assessment',
@@ -255,7 +222,6 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		doneIcon: 'check',
 		inNote: false,
 		announces: true,
-		prompt: 'Where does it strain? What is it assuming? What is the evidence actually doing?',
 	},
 };
 
@@ -545,6 +511,29 @@ export function writtenUnder(lines: readonly string[], heading: string): boolean
 		if (line.trim() !== '') return true;
 	}
 	return false;
+}
+
+/**
+ * The line to show the question for a pass on, or null when there should be
+ * none.
+ *
+ * The empty line under an empty heading, which is the line the pencil puts
+ * the cursor on: under the blank that separates it from the heading when
+ * there is one, and directly under the heading when that is all the room
+ * there is. Nothing once anything has been written, because a question over
+ * its own answer is the fault that took the prompts out of the template.
+ *
+ * Nothing either when the heading has no empty line under it at all. The
+ * question is drawn on a line, not inserted as one, and pressing the pencil
+ * makes the room.
+ */
+export function questionLine(lines: readonly string[], heading: string): number | null {
+	const at = headingLineIn(lines, heading);
+	if (at === null || writtenUnder(lines, heading)) return null;
+
+	const blank = (n: number) => n < lines.length && lines[n]?.trim() === '';
+	if (blank(at + 1) && blank(at + 2)) return at + 2;
+	return blank(at + 1) ? at + 1 : null;
 }
 
 /**

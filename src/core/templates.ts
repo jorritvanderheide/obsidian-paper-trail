@@ -20,9 +20,9 @@ import { REGION_END, REGION_START } from './paper-note';
  *
  * Each of them used to carry an HTML comment asking for what goes under it,
  * which was the only way to ask at the point of use back when arriving at the
- * point of use was something you did by scrolling. Now the queue puts the cursor
- * under the heading and asks there, so the question is asked once, is always
- * the current wording, and disappears when it is answered.
+ * point of use was something you did by scrolling. Now the editor draws the
+ * question on the empty line, where it is always the current wording, is in no
+ * file, and disappears when it is answered.
  *
  * In the note it could do none of those things. It was duplicated into every
  * paper ever made, including every one dropped on its abstract; it went stale

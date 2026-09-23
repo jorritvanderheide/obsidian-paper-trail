@@ -5,6 +5,7 @@ import {
 	byStage,
 	headingCoverage,
 	headingLineIn,
+	questionLine,
 	headingSlot,
 	insertHeading,
 	nextAfter,
@@ -936,5 +937,35 @@ describe('parked and settled', () => {
 
 	it('says nothing about a paper still waiting on something', () => {
 		expect(parked([at('promoted', 'read', '2026-01-07')])).toHaveLength(0);
+	});
+});
+
+describe('questionLine', () => {
+	const note = ['# A paper', '', '[Zotero](x)', '', '<!--paper-trail-->', '<!--/paper-trail-->', ''].join('\n');
+
+	// The one that matters: the question sits on the line you are about to
+	// type on, which is the line the pencil leaves the cursor on.
+	it('draws on the line the pencil puts the cursor on', () => {
+		const lines = withHeading(note, 'Claim', null).split('\n');
+		const heading = headingLineIn(lines, 'Claim') ?? -1;
+		expect(questionLine(lines, 'Claim')).toBe(heading + 2);
+	});
+
+	it('uses the line directly under the heading when that is all the room there is', () => {
+		expect(questionLine(['## Claim', '', '<!--paper-trail-->'], 'Claim')).toBe(1);
+	});
+
+	// A question over its own answer is what took the prompts out of the
+	// template in the first place.
+	it('draws nothing once anything is written', () => {
+		expect(questionLine(['## Claim', '', 'It argues that x.', ''], 'Claim')).toBeNull();
+	});
+
+	it('draws nothing where there is no empty line to draw on', () => {
+		expect(questionLine(['## Claim', '<!--paper-trail-->'], 'Claim')).toBeNull();
+	});
+
+	it('draws nothing for a heading the note does not have', () => {
+		expect(questionLine(['# A paper', ''], 'Claim')).toBeNull();
 	});
 });

@@ -234,7 +234,7 @@ export class SettingsTab extends PluginSettingTab {
 					{
 						name: 'Quieter notifications',
 						desc:
-							'Stops Paper Trail saying what you can already see: where a decision put a paper, that a pass is finished, that the pile is empty. Failures are always shown, and so is the question asked when you land at a heading.',
+							'Stops Paper Trail saying what you can already see: where a decision put a paper, that a pass is finished, that the pile is empty. Failures are always shown.',
 						control: { type: 'toggle', key: 'quietNotices' },
 					},
 					{
@@ -246,6 +246,16 @@ export class SettingsTab extends PluginSettingTab {
 						name: 'Assessment heading',
 						desc: `What the third pass is written under, and only papers you promote are asked for one. It arrives the same way, below the claim, when the claim is ticked off.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
 						control: { type: 'text', key: 'assessmentHeading' },
+					},
+					{
+						name: 'Claim prompt',
+						desc: 'Shown faintly on the empty line under the Claim heading, and gone as soon as you start writing. Leave it empty once you no longer need asking.',
+						control: { type: 'textarea', key: 'claimPrompt', rows: 3, placeholder: 'Empty: nothing is shown.' },
+					},
+					{
+						name: 'Assessment prompt',
+						desc: 'The same, under the Assessment heading. Nothing is written into the note either way.',
+						control: { type: 'textarea', key: 'assessmentPrompt', rows: 3, placeholder: 'Empty: nothing is shown.' },
 					},
 				],
 			},

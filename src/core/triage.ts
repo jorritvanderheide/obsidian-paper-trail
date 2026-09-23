@@ -192,8 +192,8 @@ export function judgementIcon(reading: Reading): string {
  * crossed. Finishing a reading puts the landing and the question on one
  * notice, so "Read. Write what it argues, then tick it off." sat directly
  * above "What does this paper argue? ... Tick it off when you are done." and
- * said the same thing first and worse. The instruction belongs to the task,
- * where it is asked at the heading it is about.
+ * said the same thing first and worse. The instruction belongs at the heading
+ * it is about, which is where it is drawn.
  */
 const LANDINGS: Record<string, string> = {
 	Untriaged: 'Untriaged, and back in Triage.',

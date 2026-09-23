@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PAPER, PAPER_TEMPLATE } from '../src/core/templates';
 import { REGION_END, REGION_START } from '../src/core/paper-note';
 import { readTags } from '../src/core/triage';
-import { TASKS } from '../src/core/stages';
+import { DEFAULT_SETTINGS } from '../src/core/settings';
 
 /** The tag list out of a template's frontmatter, without a YAML parser. */
 function tagsOf(content: string): string[] {
@@ -79,20 +79,16 @@ describe('the paper template', () => {
 });
 
 /**
- * The prompts moved out of the note and into the moment.
+ * The prompts are drawn by the editor, not written by the template.
  *
- * They were HTML comments under each heading, which was the only way to ask at
- * the point of use back when reaching the point of use meant scrolling. The
- * queue now puts the cursor under the heading and asks there.
+ * They were HTML comments under each heading, which sat in every paper ever
+ * made and went stale when the wording changed. Then a notice, which repeated
+ * them at somebody who knew them. Now faint text on the empty line itself,
+ * which is in no file at all.
  */
-describe('the prompts the template no longer carries', () => {
-	it('is asked by the task instead, which is where it can be kept current', () => {
-		expect(TASKS.claim.prompt).toBeTruthy();
-		expect(TASKS.assessment.prompt).toBeTruthy();
-	});
-
-	it('asks nothing of the tasks that are not answered by typing under a heading', () => {
-		expect(TASKS.triage.prompt).toBeUndefined();
-		expect(TASKS.reading.prompt).toBeUndefined();
+describe('the prompts the template does not carry', () => {
+	it('writes neither question into a new paper', () => {
+		expect(PAPER).not.toContain(DEFAULT_SETTINGS.claimPrompt);
+		expect(PAPER).not.toContain(DEFAULT_SETTINGS.assessmentPrompt);
 	});
 });

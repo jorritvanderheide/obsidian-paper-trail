@@ -59,9 +59,7 @@ export interface Settings {
 	 * follows something you pressed, and the queue has already moved.
 	 *
 	 * It never silences a failure, because a plugin that fails quietly is a
-	 * plugin that looks broken. It never silences the question asked when you
-	 * land at a heading, which is the thing that replaced the prompts the
-	 * template used to carry. And it never silences an answer to a command that
+	 * plugin that looks broken. And it never silences an answer to a command that
 	 * would otherwise do nothing you can see: Next with nothing outstanding, or
 	 * a refresh that found no change, are dead keys without a word.
 	 */
@@ -149,6 +147,18 @@ export interface Settings {
 	 * cursor, and the tick ends the pass.
 	 */
 	assessmentHeading: string;
+	/**
+	 * The question drawn faintly on the empty line under the Claim heading,
+	 * until something is written there. Empty draws nothing.
+	 *
+	 * A setting, where the rest of this list is addresses rather than opinions,
+	 * because it is the text under a heading whose name is already one. Somebody
+	 * who calls the section Summary is asking a different question from the one
+	 * written for Claim, and has to be able to say so.
+	 */
+	claimPrompt: string;
+	/** The same, under the Assessment heading. */
+	assessmentPrompt: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -164,6 +174,18 @@ export const DEFAULT_SETTINGS: Settings = {
 	templateFolder: 'Templates',
 	claimHeading: 'Claim',
 	assessmentHeading: 'Assessment',
+	// Two questions, because the second is only answerable here. A literature
+	// review is a claim about a field rather than a list of papers: who agrees
+	// with whom, what is assumed in common, where the gap is. Those are edges
+	// between papers, and having just said what a paper claims is exactly when
+	// you know whether it contradicts something you read in March.
+	//
+	// It names Insert citation because the link is not a thing you would guess
+	// your way to. With Better BibTeX a note is named for its citation key, so
+	// typing `[[` finds papers by key and not by the title you remember.
+	claimPrompt:
+		'What does this paper argue, and what does it sit with or against? One or two sentences of your own; Insert citation makes the link.',
+	assessmentPrompt: 'Where does it strain? What is it assuming? What is the evidence actually doing?',
 };
 
 /** A saved string, trimmed, or the default when it is missing or blank. */
@@ -189,6 +211,11 @@ export function loadSettings(raw: unknown): Settings {
 		templateFolder: text(data.templateFolder, DEFAULT_SETTINGS.templateFolder),
 		claimHeading: text(data.claimHeading, DEFAULT_SETTINGS.claimHeading),
 		assessmentHeading: text(data.assessmentHeading, DEFAULT_SETTINGS.assessmentHeading),
+		// Empty is meaningful here as well: it is how you say you know what goes
+		// under the heading by now and would rather not be asked.
+		claimPrompt: typeof data.claimPrompt === 'string' ? data.claimPrompt.trim() : DEFAULT_SETTINGS.claimPrompt,
+		assessmentPrompt:
+			typeof data.assessmentPrompt === 'string' ? data.assessmentPrompt.trim() : DEFAULT_SETTINGS.assessmentPrompt,
 	};
 }
 

@@ -483,3 +483,13 @@
 	> :is(h1, h2, h3, h4, h5, h6) {
 	margin-top: var(--heading-spacing);
 }
+
+/*
+ * The question under an empty Claim or Assessment heading, drawn by the editor
+ * and written nowhere. Faint, the way Obsidian draws its own placeholders, and
+ * transparent to the pointer so a click lands on the line it sits on.
+ */
+.paper-trail-question {
+	color: var(--text-faint);
+	pointer-events: none;
+}

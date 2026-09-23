@@ -37,9 +37,7 @@ export function notify(error: unknown, tag?: string): void {
  *
  * Silenced by the quiet setting, because each of these follows something you
  * pressed and the queue has already moved to show it. A failure never comes
- * through here, and neither does the question asked when you land at a heading:
- * one is the difference between broken and busy, the other is the whole reason
- * the template stopped carrying prompts.
+ * through here, because it is the difference between broken and busy.
  */
 export function say(context: Context, text: string): void {
 	if (context.settings.quietNotices) return;

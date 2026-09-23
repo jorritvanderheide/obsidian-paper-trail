@@ -225,9 +225,10 @@ above the highlights at the moment the paper comes to owe a claim, and the
 Assessment heading when the claim is ticked off. So the section is there
 whenever you open the note, however you got to it, and a paper you drop on its
 abstract stays three lines long rather than carrying an outline of work that
-was never going to happen. The question is put in the moment you arrive, rather
-than left lying in the file as a comment you would have to type around and then
-delete.
+was never going to happen. What goes under each is drawn faintly on the empty
+line, and gone as soon as you type. It is written into no file, so it is not a
+comment you would have to type around and then delete, and it is not a popup
+repeating itself at somebody who knows it by now.
 
 **Assessment** is for the few papers you promote, and ends the same way. It is
 Keshav's third pass: arguing with a paper you can already summarise. Ticking off
@@ -343,9 +344,13 @@ names the Zotero item, and which headings Claim and Assessment end under. Point
 the item key property at whatever your existing literature notes use and they
 are recognised without being rewritten.
 
-One is not an address. **Triage before reading** records what putting an item in
-Zotero means to you, which is the one thing the plugin cannot work out and the
-one thing that decides whether it asks you a question you have already answered.
+Three are not addresses. **Triage before reading** records what putting an item
+in Zotero means to you, which is the one thing the plugin cannot work out and
+the one thing that decides whether it asks you a question you have already
+answered. **Claim prompt** and **Assessment prompt** are the questions drawn
+under each heading: settings because they are the words under a heading whose
+name already is one, so a section you call Summary can ask a different
+question. Empty either once you no longer need asking.
 
 The stages and the `reading` vocabulary are not configurable. They are the
 product. Paper Trail writes no tags of its own either, beyond the reading status

@@ -145,3 +145,35 @@ describe('quieter notifications', () => {
 		expect(loadSettings({ quietNotices: 'yes' }).quietNotices).toBe(false);
 	});
 });
+
+/**
+ * The two questions drawn under an empty heading. A setting because they are
+ * the words under a heading whose name already is one, and empty because
+ * somebody who knows what goes there should be able to stop being asked.
+ */
+describe('the prompts', () => {
+	it('asks a question under each written pass by default', () => {
+		expect(DEFAULT_SETTINGS.claimPrompt).toBeTruthy();
+		expect(DEFAULT_SETTINGS.assessmentPrompt).toBeTruthy();
+	});
+
+	it('keeps the relation question, which is what the claim prompt is for', () => {
+		expect(DEFAULT_SETTINGS.claimPrompt).toContain('sit with or against');
+	});
+
+	// Unlike the headings, where a blank falls back to the default: a blank
+	// heading is a mistake, and a blank prompt is an answer.
+	it('keeps an empty prompt empty, because that is how you turn it off', () => {
+		const loaded = loadSettings({ claimPrompt: '', assessmentPrompt: '   ' });
+		expect(loaded.claimPrompt).toBe('');
+		expect(loaded.assessmentPrompt).toBe('');
+	});
+
+	it('falls back to the default only when nothing was ever saved', () => {
+		expect(loadSettings({}).claimPrompt).toBe(DEFAULT_SETTINGS.claimPrompt);
+	});
+
+	it('trims what was typed', () => {
+		expect(loadSettings({ claimPrompt: '  What is it for?  ' }).claimPrompt).toBe('What is it for?');
+	});
+});
