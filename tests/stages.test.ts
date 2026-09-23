@@ -723,7 +723,7 @@ describe('roomUnder', () => {
  * note's own shape goes above it.
  */
 describe('headingSlot', () => {
-	const note = ['# A paper', '', '[Zotero](x)', '', '<!--paper-trail-->', '## Highlights', '<!--/paper-trail-->'];
+	const note = ['# A paper', '', '[Zotero](x)', '', '<!--paper-trail-->', '## Annotations', '<!--/paper-trail-->'];
 
 	it('puts a heading above the managed region', () => {
 		expect(headingSlot(note, null)).toBe(4);
@@ -881,9 +881,9 @@ describe('writtenUnder', () => {
 	});
 
 	// The region opens directly under the last heading a paper has, so an
-	// assessment nobody wrote would otherwise be evidenced by the highlights.
+	// assessment nobody wrote would otherwise be evidenced by the annotations.
 	it('does not read the managed region as the work', () => {
-		const assessed = ['## Assessment', '', '<!--paper-trail-->', '## Highlights', '', '> a passage'];
+		const assessed = ['## Assessment', '', '<!--paper-trail-->', '## Annotations', '', '> a passage'];
 		expect(writtenUnder(assessed, 'Assessment')).toBe(false);
 	});
 

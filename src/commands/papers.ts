@@ -18,7 +18,7 @@ import {
 	paperFrontmatter,
 	paperLinks,
 	replaceRegion,
-	renderHighlights,
+	renderAnnotations,
 } from '../core/paper-note';
 import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
 import { arrivalReading, type Reading } from '../core/triage';
@@ -87,8 +87,8 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 
 	// A brand new paper usually has no annotations, but one imported with a
 	// PDF you had already marked up has all of them, and a note that opens
-	// with an empty Highlights section under an annotated paper looks broken.
-	const highlights = attachment ? await attachmentAnnotations(ref, attachment) : [];
+	// with an empty Annotations section under an annotated paper looks broken.
+	const annotations = attachment ? await attachmentAnnotations(ref, attachment) : [];
 
 	await ensureFolder(app, context.settings.papersFolder);
 
@@ -103,18 +103,18 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	// ate the first two lines: the `# Title` and the blank after it. Given a
 	// real block to edit, it edits that.
 	//
-	// The highlights go in before the file exists rather than through a sync
+	// The annotations go in before the file exists rather than through a sync
 	// afterwards, for the same reason: a sync reads the note's frontmatter from
 	// the cache, finds no Zotero key on a file this new, and quietly does
 	// nothing.
-	const file = await app.vault.create(path, `---\n---\n${replaceRegion(body, renderHighlights(highlights))}`);
+	const file = await app.vault.create(path, `---\n---\n${replaceRegion(body, renderAnnotations(annotations))}`);
 	await writePaperFrontmatter(context, file, item, ref, arrivalReading(context.settings.triage));
 	return file;
 }
 
 /**
  * Refresh a paper's note from Zotero: the managed frontmatter, and the
- * highlights region.
+ * annotations region.
  *
  * Nothing else in the file is read or written. The user's prose, their reading
  * decision and any frontmatter key the plugin does not claim survive untouched,
@@ -141,7 +141,7 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 	// on reading annotations off an attachment that has gone.
 	const attachment = attachmentKeys(await itemChildren(ref))[0] ?? null;
 
-	const highlights = attachment ? await attachmentAnnotations(ref, attachment) : [];
+	const annotations = attachment ? await attachmentAnnotations(ref, attachment) : [];
 
 	// Everything above asks Zotero and writes nothing; everything below writes.
 	// So the flush belongs here rather than at the top, where it used to be: up
@@ -170,7 +170,7 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 	// modified externally because from the editor's side it was.
 	// Read after the flush, or the comparison is against a version of the note
 	// that no longer exists and can skip a write that was needed.
-	const rendered = renderHighlights(highlights);
+	const rendered = renderAnnotations(annotations);
 	const body = await app.vault.cachedRead(file);
 	if (replaceRegion(body, rendered) === body) return;
 
@@ -219,7 +219,7 @@ const syncing = new Set<string>();
  *
  * This is the only thing that refreshes an existing paper, which is the whole
  * point: a sync you have to remember to run is a sync that does not happen, and
- * the note you are looking at is exactly the one whose highlights you want.
+ * the note you are looking at is exactly the one whose annotations you want.
  *
  * Failure says nothing. Zotero not being open is the ordinary case, not an
  * error, and a notice on every literature note you opened without it running

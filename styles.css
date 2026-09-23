@@ -462,7 +462,7 @@
  * The region opens with an HTML comment, and a comment is not an element, so
  * the block Obsidian wraps it in never gets an `el-` class: the wrapper class
  * is built from `firstChild.tagName` and a comment node has none. That breaks
- * the adjacency, so `## Highlights` fell back to `--p-spacing`, which is two
+ * the adjacency, so `## Annotations` fell back to `--p-spacing`, which is two
  * and a half times smaller, and read as part of the assessment above it
  * rather than as the section after it.
  *

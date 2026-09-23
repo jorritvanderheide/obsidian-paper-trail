@@ -6,7 +6,7 @@
 // else in the file belongs to whoever wrote it, and losing a word of that is
 // the one unforgivable failure for a plugin like this.
 import { applyStatusTag, NO_STATUS_TAGS, type Reading, type StatusTags } from './triage';
-import { authorNames, itemYear, readerUrl, type ApiItem, type Highlight, type ItemRef } from './zotero';
+import { authorNames, itemYear, readerUrl, type ApiItem, type Annotation, type ItemRef } from './zotero';
 import { sortKeys } from './frontmatter';
 
 /**
@@ -110,25 +110,25 @@ export function paperFrontmatter(item: ApiItem, ref: ItemRef, basename: string):
 	};
 }
 
-/** One highlight as markdown, with an id derived from the annotation key. */
-export function renderHighlight(highlight: Highlight): string {
+/** One annotation as markdown, with an id derived from its key. */
+export function renderAnnotation(annotation: Annotation): string {
 	const lines: string[] = [];
-	if (highlight.text) {
-		const page = highlight.page ? ` (p. ${highlight.page})` : '';
+	if (annotation.text) {
+		const page = annotation.page ? ` (p. ${annotation.page})` : '';
 		// The id is derived, not generated, so it survives every re-sync and a
 		// link to one passage keeps resolving.
-		lines.push(`> ${highlight.text}${page} ^zt-${highlight.key}`);
+		lines.push(`> ${annotation.text}${page} ^zt-${annotation.key}`);
 	}
-	if (highlight.comment) {
+	if (annotation.comment) {
 		if (lines.length > 0) lines.push('');
-		lines.push(highlight.comment);
+		lines.push(annotation.comment);
 	}
 	return lines.join('\n');
 }
 
-export function renderHighlights(list: Highlight[]): string {
-	if (list.length === 0) return '## Highlights\n\n*Nothing highlighted in Zotero yet.*';
-	return ['## Highlights', ...list.map((highlight) => `\n${renderHighlight(highlight)}`)].join('\n');
+export function renderAnnotations(list: Annotation[]): string {
+	if (list.length === 0) return '## Annotations\n\n*No annotations in Zotero yet.*';
+	return ['## Annotations', ...list.map((annotation) => `\n${renderAnnotation(annotation)}`)].join('\n');
 }
 
 /**
@@ -142,7 +142,7 @@ export function replaceRegion(body: string, contents: string): string {
 	// text you can see and a heading pressed against one reads as belonging to
 	// it. Neither line does anything in reading view: a blank line separates
 	// markdown blocks and adds no rendered height, and the gap above the
-	// Highlights heading is set by CSS, which is where it is fixed. See the last
+	// Annotations heading is set by CSS, which is where it is fixed. See the last
 	// rule in `styles.css` for why that needed fixing at all.
 	const region = `${REGION_START}\n\n${contents}\n\n${REGION_END}`;
 

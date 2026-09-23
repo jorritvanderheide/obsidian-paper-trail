@@ -189,7 +189,7 @@ export const TASKS: Record<Task, TaskDefinition> = {
 		task: 'reading',
 		label: 'Reading',
 		stageIcon: 'book-open',
-		hint: 'Worth an hour, in Zotero, where your highlights go. Say what came of it when you are done.',
+		hint: 'Worth an hour, in Zotero, where your annotations go. Say what came of it when you are done.',
 		action: 'Open in Zotero',
 		icon: 'external-link',
 		done: 'Reading finished',
@@ -500,7 +500,7 @@ export function roomUnder(following: readonly string[]): Room | null {
  * notice there is none is a different question.
  *
  * The section ends at the next heading or at the managed region, so the
- * highlights below an assessment are not mistaken for the assessment.
+ * annotations below an assessment are not mistaken for the assessment.
  */
 export function writtenUnder(lines: readonly string[], heading: string): boolean {
 	const at = headingLineIn(lines, heading);

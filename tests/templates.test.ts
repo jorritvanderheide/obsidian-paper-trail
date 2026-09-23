@@ -42,7 +42,7 @@ describe('the paper template', () => {
 		expect(PAPER.split('\n').filter((line) => line.trim() !== '')).toHaveLength(4);
 	});
 
-	it('carries the managed region, or a sync has nowhere to put highlights', () => {
+	it('carries the managed region, or a sync has nowhere to put annotations', () => {
 		expect(PAPER).toContain(REGION_START);
 		expect(PAPER).toContain(REGION_END);
 	});

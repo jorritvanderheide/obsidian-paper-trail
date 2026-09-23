@@ -5,7 +5,7 @@ import {
 	attachmentKeys,
 	libraryPath,
 	authorNames,
-	highlights,
+	annotations,
 	itemYear,
 	noteName,
 	parseItemRef,
@@ -144,14 +144,14 @@ describe('noteName', () => {
 	});
 });
 
-describe('highlights', () => {
+describe('annotations', () => {
 	const annotation = (over: Partial<ApiItem['data']> & { key?: string } = {}): ApiItem => ({
 		key: over.key ?? 'ANNOT001',
 		data: { itemType: 'annotation', annotationText: 'some text', annotationSortIndex: '00001|000000|00000', ...over },
 	});
 
 	it('flattens an annotation to what a note needs', () => {
-		const result = highlights([
+		const result = annotations([
 			annotation({ annotationText: 'Care is not inherently good.', annotationComment: 'cf. Tronto', annotationPageLabel: '842' }),
 		]);
 		expect(result).toEqual([
@@ -166,7 +166,7 @@ describe('highlights', () => {
 	});
 
 	it('sorts into document order, which sortIndex gives as text', () => {
-		const result = highlights([
+		const result = annotations([
 			annotation({ key: 'C', annotationSortIndex: '00010|000000|00000' }),
 			annotation({ key: 'A', annotationSortIndex: '00002|000000|00000' }),
 			annotation({ key: 'B', annotationSortIndex: '00002|000500|00000' }),
@@ -175,15 +175,15 @@ describe('highlights', () => {
 	});
 
 	it('keeps a comment-only annotation, which has no selected text', () => {
-		expect(highlights([annotation({ annotationText: '', annotationComment: 'a thought' })])).toHaveLength(1);
+		expect(annotations([annotation({ annotationText: '', annotationComment: 'a thought' })])).toHaveLength(1);
 	});
 
 	it('drops an annotation that is neither text nor comment', () => {
-		expect(highlights([annotation({ annotationText: '  ', annotationComment: '' })])).toHaveLength(0);
+		expect(annotations([annotation({ annotationText: '  ', annotationComment: '' })])).toHaveLength(0);
 	});
 
 	it('ignores anything that is not an annotation', () => {
-		expect(highlights([paper()])).toEqual([]);
+		expect(annotations([paper()])).toEqual([]);
 	});
 });
 
@@ -196,7 +196,7 @@ describe('highlights', () => {
  * read: nothing renders a colour, and the only annotations that reach here are
  * the ones `?itemType=annotation` returned.
  */
-describe('highlights, against a real annotation', () => {
+describe('annotations, against a real one', () => {
 	const real: ApiItem = {
 		key: '2SQ873XZ',
 		data: {
@@ -209,7 +209,7 @@ describe('highlights, against a real annotation', () => {
 	};
 
 	it('reads what Zotero actually sends', () => {
-		expect(highlights([real])).toEqual([
+		expect(annotations([real])).toEqual([
 			{
 				key: '2SQ873XZ',
 				text: 'The decarbonisation of domestic heating is central to climate policy, with the heat pump positioned as a key technology',
@@ -221,7 +221,7 @@ describe('highlights, against a real annotation', () => {
 	});
 
 	it('keeps the printed page, which is what a citation needs', () => {
-		expect(highlights([real])[0]?.page).toBe('840');
+		expect(annotations([real])[0]?.page).toBe('840');
 	});
 });
 

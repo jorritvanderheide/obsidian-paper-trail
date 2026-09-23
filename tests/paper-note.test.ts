@@ -5,8 +5,8 @@ import {
 	REGION_END,
 	REGION_START,
 	paperFrontmatter,
-	renderHighlight,
-	renderHighlights,
+	renderAnnotation,
+	renderAnnotations,
 	replaceRegion,
 	fill,
 	isPaper,
@@ -14,7 +14,7 @@ import {
 	paperLinks,
 	selectUrl,
 } from '../src/core/paper-note';
-import type { ApiItem, Highlight, ItemRef } from '../src/core/zotero';
+import type { ApiItem, Annotation, ItemRef } from '../src/core/zotero';
 import { PAPER } from '../src/core/templates';
 
 const ref: ItemRef = { key: '5UPN73EU', groupID: null };
@@ -35,7 +35,7 @@ const item: ApiItem = {
 	meta: { parsedDate: '2026-08-11' },
 };
 
-const highlight = (over: Partial<Highlight> = {}): Highlight => ({
+const annotation = (over: Partial<Annotation> = {}): Annotation => ({
 	key: '2SQ873XZ',
 	text: 'Care is not inherently good.',
 	comment: '',
@@ -113,37 +113,37 @@ describe('selectUrl', () => {
 	});
 });
 
-describe('renderHighlight', () => {
+describe('renderAnnotation', () => {
 	it('quotes the passage with its printed page and a derived id', () => {
-		expect(renderHighlight(highlight())).toBe('> Care is not inherently good. (p. 842) ^zt-2SQ873XZ');
+		expect(renderAnnotation(annotation())).toBe('> Care is not inherently good. (p. 842) ^zt-2SQ873XZ');
 	});
 
 	it('leaves out the page when Zotero has none', () => {
-		expect(renderHighlight(highlight({ page: null }))).toBe('> Care is not inherently good. ^zt-2SQ873XZ');
+		expect(renderAnnotation(annotation({ page: null }))).toBe('> Care is not inherently good. ^zt-2SQ873XZ');
 	});
 
 	it('puts a comment under its quote', () => {
-		expect(renderHighlight(highlight({ comment: 'cf. Tronto' }))).toBe(
+		expect(renderAnnotation(annotation({ comment: 'cf. Tronto' }))).toBe(
 			'> Care is not inherently good. (p. 842) ^zt-2SQ873XZ\n\ncf. Tronto',
 		);
 	});
 
 	it('renders a comment with no selected text', () => {
-		expect(renderHighlight(highlight({ text: '', comment: 'a thought' }))).toBe('a thought');
+		expect(renderAnnotation(annotation({ text: '', comment: 'a thought' }))).toBe('a thought');
 	});
 
 	it('gives the same id every time, so links survive a re-sync', () => {
-		expect(renderHighlight(highlight())).toBe(renderHighlight(highlight()));
+		expect(renderAnnotation(annotation())).toBe(renderAnnotation(annotation()));
 	});
 });
 
-describe('renderHighlights', () => {
+describe('renderAnnotations', () => {
 	it('says so when there is nothing yet', () => {
-		expect(renderHighlights([])).toContain('Nothing highlighted in Zotero yet');
+		expect(renderAnnotations([])).toContain('No annotations in Zotero yet');
 	});
 
 	it('keeps the order it is given', () => {
-		const out = renderHighlights([highlight({ key: 'A', text: 'first' }), highlight({ key: 'B', text: 'second' })]);
+		const out = renderAnnotations([annotation({ key: 'A', text: 'first' }), annotation({ key: 'B', text: 'second' })]);
 		expect(out.indexOf('first')).toBeLessThan(out.indexOf('second'));
 	});
 });
@@ -157,7 +157,7 @@ describe('replaceRegion', () => {
 		'It argues that care matters.',
 		'',
 		REGION_START,
-		'## Highlights',
+		'## Annotations',
 		'',
 		'> old quote ^zt-OLD',
 		REGION_END,
@@ -168,27 +168,27 @@ describe('replaceRegion', () => {
 	].join('\n');
 
 	it('replaces only what is between the markers', () => {
-		const out = replaceRegion(body, '## Highlights\n\n> new quote ^zt-NEW');
+		const out = replaceRegion(body, '## Annotations\n\n> new quote ^zt-NEW');
 		expect(out).toContain('> new quote ^zt-NEW');
 		expect(out).not.toContain('old quote');
 	});
 
 	it('does not touch a word the user wrote', () => {
-		const out = replaceRegion(body, '## Highlights');
+		const out = replaceRegion(body, '## Annotations');
 		expect(out).toContain('It argues that care matters.');
 		expect(out).toContain('## My own section');
 		expect(out).toContain('Something I wrote afterwards.');
 	});
 
 	it('is stable: syncing twice with the same content changes nothing', () => {
-		const once = replaceRegion(body, '## Highlights\n\n> quote ^zt-A');
-		expect(replaceRegion(once, '## Highlights\n\n> quote ^zt-A')).toBe(once);
+		const once = replaceRegion(body, '## Annotations\n\n> quote ^zt-A');
+		expect(replaceRegion(once, '## Annotations\n\n> quote ^zt-A')).toBe(once);
 	});
 
 	it('appends a region rather than rebuilding a body that has none', () => {
-		const plain = '# A paper\n\nI removed the highlights section.';
-		const out = replaceRegion(plain, '## Highlights');
-		expect(out).toContain('I removed the highlights section.');
+		const plain = '# A paper\n\nI removed the annotations section.';
+		const out = replaceRegion(plain, '## Annotations');
+		expect(out).toContain('I removed the annotations section.');
 		expect(out.indexOf(REGION_START)).toBeGreaterThan(out.indexOf('I removed'));
 	});
 
@@ -334,18 +334,18 @@ describe('the region breathes', () => {
 	// mistake this test was written under: a blank line separates markdown
 	// blocks and adds no rendered height.
 	it('opens on a blank line, so the heading is not pressed against the marker', () => {
-		const out = replaceRegion('# A paper', '## Highlights\n\n> a quote ^zt-A');
-		expect(out).toContain(`${REGION_START}\n\n## Highlights`);
+		const out = replaceRegion('# A paper', '## Annotations\n\n> a quote ^zt-A');
+		expect(out).toContain(`${REGION_START}\n\n## Annotations`);
 	});
 
 	it('keeps the blank line before the closing marker, so the last quote is not flush against it', () => {
-		const out = replaceRegion('# A paper', '## Highlights\n\n> a quote ^zt-A');
+		const out = replaceRegion('# A paper', '## Annotations\n\n> a quote ^zt-A');
 		expect(out).toContain(`> a quote ^zt-A\n\n${REGION_END}`);
 	});
 
 	it('does not accumulate blank lines across syncs', () => {
-		const once = replaceRegion('# A paper', '## Highlights');
-		const twice = replaceRegion(once, '## Highlights');
+		const once = replaceRegion('# A paper', '## Annotations');
+		const twice = replaceRegion(once, '## Annotations');
 		expect(twice).toBe(once);
 	});
 });

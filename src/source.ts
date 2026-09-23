@@ -9,10 +9,10 @@
 // What is left is one shape of request. Everything goes through `answered`,
 // which is also what records whether Zotero is there at all.
 import {
-	highlights,
+	annotations,
 	libraryPath,
 	type ApiItem,
-	type Highlight,
+	type Annotation,
 	type ItemRef,
 } from './core/zotero';
 import type { ApiCollection } from './core/collections';
@@ -54,7 +54,7 @@ let contact: Contact = null;
  * nothing. A plugin whose whole value depends on another program being open
  * should be able to say whether it is, and until now nothing could: the sync on
  * open is silent by design, so a closed Zotero looked exactly like a paper with
- * no highlights.
+ * no annotations.
  */
 export function lastContact(): Contact {
 	return contact;
@@ -117,12 +117,12 @@ export function itemMetadata(ref: ItemRef): Promise<ApiItem> {
  * The annotations on an attachment.
  *
  * `?itemType=annotation` is not optional. On the local API a bare `/children`
- * returns an empty list for an attachment that has highlights, which the web
+ * returns an empty list for an attachment that has annotations, which the web
  * API does not do, so code written from its documentation fails silently.
  */
-export async function attachmentAnnotations(ref: ItemRef, attachmentKey: string): Promise<Highlight[]> {
+export async function attachmentAnnotations(ref: ItemRef, attachmentKey: string): Promise<Annotation[]> {
 	const children = await api<ApiItem[]>(`${libraryPath(ref)}/items/${attachmentKey}/children?itemType=annotation`);
-	return highlights(children);
+	return annotations(children);
 }
 
 /** An item's children: its attachments, and its notes. */

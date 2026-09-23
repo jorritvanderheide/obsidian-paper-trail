@@ -139,7 +139,7 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
 		}
 
 		// Reading writes nothing. It used to make the note first, on the grounds
-		// that the highlights would want somewhere to land, but `createPaperNote`
+		// that the annotations would want somewhere to land, but `createPaperNote`
 		// fetches the annotations when it runs, so a note written after the
 		// reading arrives with all of them in it and the early one bought nothing.
 		// What it cost was a file appearing in the vault because you clicked a row
@@ -349,7 +349,7 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	// Both of the outcomes that mean you engaged with the paper leave it owing a
 	// claim, so this goes straight there rather than leaving you to find it.
 	// It is the moment the summary is cheapest to write: you have just closed
-	// the PDF, and the highlights are already in the note below the cursor.
+	// the PDF, and the annotations are already in the note below the cursor.
 	//
 	// Where it lands and what it now owes go on one notice, because they are one
 	// answer to one press and were two slips saying nearly the same thing.

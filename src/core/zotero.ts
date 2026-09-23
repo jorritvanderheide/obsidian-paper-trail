@@ -213,8 +213,14 @@ export function noteName(item: ApiItem): string {
 	return [first.toLowerCase().replace(/[^a-z0-9]/g, ''), slug, year].filter(Boolean).join('-');
 }
 
-/** One Zotero annotation, flattened to what a note needs. */
-export interface Highlight {
+/**
+ * One Zotero annotation, flattened to what a note needs.
+ *
+ * Highlights, underlines and notes alike, which is why it is not called a
+ * highlight: a note stuck to a page has no highlighted passage at all, and
+ * Zotero calls every one of them an annotation.
+ */
+export interface Annotation {
 	key: string;
 	/** The selected passage. Empty for a standalone note with no selection. */
 	text: string;
@@ -231,7 +237,7 @@ export interface Highlight {
  * like "00003|001234|00567". Comparing it as text gives document order because
  * every field is zero-padded, which is the whole point of the format.
  */
-export function highlights(items: ApiItem[]): Highlight[] {
+export function annotations(items: ApiItem[]): Annotation[] {
 	return items
 		.filter((item) => item.data.itemType === 'annotation')
 		.map((item) => ({
@@ -241,7 +247,7 @@ export function highlights(items: ApiItem[]): Highlight[] {
 			page: item.data.annotationPageLabel?.trim() || null,
 			sortIndex: item.data.annotationSortIndex ?? '',
 		}))
-		.filter((highlight) => highlight.text.length > 0 || highlight.comment.length > 0)
+		.filter((annotation) => annotation.text.length > 0 || annotation.comment.length > 0)
 		.sort((a, b) => a.sortIndex.localeCompare(b.sortIndex));
 }
 

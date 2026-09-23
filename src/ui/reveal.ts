@@ -105,7 +105,7 @@ export async function openedIn(app: App, file: TFile, finished: boolean): Promis
  * no moment. Triage gets a whole pane; finishing gets a chooser; the claim got
  * an icon and an HTML comment four screens down a file. So the decision that
  * ends the reading now lands you in the place the work happens, while the paper
- * is still in your head and with the highlights Zotero synced sitting directly
+ * is still in your head and with the annotations Zotero synced sitting directly
  * below.
  *
  * It navigates rather than writing. A box that captured the claim and wrote it

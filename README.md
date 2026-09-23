@@ -58,7 +58,7 @@ heading from somewhere further down the note.
 
 Reading writes nothing at all. Opening a PDF is not a decision, so a paper
 Zotero holds and the vault does not still has no note when you come back from
-it; saying what came of the reading is what writes one, and the highlights are
+it; saying what came of the reading is what writes one, and the annotations are
 fetched then, so nothing is lost by waiting. A finished note opens rendered
 rather than in the editor, whatever your default view and however you opened
 it, because the writing is over and what is left is something to read. The copy
@@ -170,7 +170,7 @@ abstract, and three buttons: drop it and say why, queue it, or mark it already
 read.
 
 **Reading** holds what triage kept. Its button opens the paper in Zotero, where
-your highlights belong. When you are done, **Reading finished** asks what came
+your annotations belong. When you are done, **Reading finished** asks what came
 of it, in Keshav's terms: *worth summarising*, *worth a third pass*, *worth
 another hour, but not now*, or *not worth finishing*.
 
@@ -181,7 +181,7 @@ the paper, with supporting evidence, to someone else*. You have just said you
 can. This is where you make good on it.
 
 Saying so takes you straight to the note, cursor on an empty line under the
-Claim heading, with the highlights Zotero synced sitting right below. Write what
+Claim heading, with the annotations Zotero synced sitting right below. Write what
 the paper argues, in your own words, and what it sits with or against, and tick
 it off. The pencil on the row puts you back in the same place whenever you come
 back to it, and the tick beside it is what ends the pass. Arrive at a claim you
@@ -222,8 +222,8 @@ there is no Untriaged either: nothing in that workflow opens Triage, so a paper
 sent there would sit somewhere hidden.
 
 The plugin writes none of it, only the heading it goes under. A new paper is a
-title, its links and the highlights region; the Claim heading is written in
-above the highlights at the moment the paper comes to owe a claim, and the
+title, its links and the annotations region; the Claim heading is written in
+above the annotations at the moment the paper comes to owe a claim, and the
 Assessment heading when the claim is ticked off. So the section is there
 whenever you open the note, however you got to it, and a paper you drop on its
 abstract stays three lines long rather than carrying an outline of work that
@@ -305,21 +305,27 @@ one delimited region:
 
 ```
 <!--paper-trail-->
-## Highlights
+
+## Annotations
 
 > a passage you highlighted in Zotero (p. 4) ^zt-ABCD2345
+
+a note you wrote on it
+
 <!--/paper-trail-->
 ```
 
-The markers are HTML comments, so they are invisible in a rendered note and
-Obsidian's metadata cache calls them `html` rather than prose. That matters
-because the region follows the assessment heading once there is one, and what
-the cache calls that line is what decides whether a paper is still owed a
-third pass.
+Every Zotero annotation with text or a comment: highlights, underlines, and
+notes stuck to a page, which is why the heading is Zotero’s word for all of
+them rather than the name of one. The markers are HTML comments, so they are
+invisible in a rendered note. The region sits directly under the last heading
+a paper has, and the check for whether a section has anything written in it
+stops at the marker, so the annotations under an assessment are never taken
+for the assessment.
 
 A sync may overwrite those and nothing else. Every other key, every heading and
-every word you wrote is yours. Highlight anchors come from Zotero's annotation
-keys, so a link to one passage keeps resolving across re-syncs.
+every word you wrote is yours. Each annotation is anchored by its Zotero key,
+so a link to one passage keeps resolving across re-syncs.
 
 You never have to run a sync: a paper is refreshed when its note is created and
 whenever you open it, and only written when Zotero has something different.
