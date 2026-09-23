@@ -240,11 +240,18 @@ export function statusTagsOf(settings: Settings): StatusTags {
  * leaves it: picking `literature` again after a spell on `status` means those
  * tags are wanted, not owed a removal.
  *
- * Called before the new value is stored, because it is the old one it needs.
+ * `from` is the setting as it stood before the edit began, not before the last
+ * keystroke. The settings text box reports every keystroke, and retiring the
+ * value one keystroke back retired every prefix typed on the way to a new
+ * name: `s`, `st`, `sta`, `stat` and `statu` on the way to `status`. Each went
+ * on the list of namespaces stripped from a paper at its next decision, which
+ * would take out somebody's own `stat/` tags along with nothing the plugin
+ * ever wrote. The only namespace it wrote under is the one in force before the
+ * edit, so that is the only one retired.
  */
-export function retireStatusTag(settings: Settings, next: string): string[] {
-	const retired = new Set(settings.retiredStatusTags);
-	retired.add(settings.statusTag);
+export function retireStatusTag(from: Pick<Settings, 'statusTag' | 'retiredStatusTags'>, next: string): string[] {
+	const retired = new Set(from.retiredStatusTags);
+	retired.add(from.statusTag);
 	retired.delete(next.trim());
 	retired.delete('');
 	return [...retired].sort();

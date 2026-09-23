@@ -177,3 +177,26 @@ describe('the prompts', () => {
 		expect(loadSettings({ claimPrompt: '  What is it for?  ' }).claimPrompt).toBe('What is it for?');
 	});
 });
+
+/**
+ * The settings text box reports every keystroke. Retiring against the value
+ * one keystroke back put every prefix of a new name on the list, and the list
+ * is what gets stripped from a paper at its next decision.
+ */
+describe('retireStatusTag, typed a keystroke at a time', () => {
+	const type = (from: string, to: string) => {
+		const start = { ...DEFAULT_SETTINGS, statusTag: from, retiredStatusTags: [] };
+		let retired: string[] = [];
+		for (let n = 1; n <= to.length; n++) retired = retireStatusTag(start, to.slice(0, n));
+		return retired;
+	};
+
+	it('retires nothing when a name is typed into an empty box', () => {
+		expect(type('', 'status')).toEqual([]);
+	});
+
+	// `stat` is a perfectly good namespace for somebody's own tags.
+	it('retires only the old name, never a prefix of the new one', () => {
+		expect(type('literature', 'status')).toEqual(['literature']);
+	});
+});

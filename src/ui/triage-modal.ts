@@ -152,6 +152,9 @@ export class TriageModal extends Modal {
 		}
 	}
 
+	/** Whether an answer is being written, so a second press cannot write a second one. */
+	private answering = false;
+
 	/**
 	 * Hand the decision over and do nothing else.
 	 *
@@ -164,8 +167,20 @@ export class TriageModal extends Modal {
 	 * A drop asks why in a prompt of its own, which stacks on top of this one
 	 * rather than replacing it. That is why the reason dialog can be escaped
 	 * without losing your place in the pile.
+	 *
+	 * One answer at a time. The dialog stays up for the whole sitting, so a double
+	 * click, or a second press while Zotero is still answering the first, was a
+	 * second decision. For a paper with no note both tried to make it, and the
+	 * second found the first's file before Obsidian had read it and reported it
+	 * as somebody else's note: an alarming failure for having clicked twice.
 	 */
 	private async answer(decision: (typeof DECISIONS)[number]): Promise<void> {
-		await this.decide({ reading: decision.reading, progress: decision.progress });
+		if (this.answering) return;
+		this.answering = true;
+		try {
+			await this.decide({ reading: decision.reading, progress: decision.progress });
+		} finally {
+			this.answering = false;
+		}
 	}
 }

@@ -30,6 +30,14 @@ export class SettingsTab extends PluginSettingTab {
 	private asked = false;
 
 	/**
+	 * The status tag as it stood when this tab opened, which is the namespace
+	 * the plugin has actually been writing under. A change is retired against
+	 * this rather than against the value one keystroke earlier; see
+	 * `retireStatusTag` for what that used to cost.
+	 */
+	private tagsAtOpen: Pick<Settings, 'statusTag' | 'retiredStatusTags'> | null = null;
+
+	/**
 	 * Read the collection list, then draw the tab again with it in.
 	 *
 	 * The scope control is the one thing here whose options come from another
@@ -52,6 +60,7 @@ export class SettingsTab extends PluginSettingTab {
 	/** Closing the tab is what makes the next opening ask again. */
 	hide(): void {
 		this.asked = false;
+		this.tagsAtOpen = null;
 		super.hide();
 	}
 
@@ -66,11 +75,11 @@ export class SettingsTab extends PluginSettingTab {
 	 * settings appear to name.
 	 */
 	async setControlValue(key: string, value: unknown): Promise<void> {
-		// Worked out before the new value lands, because it is the old namespace
-		// it needs: the tags already written under it are the ones a later
-		// decision has to take back out.
+		// Against the namespace in force when the tab opened, because the tags
+		// already written under it are the ones a later decision has to take back
+		// out, and it is the only namespace anything was written under.
 		if (key === 'statusTag') {
-			this.plugin.settings.retiredStatusTags = retireStatusTag(this.plugin.settings, String(value));
+			this.plugin.settings.retiredStatusTags = retireStatusTag(this.tagsAtOpen ?? this.plugin.settings, String(value));
 		}
 
 		(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
@@ -173,6 +182,8 @@ export class SettingsTab extends PluginSettingTab {
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		this.askZotero();
+		const { statusTag, retiredStatusTags } = this.plugin.settings;
+		this.tagsAtOpen ??= { statusTag, retiredStatusTags: [...retiredStatusTags] };
 		return [
 			{
 				type: 'group',

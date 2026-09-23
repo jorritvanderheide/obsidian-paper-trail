@@ -23,7 +23,7 @@ import { selectUrl } from '../core/paper-note';
 import { itemChildren, lastContact } from '../source';
 import { decideOn, openTriage, targetOf, writeTriage } from './reading';
 import { fileOf, queue } from '../outstanding';
-import { iconOf, landing, PASS_PROGRESS, PASS_TWO, type State } from '../core/triage';
+import { iconOf, landing, PASS_PROGRESS, PASS_TWO } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { say } from '../ui/notify';
 import { openAtHeading, openedIn, reveal } from '../ui/reveal';
@@ -234,7 +234,7 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 	// and this is a report about you, so ticking a claim off leaves `reading`
 	// exactly as it was. Through `writeTriage` like every other change, so the
 	// date moves and the tag mirror follows.
-	await writeTriage(context, file, {
+	const state = await writeTriage(context, file, {
 		reading: row.note.state.reading,
 		reason: null,
 		progress: PASS_PROGRESS[pass],
@@ -246,15 +246,14 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 	// the tick can be pressed over an empty heading, and it said the same thing
 	// whether the paper was finished with or had just acquired an assessment to
 	// write. `landing` knows the difference because it reads the pair.
-	const at: State = { reading: row.note.state.reading, progress: PASS_PROGRESS[pass] };
-	const landed = `${rowTitle(row)}\n${landing(at)}`;
+	const landed = `${rowTitle(row)}\n${landing(state)}`;
 
 	// A promoted paper whose claim has just been ticked owes an assessment, and
 	// goes straight to it, the way finishing a reading goes straight to the
 	// claim. It is the same moment for the same reason: the claim is what you
 	// argue with, and it has never been fresher than it is now. The note opens
 	// if it is shut and comes forward if it is not.
-	if (taskFor(at) === 'assessment') {
+	if (taskFor(state) === 'assessment') {
 		await writeUnder(context, file, 'assessment', landed);
 		return;
 	}
@@ -340,11 +339,10 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	);
 	if (!choice) return;
 
-	const file = await decideOn(context, target, choice.reading, choice.progress);
-	if (!file) return;
+	const written = await decideOn(context, target, choice.reading, choice.progress);
+	if (!written) return;
 
-	const at: State = { reading: choice.reading, progress: choice.progress ?? null };
-	const landed = `${title}\n${landing(at)}`;
+	const landed = `${title}\n${landing(written.state)}`;
 
 	// Both of the outcomes that mean you engaged with the paper leave it owing a
 	// claim, so this goes straight there rather than leaving you to find it.
@@ -356,8 +354,8 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	//
 	// The two that end the paper are not followed anywhere. A drop and a
 	// deferral have already been answered, and there is nothing left to type.
-	if (choice.progress === 'read') {
-		await writeUnder(context, file, 'claim', landed);
+	if (taskFor(written.state) === 'claim') {
+		await writeUnder(context, written.file, 'claim', landed);
 		return;
 	}
 

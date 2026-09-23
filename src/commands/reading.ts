@@ -46,14 +46,20 @@ export function today(): string {
 }
 
 /**
- * Record a decision, and give the note the heading the decision leaves it
- * owing.
+ * Record a decision, put the note into the shape it leaves the paper in, and
+ * say where that is.
  *
  * Nothing else: the annotations arrive when the note is opened, which for a
  * paper that has just been read is the next thing that happens anyway, and for
  * one that has just been dropped is never, which is right.
+ *
+ * Returns the state as written, which every notice about the decision reads.
+ * They used to work it out from the choice instead, and a choice is not the
+ * state: a judgement leaves progress alone, so a summarised paper sent back to
+ * Triage and queued there lands in Filed, not in Reading, whatever the button
+ * said.
  */
-export async function writeTriage(context: Context, file: TFile, triage: Triage): Promise<void> {
+export async function writeTriage(context: Context, file: TFile, triage: Triage): Promise<State> {
 	// What you have typed goes to disk before this does, so the two are never
 	// two versions of the note for Obsidian to merge and report.
 	await settle(context.app, file);
@@ -69,6 +75,7 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
 	});
 
 	await fitNote(context, file, after);
+	return after;
 }
 
 /**
@@ -225,9 +232,8 @@ export async function chooseReading(context: Context, target: TriageTarget, name
 		(entry) => entry.icon ?? judgementIcon(entry.reading),
 	);
 	if (!choice) return;
-	if (!(await decideOn(context, target, choice.reading, choice.progress))) return;
-
-	say(context, `${name}\n${landing(after(choice))}`);
+	const written = await decideOn(context, target, choice.reading, choice.progress);
+	if (written) say(context, `${name}\n${landing(written.state)}`);
 }
 
 /**
@@ -277,16 +283,17 @@ async function noteFor(context: Context, item: Pending): Promise<TFile> {
  * answer. A drop with no reason is a deletion with extra steps, and a deferral
  * with no condition is a paper nobody will ever look at again.
  *
- * Returns the note it wrote to, or null when the question went unanswered.
- * Nothing is created in that case: abandoning a drop halfway through should
- * leave no trace, which it cannot do if the file came first.
+ * Returns the note it wrote to and where the decision left the paper, or null
+ * when the question went unanswered. Nothing is created in that case:
+ * abandoning a drop halfway through should leave no trace, which it cannot do
+ * if the file came first.
  */
 export async function decideOn(
 	context: Context,
 	target: TriageTarget,
 	reading: Reading,
 	progress?: Progress | null,
-): Promise<TFile | null> {
+): Promise<Written | null> {
 	const question = asks(reading);
 
 	let reason: string | null = null;
@@ -296,8 +303,13 @@ export async function decideOn(
 	}
 
 	const file = target.kind === 'note' ? target.file : await noteFor(context, target.item);
-	await writeTriage(context, file, { reading, reason, progress });
-	return file;
+	return { file, state: await writeTriage(context, file, { reading, reason, progress }) };
+}
+
+/** A decision as written: the note it went to, and where it left the paper. */
+export interface Written {
+	file: TFile;
+	state: State;
 }
 
 /**
@@ -400,12 +412,13 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 	// the answer to what you pressed arrives before the news that the pile is
 	// empty. The other way round read as a conclusion before its premise.
 	const decide = async ({ reading, progress }: { reading: Reading; progress?: Progress }) => {
-		const file = await decideOn(context, target, reading, progress);
-		if (!file) return;
-		// Triage answers about a paper nothing has been done to, so the pair the
-		// decision lands on is whatever it just wrote and nothing before it.
-		say(context, `${title}\n${landing({ reading, progress: progress ?? null })}`);
-		await advance(context, file, key);
+		const written = await decideOn(context, target, reading, progress);
+		if (!written) return;
+		// Where it landed, which is not always where the button points. A note
+		// can reach Triage again with progress on it, and a judgement leaves that
+		// alone: queue a summarised paper here and it goes to Filed.
+		say(context, `${title}\n${landing(written.state)}`);
+		await advance(context, written.file, key);
 	};
 
 	// One dialog for the whole sitting. Pointing the open one at the next paper
