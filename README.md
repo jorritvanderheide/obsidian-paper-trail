@@ -56,7 +56,8 @@ Zotero holds and the vault does not still has no note when you come back from
 it; saying what came of the reading is what writes one, and the highlights are
 fetched then, so nothing is lost by waiting. A finished note opens rendered
 rather than in the editor, because the writing is over and what is left is
-something to read.
+something to read, and the copy you already had open turns rendered the moment
+you tick the last pass it owed.
 
 Two sections sit under the stages, for the papers nothing is outstanding for.
 **Deferred** is the papers you parked, each row carrying the condition you set

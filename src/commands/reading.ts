@@ -11,6 +11,7 @@ import { Notice, type App, type TFile } from 'obsidian';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, SourceError } from '../source';
 import { indexed, settle } from '../ui/editing';
+import { readingView } from '../ui/reveal';
 import { messageOf, say } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
 import {
@@ -62,25 +63,40 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
 		after = stateOf(frontmatter);
 	});
 
-	await writeHeadingFor(context, file, after);
+	await fitNote(context, file, after);
 }
 
 /**
- * Put the heading for the pass a paper now owes into its note.
+ * Put the note into the shape its new state means.
  *
- * Here rather than at the point of writing, so that a paper waiting on a claim
- * has somewhere to put one however you arrive at it: through the queue, through
- * the note you already had open, through search a week later. The section being
- * there is what the state means.
+ * Two halves of one idea, which is why they are one function. A paper that
+ * owes a pass gets the heading for it, so that a paper waiting on a claim has
+ * somewhere to put one however you arrive at it: through the queue, through the
+ * note you already had open, through search a week later. A paper that owes
+ * nothing gets rendered, because the writing is over and an editor there is
+ * markdown syntax standing between you and something finished.
  *
- * Through the vault rather than the editor, unlike the blank lines, because the
- * note is usually not open at the moment a decision is made. `process` rather
- * than `modify`, so it edits what is on disk now rather than a copy read before
- * the call, and `withHeading` returns the note untouched when it has the
- * heading already, so nothing is written and no modified time moves.
+ * The second half matters most in the case it is hardest to notice from here:
+ * you wrote the claim, the note is open in front of you, and the tick that ends
+ * the paper is an inch away in the title bar. Leaving that copy in source mode
+ * while a fresh open of the same note rendered would be the plugin disagreeing
+ * with itself about a note you are looking at.
+ *
+ * The heading goes through the vault rather than the editor, unlike the blank
+ * lines, because the note is usually not open at the moment a decision is made.
+ * `process` rather than `modify`, so it edits what is on disk now rather than a
+ * copy read before the call, and `withHeading` returns the note untouched when
+ * it has the heading already, so nothing is written and no modified time moves.
  */
-async function writeHeadingFor(context: Context, file: TFile, state: State): Promise<void> {
+async function fitNote(context: Context, file: TFile, state: State): Promise<void> {
 	const task = taskFor(state);
+
+	// Nothing outstanding: dropped, parked, or both passes ticked off.
+	if (task === null) {
+		await readingView(context.app, file);
+		return;
+	}
+
 	if (task !== 'claim' && task !== 'assessment') return;
 
 	const claim = task === 'claim';

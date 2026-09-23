@@ -44,15 +44,22 @@ export async function reveal(app: App, file: TFile): Promise<WorkspaceLeaf | nul
  * read it, and an editor there is markdown syntax standing between you and
  * something finished.
  *
- * Only the view that is actually showing this file, and only when it is in
- * source mode. A note already rendered needs nothing, and a note on a tab you
- * are not looking at is not this call's business.
+ * Every pane holding the file, the way `settle` flushes every pane holding
+ * it, rather than only the active one. The press that ends a paper is usually
+ * made from the queue, and by then the pane with the note in it is not the one
+ * with focus: asking for the active view would answer the sidebar and leave
+ * the copy you had been writing in sitting open in the editor, which is the
+ * one copy the switch was for.
+ *
+ * Only panes in source mode. One already rendered needs nothing.
  */
 export async function readingView(app: App, file: TFile): Promise<void> {
-	const view = app.workspace.getActiveViewOfType(MarkdownView);
-	if (!view || view.file !== file || view.getMode() !== 'source') return;
+	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
+		const view = leaf.view;
+		if (!(view instanceof MarkdownView) || view.file !== file || view.getMode() !== 'source') continue;
 
-	await view.leaf.setViewState({ ...view.leaf.getViewState(), state: { ...view.getState(), mode: 'preview' } });
+		await leaf.setViewState({ ...leaf.getViewState(), state: { ...view.getState(), mode: 'preview' } });
+	}
 }
 
 /**
