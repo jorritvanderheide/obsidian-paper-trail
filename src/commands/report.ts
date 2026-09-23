@@ -61,5 +61,5 @@ export async function writeReport(context: Context): Promise<void> {
 	if (existing) await app.vault.process(existing, () => markdown);
 
 	await reveal(app, file);
-	new Notice(`${report.rows.length} of ${report.assessed} assessed papers ruled out.`);
+	new Notice(`Ruled out ${report.rows.length} of the ${report.considered} papers decided on.`);
 }

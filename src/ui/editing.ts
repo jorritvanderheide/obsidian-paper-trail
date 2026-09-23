@@ -127,3 +127,32 @@ export function indexed(app: App, file: TFile, wait = 1000): Promise<void> {
 		const timer = window.setTimeout(done, wait);
 	});
 }
+
+/**
+ * Wait until an open editor shows what is on disk, or give up.
+ *
+ * A vault write to a file an editor has open does not update the editor by the
+ * time the write resolves. Obsidian's view hears about it and reloads, but the
+ * reload reads the file again first and nothing waits for it:
+ *
+ *   onModify(file) { this.saving || file === this.file && this.loadFileInternal(file, false) }
+ *
+ * So a decision that writes a heading through the vault and then goes to that
+ * heading in the editor finds the text from before the write. It does not see
+ * the heading, and writes a second one. And when the reload lands a moment
+ * later on an editor that edit has just made dirty, the two versions are
+ * merged and Obsidian says the file was modified externally, which from the
+ * editor's side it was.
+ *
+ * Polled, because the view's reload has no event of its own. Bounded, because
+ * an editor holding something you typed will never match the disk, and that
+ * should cost half a second rather than the rest of the session. Line endings
+ * are compared loosely, since an editor holds a CRLF file as LF.
+ */
+export async function caughtUp(app: App, view: MarkdownView, file: TFile, wait = 500): Promise<void> {
+	const disk = (await app.vault.read(file)).replace(/\r\n/g, '\n');
+	const until = Date.now() + wait;
+	while (view.getViewData().replace(/\r\n/g, '\n') !== disk && Date.now() < until) {
+		await new Promise((resolve) => window.setTimeout(resolve, 20));
+	}
+}

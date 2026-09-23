@@ -255,7 +255,7 @@ export function targetOf(app: App, row: Row): TriageTarget | null {
 }
 
 /** Make the note a decision needs, for a paper that did not have one. */
-export async function noteFor(context: Context, item: Pending): Promise<TFile> {
+async function noteFor(context: Context, item: Pending): Promise<TFile> {
 	const ref: ItemRef = { key: item.key, groupID: null };
 	// The queue's copy is a summary. The note wants the authors and the citation
 	// key, which only the item itself carries.

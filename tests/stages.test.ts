@@ -4,7 +4,6 @@ import { PASS_PROGRESS, PROGRESS_ORDER, READING_ORDER, type Progress, type Readi
 import {
 	byStage,
 	headingCoverage,
-	headingLine,
 	headingLineIn,
 	headingSlot,
 	insertHeading,
@@ -155,27 +154,6 @@ const pendingRow = (key = 'AAAA1111'): Row => ({
 	item: { key, title: key, abstract: null, venue: null, year: null, added: '2026-01-01' },
 });
 
-describe('headingLine', () => {
-	const cache = {
-		headings: [heading('Claim', 1), heading('Assessment', 5)],
-	} as unknown as CachedMetadata;
-
-	it('finds the line a heading sits on, so a cursor can go under it', () => {
-		expect(headingLine(cache, 'Claim')).toBe(1);
-		expect(headingLine(cache, 'Assessment')).toBe(5);
-	});
-
-	it('matches the heading whatever its case or padding, like the content check', () => {
-		expect(headingLine(cache, '  claim  ')).toBe(1);
-	});
-
-	// The caller says so out loud rather than opening the note at the top: a
-	// heading the note has not got is a stage no paper can ever leave.
-	it('is null when the note has no such heading', () => {
-		expect(headingLine(cache, 'Argument')).toBeNull();
-		expect(headingLine(null, 'Claim')).toBeNull();
-	});
-});
 
 describe('STAGES', () => {
 	it('offers from inside a note only the actions that go somewhere else', () => {

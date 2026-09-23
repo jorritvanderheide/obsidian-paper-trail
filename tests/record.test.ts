@@ -28,11 +28,11 @@ describe('excluded', () => {
 		expect(excluded([paper({ reading: 'deferred' })]).rows).toHaveLength(1);
 	});
 
-	it('counts everything assessed as the denominator, not just the exclusions', () => {
+	it('counts everything decided on as the denominator, not just the exclusions', () => {
 		const papers = [paper({ reading: 'dropped' }), paper({ reading: 'queued' }), paper({ reading: 'untriaged' })];
 		const report = excluded(papers);
 		expect(report.rows).toHaveLength(1);
-		expect(report.assessed).toBe(2);
+		expect(report.considered).toBe(2);
 	});
 
 	it('reads forwards, because that is how a corpus narrowing reads', () => {
@@ -50,7 +50,7 @@ describe('excluded', () => {
 	});
 
 	it('is empty and honest on a vault that has ruled nothing out', () => {
-		expect(excluded([])).toEqual({ rows: [], assessed: 0 });
+		expect(excluded([])).toEqual({ rows: [], considered: 0 });
 	});
 });
 
@@ -59,7 +59,7 @@ describe('renderReport', () => {
 
 	it('says how many of how many, so the number has a denominator', () => {
 		const out = of([paper(), paper({ reading: 'queued' })]);
-		expect(out).toContain('1 of 2 assessed papers have been ruled out');
+		expect(out).toContain('1 of 2 papers decided on have been ruled out');
 	});
 
 	it('writes one row per paper, with the reason in it', () => {

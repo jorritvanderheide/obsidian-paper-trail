@@ -6,6 +6,7 @@
 // and kept it to itself.
 import { MarkdownView, type App, type Editor, type TFile, type WorkspaceLeaf } from 'obsidian';
 import { headingLineIn, insertHeading, roomUnder, writtenUnder } from '../core/stages';
+import { caughtUp } from './editing';
 
 /** The pane a file is already open in, if any. */
 function leafShowing(app: App, file: TFile): WorkspaceLeaf | null {
@@ -140,8 +141,13 @@ export async function openAtHeading(
 
 	// Re-read the editor: changing the mode rebuilds it, so the one captured
 	// above belongs to a view that no longer exists.
-	const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
-	if (!editor) return 'shut';
+	const current = app.workspace.getActiveViewOfType(MarkdownView);
+	const editor = current?.editor;
+	if (!current || !editor) return 'shut';
+
+	// The decision that sent you here has usually just written to this note, and
+	// if it was already open the editor has not caught up with that yet.
+	await caughtUp(app, current, file);
 
 	// The editor's own text, never the metadata cache. The cache is a parse of
 	// what was on disk a moment ago, so a heading the decision that sent you here

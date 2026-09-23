@@ -51,6 +51,11 @@ The same thing is on a button at the end of the row, appearing when you hover,
 which is what says in advance where the click will go. Reading also offers a
 tick for when you are done. Stages fold away when you are not working them.
 
+The row for the note you are already in is marked, and clicking it does
+nothing: going where you already are would only take the cursor off whatever
+you were writing. Its button still acts, which is how you get back to the
+heading from somewhere further down the note.
+
 Reading writes nothing at all. Opening a PDF is not a decision, so a paper
 Zotero holds and the vault does not still has no note when you come back from
 it; saying what came of the reading is what writes one, and the highlights are

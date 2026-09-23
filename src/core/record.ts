@@ -74,7 +74,7 @@ export function decidedOf(
 		year: typeof frontmatter.year === 'number' ? frontmatter.year : null,
 		// The judgement half, through `stateOf`, so the record and the queue read
 		// the field the same way. A paper with no reading field has not been
-		// assessed, which is exactly what untriaged means.
+		// decided on, which is exactly what untriaged means.
 		reading: stateOf(frontmatter).reading,
 		triaged: text('triaged-date'),
 		reason: text('reading-reason'),
@@ -87,8 +87,15 @@ const EXCLUDED = new Set(['dropped', 'deferred']);
 
 export interface Report {
 	rows: Decided[];
-	/** How many papers have been assessed at all, excluded or not. */
-	assessed: number;
+	/**
+	 * How many papers have been decided on at all, excluded or not.
+	 *
+	 * Not "assessed", which it was called until Assessed became the name of a
+	 * state: the third pass, written and ticked off. A report saying "12 of 40
+	 * assessed papers" would be counting forty papers of which perhaps three
+	 * had been.
+	 */
+	considered: number;
 }
 
 /**
@@ -104,8 +111,8 @@ export function excluded(papers: Decided[]): Report {
 		.filter((paper) => EXCLUDED.has(paper.reading))
 		.sort((a, b) => (a.triaged ?? '9999').localeCompare(b.triaged ?? '9999') || a.title.localeCompare(b.title));
 
-	const assessed = papers.filter((paper) => paper.reading !== 'untriaged').length;
-	return { rows, assessed };
+	const considered = papers.filter((paper) => paper.reading !== 'untriaged').length;
+	return { rows, considered };
 }
 
 /** A cell that cannot break the table it sits in. */
@@ -124,7 +131,7 @@ function cell(value: string | number | null): string {
  * gives the same output and this stays testable.
  */
 export function renderReport(report: Report, date: string): string {
-	const { rows, assessed } = report;
+	const { rows, considered } = report;
 
 	const lines = [
 		// The marker first, so the file declares whose it is before it says
@@ -135,7 +142,7 @@ export function renderReport(report: Report, date: string): string {
 		'',
 		'# Excluded papers',
 		'',
-		`${rows.length} of ${assessed} assessed ${assessed === 1 ? 'paper has' : 'papers have'} been ruled out. Generated ${date}.`,
+		`${rows.length} of ${considered} ${considered === 1 ? 'paper decided on has' : 'papers decided on have'} been ruled out. Generated ${date}.`,
 		'',
 	];
 

@@ -142,7 +142,7 @@ export class SettingsTab extends PluginSettingTab {
 		const { found, total } = headingCoverage(papers, setting);
 		if (total === 0 || found === 0) return '';
 
-		return ` ${found} of your ${total} papers already use it; renaming it now would leave those behind and write a second heading above them.`;
+		return ` ${found} of your ${total} papers already use it: renaming it leaves those behind, and gives each a second heading when it next needs one.`;
 	}
 
 	/**

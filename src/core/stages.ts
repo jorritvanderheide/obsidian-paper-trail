@@ -585,24 +585,6 @@ export function withHeading(content: string, heading: string, precedes: string |
 	return at === 0 ? text + tail : `${lines.slice(0, at).join('\n')}\n${text}${tail}`;
 }
 
-/** Where a heading is in the cache's list, or -1. Matched loosely on case and padding. */
-function indexOfHeading(cache: CachedMetadata | null, heading: string): number {
-	const wanted = heading.trim().toLowerCase();
-	return (cache?.headings ?? []).findIndex((entry) => entry.heading.trim().toLowerCase() === wanted);
-}
-
-/**
- * The line a heading is on, or null when the note has none by that name.
- *
- * For putting a cursor where the work happens. Finishing a paper takes you to
- * the claim heading rather than to the top of the note, because the note opens
- * on a title and some links and the thing being asked for is four screens down
- * past highlights you have already read.
- */
-export function headingLine(cache: CachedMetadata | null, heading: string): number | null {
-	const index = indexOfHeading(cache, heading);
-	return index === -1 ? null : (cache?.headings?.[index]?.position.start.line ?? null);
-}
 
 /**
  * What a note looks like to the rules. Reads the cache, decides nothing.

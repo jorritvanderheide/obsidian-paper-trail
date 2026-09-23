@@ -102,7 +102,7 @@ function decorateOne(context: Context, view: MarkdownView): void {
 
 	// So this one lands to its left, matching the sidebar row: a paper you
 	// have come back to is more often finished than started again.
-	const done = ensure(view, DONE, 'check', 'Finished', () =>
+	const done = ensure(view, DONE, 'check', 'Reading finished', () =>
 		withCurrent(context, view, finish),
 	);
 	show(done, outstanding?.done, outstanding?.doneIcon);
