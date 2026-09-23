@@ -487,9 +487,12 @@
 /*
  * The question under an empty Claim or Assessment heading, drawn by the editor
  * and written nowhere. Faint, the way Obsidian draws its own placeholders, and
- * transparent to the pointer so a click lands on the line it sits on.
+ * italic, so it reads as a voice other than yours even where a theme makes
+ * faint text close to normal. Transparent to the pointer so a click lands on
+ * the line it sits on.
  */
 .paper-trail-question {
 	color: var(--text-faint);
+	font-style: italic;
 	pointer-events: none;
 }
