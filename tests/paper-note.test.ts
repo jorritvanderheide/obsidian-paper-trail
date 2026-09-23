@@ -330,9 +330,12 @@ describe('applyPaperFrontmatter', () => {
 });
 
 describe('the region breathes', () => {
-	it('opens straight onto the contents, with no blank line to push them down', () => {
+	// The markers do not render, so the Highlights heading is spaced by whatever
+	// blank lines sit around them. Without this one it came out a line tighter
+	// than Claim and Assessment, which have one above each.
+	it('gives its heading the same space above it as every other heading has', () => {
 		const out = replaceRegion('# A paper', '## Highlights\n\n> a quote ^zt-A');
-		expect(out).toContain(`${REGION_START}\n## Highlights`);
+		expect(out).toContain(`${REGION_START}\n\n## Highlights`);
 	});
 
 	it('keeps the blank line before the closing marker, so the last quote is not flush against it', () => {
