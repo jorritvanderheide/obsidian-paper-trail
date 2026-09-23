@@ -5,6 +5,7 @@
 // commands/workflow.ts, so the two surfaces cannot drift apart.
 import { MarkdownRenderChild, debounce } from 'obsidian';
 import { renderQueue } from './queue';
+import { onLibraryChange, refreshLibrary } from '../library';
 import type { Context } from '../context';
 
 /**
@@ -47,5 +48,16 @@ export class WorkflowBlock extends MarkdownRenderChild {
 		// Without this, collapsing the sidebar would leave the block still
 		// deferring to a pane that has gone, and the news nowhere.
 		this.registerEvent(this.context.app.workspace.on('layout-change', this.redraw));
+
+		// And when Zotero does. The block used to hear about the vault and nothing
+		// else: it never asked Zotero, and when the sidebar asked and found a paper
+		// gone, only the sidebar redrew. It asks now, on opening and whenever you
+		// come back to Obsidian, the same moments the sidebar does, and a look
+		// already under way is shared rather than repeated, so both on screen cost
+		// one request.
+		this.register(onLibraryChange(this.redraw));
+		const ask = () => void refreshLibrary(this.context.settings.collection);
+		this.registerDomEvent(window, 'focus', ask);
+		ask();
 	}
 }

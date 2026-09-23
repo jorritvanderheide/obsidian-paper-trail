@@ -9,6 +9,7 @@ import {
 	label,
 	landing,
 	moves,
+	offered,
 	NO_STATUS_TAGS,
 	PASS_TWO,
 	READ_AGAIN,
@@ -668,5 +669,24 @@ describe('moves', () => {
 	// you have summarised is what gives it an assessment to write.
 	it('counts promoting a summarised paper, which gives it an assessment to owe', () => {
 		expect(moves({ reading: 'queued', progress: 'summarised' }, { reading: 'promoted', progress: 'summarised' })).toBe(true);
+	});
+});
+
+describe('offered', () => {
+	// With triage off, Triage is a section nothing in the workflow opens, so
+	// sending a paper there parks it somewhere hidden.
+	it('does not offer Untriaged when triage is off', () => {
+		expect(offered('untriaged', false)).toBe(false);
+	});
+
+	it('offers it when triage is on', () => {
+		expect(offered('untriaged', true)).toBe(true);
+	});
+
+	it('offers every other judgement either way', () => {
+		for (const reading of READING_ORDER.filter((value) => value !== 'untriaged')) {
+			expect(offered(reading, false), reading).toBe(true);
+			expect(offered(reading, true), reading).toBe(true);
+		}
 	});
 });

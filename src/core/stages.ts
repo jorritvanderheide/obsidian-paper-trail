@@ -238,8 +238,8 @@ export const STAGES: TaskDefinition[] = ORDER.map((task) => TASKS[task]);
  *
  * Triage with triage turned off is the exception: it is not a stage you work,
  * so a permanent zero teaches nothing and never moves. It comes back the
- * moment something lands in it, which it still can, from a paper sent back or
- * a note imported from elsewhere.
+ * moment something lands in it, which it still can: a note imported from
+ * elsewhere with no `reading` on it, or one edited by hand.
  */
 export function visibleStages(rows: Map<Task, Row[]>, triage: boolean): TaskDefinition[] {
 	return STAGES.filter(({ task }) => !(task === 'triage' && !triage && (rows.get(task) ?? []).length === 0));

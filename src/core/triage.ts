@@ -208,6 +208,18 @@ const LANDINGS: Record<string, string> = {
 };
 
 /**
+ * Whether a judgement is worth offering at all, in a vault working this way.
+ *
+ * Untriaged only with triage on. With it off, Triage is not a stage you work:
+ * a paper sent there sits in a section that is otherwise hidden, waiting on a
+ * dialog nothing in your workflow opens. What you meant was almost always
+ * Queued, and offering both is offering the wrong one beside the right one.
+ */
+export function offered(reading: Reading, triage: boolean): boolean {
+	return triage || reading !== 'untriaged';
+}
+
+/**
  * Whether a decision would move a paper anywhere you could see.
  *
  * For the chooser, which should not offer a line that leaves the paper where

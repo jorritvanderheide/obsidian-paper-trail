@@ -10,7 +10,7 @@ vi.mock('../src/source', () => ({
 	allCollections: () => allCollections(),
 }));
 
-const { collections, forgetLibrary, library, refreshLibrary, scopeProblem } = await import('../src/library');
+const { collections, forgetLibrary, library, onLibraryChange, refreshLibrary, scopeProblem } = await import('../src/library');
 
 const item = (key: string, title = key): ApiItem => ({ key, data: { itemType: 'journalArticle', title } });
 const changes = (items: ApiItem[], version: number) => ({ items, version });
@@ -233,5 +233,87 @@ describe('scope', () => {
 
 		await refreshLibrary('AAAA1111');
 		expect(collections().map((entry) => entry.key)).toEqual(['AAAA1111']);
+	});
+});
+
+/**
+ * Telling every view, not only the one that asked. A paper removed in Zotero
+ * left the sidebar and stayed in a block on the note beside it, because only
+ * the sidebar asked and only the asker redrew.
+ */
+describe('onLibraryChange', () => {
+	const listening = () => {
+		const heard = vi.fn();
+		const stop = onLibraryChange(heard);
+		return { heard, stop };
+	};
+
+	it('tells everyone listening when the library moved', async () => {
+		const a = listening();
+		const b = listening();
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary('');
+		expect(a.heard).toHaveBeenCalledTimes(1);
+		expect(b.heard).toHaveBeenCalledTimes(1);
+		a.stop();
+		b.stop();
+	});
+
+	// The usual answer, and the reason a redraw is worth skipping.
+	it('says nothing when nothing moved', async () => {
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary('');
+		const { heard, stop } = listening();
+		await refreshLibrary('');
+		expect(heard).not.toHaveBeenCalled();
+		stop();
+	});
+
+	it('tells when a paper was removed', async () => {
+		libraryState.mockResolvedValue(state(10, 2));
+		changedSince.mockResolvedValue(changes([item('A'), item('B')], 10));
+		await refreshLibrary('');
+		const { heard, stop } = listening();
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary('');
+		expect(library().map((entry) => entry.key)).toEqual(['A']);
+		expect(heard).toHaveBeenCalledTimes(1);
+		stop();
+	});
+
+	// Nothing moved, but what the queue has to say did: that Zotero is gone.
+	it('tells when Zotero stops answering, and again when it comes back', async () => {
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary('');
+		const { heard, stop } = listening();
+		libraryState.mockRejectedValue(new Error('closed'));
+		await refreshLibrary('');
+		expect(heard).toHaveBeenCalledTimes(1);
+		libraryState.mockResolvedValue(state(10, 1));
+		await refreshLibrary('');
+		expect(heard).toHaveBeenCalledTimes(2);
+		stop();
+	});
+
+	it('stops telling a listener that has stopped listening', async () => {
+		const { heard, stop } = listening();
+		stop();
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary('');
+		expect(heard).not.toHaveBeenCalled();
+	});
+
+	// The sidebar and a block both ask when you come back to Obsidian.
+	it('shares a look already under way rather than asking twice', async () => {
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		const [first, second] = await Promise.all([refreshLibrary(''), refreshLibrary('')]);
+		expect(libraryState).toHaveBeenCalledTimes(1);
+		expect(first).toBe(second);
 	});
 });

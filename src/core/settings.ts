@@ -79,8 +79,9 @@ export interface Settings {
 	 * made. Turn this on and the queue asks first; leave it off and Zotero's
 	 * save button is the first pass.
 	 *
-	 * Nothing about the stage changes either way. Triage still exists, still
-	 * holds anything you send back to it, and still writes the same record.
+	 * Off also takes Untriaged out of the status chooser, since nothing in a
+	 * workflow without triage would ever take a paper back out of it. Triage
+	 * itself still exists, for a note that arrives with no `reading` on it.
 	 */
 	triage: boolean;
 	/**

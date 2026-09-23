@@ -32,7 +32,7 @@ import { chooseReading, targetOf } from '../commands/reading';
 import { queue } from '../outstanding';
 import { WhileWriting } from './editing';
 import { lastContact } from '../source';
-import { refreshLibrary, scopeProblem } from '../library';
+import { onLibraryChange, refreshLibrary, scopeProblem } from '../library';
 import type { Context } from '../context';
 
 export const QUEUE_VIEW = 'paper-trail-queue';
@@ -854,27 +854,13 @@ export class QueueView extends ItemView {
 	private readonly refit = debounce(() => renderQueue(this.contentEl, this.context), 250, false);
 
 	/**
-	 * Ask Zotero what has changed, and redraw if anything has.
+	 * Ask Zotero what has changed. The redraw, if one is due, comes from
+	 * `onLibraryChange`, which tells every view drawing the library and not only
+	 * the one that asked.
 	 *
-	 * Coalesced because the events that call it arrive in bursts, and skipped
-	 * when nothing moved: the usual answer is that nothing has, and redrawing
-	 * the queue reads every note in the vault.
+	 * Coalesced because the events that call it arrive in bursts.
 	 */
-	private readonly catchUp = debounce(
-		() => {
-			const before = lastContact()?.reachable;
-			void refreshLibrary(this.context.settings.collection).then((moved) => {
-				// Redrawn when the library moved, and also when Zotero itself came or
-				// went. Skipping on "nothing moved" alone meant quitting Zotero with
-				// this pane open changed nothing on screen: the failure was recorded
-				// and never drawn, so the one surface that explains an unreachable
-				// Zotero stayed silent about it until something else forced a redraw.
-				if (moved || before !== lastContact()?.reachable) this.redraw();
-			});
-		},
-		300,
-		true,
-	);
+	private readonly catchUp = debounce(() => void refreshLibrary(this.context.settings.collection), 300, true);
 
 	async onOpen(): Promise<void> {
 		expanded.clear();
@@ -882,10 +868,12 @@ export class QueueView extends ItemView {
 		openDecided = false;
 		renderQueue(this.contentEl, this.context);
 
-		// Draw first from what is already known, then ask Zotero and draw again.
-		// Triage comes entirely from Zotero, so waiting for the request before
-		// showing anything would mean an empty pane every time this opens.
-		void refreshLibrary(this.context.settings.collection).then(() => this.redraw());
+		// Draw first from what is already known, then ask Zotero, which redraws if
+		// the answer changed anything. Triage comes entirely from Zotero, so
+		// waiting for the request before showing anything would mean an empty pane
+		// every time this opens.
+		this.register(onLibraryChange(() => this.redraw()));
+		void refreshLibrary(this.context.settings.collection);
 
 		// A note's own change waits while you are the one writing it. Everything
 		// else lands at once: a deletion, a rename, or a paper arriving from a

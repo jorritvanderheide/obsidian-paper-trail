@@ -22,6 +22,7 @@ import {
 	label,
 	landing,
 	moves,
+	offered,
 	READ_AGAIN,
 	READING_ORDER,
 	stateOf,
@@ -203,9 +204,11 @@ export async function chooseReading(context: Context, target: TriageTarget, name
 
 	// Beside Queued, and only for a paper that has been read, which is the one
 	// case where Queued on its own could not send it back to be read.
-	const offered =
+	const candidates =
 		now.progress === null ? CHOICES : CHOICES.flatMap((entry) => (entry.reading === 'queued' ? [entry, READ_AGAIN] : [entry]));
-	const choices = offered.filter((entry) => moves(now, after(entry)));
+	const choices = candidates.filter(
+		(entry) => offered(entry.reading, context.settings.triage) && moves(now, after(entry)),
+	);
 
 	const choice = await suggest(
 		context.app,

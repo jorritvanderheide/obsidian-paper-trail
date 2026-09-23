@@ -27,6 +27,27 @@ let scope = '';
 let known: ApiCollection[] = [];
 let problem: string | null = null;
 
+/** Whether the last look got an answer, or null before the first. */
+let reached: boolean | null = null;
+
+/** The look under way, so a second asker waits on it rather than asking again. */
+let pending: { scope: string; answer: Promise<boolean> } | null = null;
+
+/**
+ * Everything that draws the library and wants to know when it changes.
+ *
+ * The sidebar and a block in a note both draw from what is held here, and only
+ * the one that asked used to redraw. Remove a paper in Zotero with both on
+ * screen and the sidebar dropped it while the block went on offering it.
+ */
+const listeners = new Set<() => void>();
+
+/** Be told when the library changes. Returns the way to stop being told. */
+export function onLibraryChange(listener: () => void): () => void {
+	listeners.add(listener);
+	return () => listeners.delete(listener);
+}
+
 /** What was last fetched. Empty until something has asked. */
 export function library(): ApiItem[] {
 	return items;
@@ -61,6 +82,7 @@ export function forgetLibrary(): void {
 	read = false;
 	known = [];
 	problem = null;
+	reached = null;
 }
 
 /** Read the collection list again, for a settings tab that has just opened. */
@@ -93,7 +115,46 @@ export async function refreshCollections(): Promise<void> {
  * that collapsed to nothing every time you quit Zotero would be worse than one
  * that is briefly out of date.
  */
-export async function refreshLibrary(collection: string): Promise<boolean> {
+export function refreshLibrary(collection: string): Promise<boolean> {
+	if (pending?.scope === collection) return pending.answer;
+
+	const was = { reached, problem };
+	const answer = look(collection)
+		.then(
+			(moved) => {
+				reached = true;
+				return moved;
+			},
+			// `source` has already recorded why, and the queue says so. What was
+			// held stays held: Zotero being closed is not evidence that your
+			// library is empty.
+			() => {
+				reached = false;
+				return false;
+			},
+		)
+		.then((moved) => {
+			// Told when the library moved, and also when Zotero came or went or the
+			// scope stopped resolving, because each of those changes what the queue
+			// has to say. Telling on "moved" alone meant quitting Zotero with the
+			// queue open changed nothing on screen: the failure was recorded and
+			// never drawn, so the one surface that explains an unreachable Zotero
+			// stayed silent about it.
+			if (moved || reached !== was.reached || problem !== was.problem) {
+				for (const listener of listeners) listener();
+			}
+			return moved;
+		})
+		.finally(() => {
+			pending = null;
+		});
+
+	pending = { scope: collection, answer };
+	return answer;
+}
+
+/** The look itself. Throws when Zotero cannot be reached. */
+async function look(collection: string): Promise<boolean> {
 	// A change of scope invalidates every answer given under the last one, so
 	// this starts over rather than merging one collection's items into another's.
 	if (collection !== scope) {
@@ -101,53 +162,48 @@ export async function refreshLibrary(collection: string): Promise<boolean> {
 		scope = collection;
 	}
 
-	try {
-		// Only when a scope is set. With none there is nothing to check, and
-		// fetching the collection list to prove that would be a request per
-		// refresh bought for the majority who never scope anything.
-		if (collection !== '') {
-			if (known.length === 0) known = await allCollections();
-			problem = missingScope(collection, known);
-			// Nothing is read at all, which is the point. Asking Zotero for the
-			// items of a collection that is gone answers with the entire library,
-			// so carrying on here would quietly replace the queue with every paper
-			// the vault has ever heard of.
-			if (problem !== null) return false;
-		} else {
-			problem = null;
-		}
-
-		const state = await libraryState(collection);
-		if (read && state.version === version && state.total === items.length) return false;
-
-		// `since: 0` means everything, so a first read and an update are the same
-		// call and there is no separate path to get wrong.
-		const changes = await changedSince(read ? version : 0, collection);
-		const before = items.length;
-
-		merge(changes.items);
-		version = changes.version;
-		read = true;
-
-		// Zotero cannot say what was deleted: the local API has no `/deleted`
-		// endpoint, and an item that is gone simply stops being mentioned. So a
-		// count that still disagrees once the changes are in means something
-		// went, and reading again is the only way to find out which.
-		//
-		// The count is from before the delta was fetched, so an item added in
-		// between reads as a disagreement and buys one wasted re-read. It
-		// settles on the next look, which is the right way round: a library
-		// briefly re-read costs a moment, and a library quietly holding a paper
-		// that no longer exists offers it to you in the queue.
-		if (state.total !== items.length) {
-			items = (await changedSince(0, collection)).items;
-		}
-
-		return changes.items.length > 0 || items.length !== before;
-	} catch {
-		// `source` has already recorded why, and the queue says so.
-		return false;
+	// Only when a scope is set. With none there is nothing to check, and
+	// fetching the collection list to prove that would be a request per
+	// refresh bought for the majority who never scope anything.
+	if (collection !== '') {
+		if (known.length === 0) known = await allCollections();
+		problem = missingScope(collection, known);
+		// Nothing is read at all, which is the point. Asking Zotero for the
+		// items of a collection that is gone answers with the entire library,
+		// so carrying on here would quietly replace the queue with every paper
+		// the vault has ever heard of.
+		if (problem !== null) return false;
+	} else {
+		problem = null;
 	}
+
+	const state = await libraryState(collection);
+	if (read && state.version === version && state.total === items.length) return false;
+
+	// `since: 0` means everything, so a first read and an update are the same
+	// call and there is no separate path to get wrong.
+	const changes = await changedSince(read ? version : 0, collection);
+	const before = items.length;
+
+	merge(changes.items);
+	version = changes.version;
+	read = true;
+
+	// Zotero cannot say what was deleted: the local API has no `/deleted`
+	// endpoint, and an item that is gone simply stops being mentioned. So a
+	// count that still disagrees once the changes are in means something
+	// went, and reading again is the only way to find out which.
+	//
+	// The count is from before the delta was fetched, so an item added in
+	// between reads as a disagreement and buys one wasted re-read. It
+	// settles on the next look, which is the right way round: a library
+	// briefly re-read costs a moment, and a library quietly holding a paper
+	// that no longer exists offers it to you in the queue.
+	if (state.total !== items.length) {
+		items = (await changedSince(0, collection)).items;
+	}
+
+	return changes.items.length > 0 || items.length !== before;
 }
 
 /** Replace what changed, keep the rest, and do not reorder for the sake of it. */

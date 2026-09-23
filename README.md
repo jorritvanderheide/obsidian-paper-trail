@@ -217,7 +217,9 @@ read against on the way back through.
 It only offers what would move the paper. On an assessed paper, Queued and
 Promoted would each rewrite a field and change nothing you can see, because the
 question of whether it earned a third pass was answered by doing one, so neither
-is in the list. Where the paper is now is in the title instead.
+is in the list. Where the paper is now is in the title instead. With triage off
+there is no Untriaged either: nothing in that workflow opens Triage, so a paper
+sent there would sit somewhere hidden.
 
 The plugin writes none of it, only the heading it goes under. A new paper is a
 title, its links and the highlights region; the Claim heading is written in
