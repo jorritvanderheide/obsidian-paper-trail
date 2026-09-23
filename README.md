@@ -2,93 +2,146 @@
 
 [![Donate](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/BW20)
 
-**Decide what to read before you read it, and keep the decision.**
+**A reading queue for your Zotero library, and a record of what you decided.**
 
 You have four hundred papers and time for forty. Reference managers help you
-collect and annotation tools help you read; both assume the choosing already
+collect and annotation tools help you read, and both assume the choosing already
 happened. It happens constantly, in seconds, and nothing records it, so the same
 paper comes back in a search three years later and you assess it from nothing.
 Then you write the chapter and have to say how the corpus was narrowed.
 
-Paper Trail puts a decision in front of the reading and writes it down.
+Paper Trail keeps one list of what you owe each paper, from the moment you save
+it to Zotero to the moment you have said what it argues. You read in Zotero,
+where your annotations go. When you finish a paper you say what came of it, and
+Paper Trail writes its note with your annotations already in it and puts the
+cursor where you write what it argues. A paper you drop or park keeps the reason
+you gave, and the reasons export as a table for your methods section.
 
-## The queue
+## How it works
 
-Your library stays in Zotero. Paper Trail talks to it over the local API,
-creates the literature note itself, and keeps one list of what is outstanding.
+The reading model is S. Keshav's *How to Read a Paper*: passes of increasing
+cost, each ending in a decision about whether to make the next one.
 
 ```
 →  ⟳  ⌃⌄
 ───────────────────────────────────────────
-▾ Triage                                 3
-    Reframing heat pump transitions
-    Strategic Reading and Ontologies
-    How to Read a Paper
 ▾ Reading                                2
     So Much to Read, So Little Time
     Energy Cultures
 ▾ Claim                                  1
     Scholars Before Researchers
 ▾ Assessment                             1
+    How to Read a Paper
 ───────────────────────────────────────────
+▸ Deferred                               3
 ▸ Filed                                 41
 ```
 
-Four sections, in the order a paper passes through them. Three buttons above
-them: **Next**, which takes the top row of the topmost section that has one so
-that working the pile needs no decision about which pile first; ask Zotero now,
-for when it was shut and has come back; and collapse or expand the lot.
+**Reading** is what is worth an hour and not yet read. With triage off, which is
+the default, everything in Zotero that your vault has no note for arrives here,
+computed rather than stored, so importing four hundred search results gives you
+four hundred rows and no files. Clicking a row opens the PDF in Zotero's reader,
+and reading writes nothing in your vault. When you are done, the tick asks what
+came of it:
 
-Clicking a row takes you to the work. Reading opens the PDF in Zotero, Claim
-and Assessment drop the cursor under their heading ready to write, and a paper
-still to be triaged opens its dialog. Which is not the same as showing you the
-paper, and it is the section that says where the difference lies: a paper you
-have not read has a note that is a title and a link, so being shown it is being
-shown nothing, while a paper you have read has a note with a section waiting in
-it.
+- *Worth summarising*: a second pass is enough.
+- *Worth a third pass*: the paper will also owe an assessment.
+- *Worth another hour, but not now*: it asks what has to happen first.
+- *Not worth finishing*: it asks why.
 
-The same thing is on a button at the end of the row, appearing when you hover,
-which is what says in advance where the click will go. Reading also offers a
-tick for when you are done. Stages fold away when you are not working them.
+The first two take you to the paper's note, written then if it has none, with
+the cursor under its Claim heading and your annotations directly below.
 
-The row for the note you are already in is marked, and clicking it does
-nothing: going where you already are would only take the cursor off whatever
-you were writing. Its button still acts, which is how you get back to the
-heading from somewhere further down the note.
+**Claim** is the other half of Keshav's second pass. His test for it is that
+*you should be able to summarize the main thrust of the paper, with supporting
+evidence, to someone else*, and this is where you do: one or two sentences in
+your own words, saying what the paper argues and what it sits with or against.
+Tick it off when it is written. If there is nothing under the heading, the tick
+offers to take you there instead.
 
-Reading writes nothing at all. Opening a PDF is not a decision, so a paper
-Zotero holds and the vault does not still has no note when you come back from
-it; saying what came of the reading is what writes one, and the annotations are
-fetched then, so nothing is lost by waiting. A finished note opens rendered
-rather than in the editor, whatever your default view and however you opened
-it, because the writing is over and what is left is something to read. The copy
-you already had open turns rendered the moment you tick the last pass it owed.
-Switch one to editing and it stays there until that pane opens something else;
-take a paper out of Deferred or Filed and it opens as your default has it again,
-because nothing was written to the note to ask for any of this.
+**Assessment** is the third pass, for the few papers you promote: arguing with a
+paper you can already summarise. Ticking off a promoted paper's claim takes you
+straight there, while the claim is fresh.
 
-Two sections sit under the stages, for the papers nothing is outstanding for.
-**Deferred** is the papers you parked, each row carrying the condition you set
-when you parked it, so a promise to come back is in front of you with a count
-on it rather than filed away among the finished. **Filed** is the rest:
-dropped, read, assessed, newest first, each with the icon of the decision that
-put it there. Neither is ever counted as outstanding or offered by **Next**,
-and right-clicking a row in either is how a paper comes back.
+**Triage** is optional, and off. Leave it off if you read the abstract in the
+browser and only save what you want, because then saving was the decision and
+papers arrive ready to read. Turn it on if Zotero is where you put things you
+have not decided about: each paper then comes up first with its title, venue,
+year and abstract, and three answers: drop it and say why, queue it, or mark it
+already read.
 
-Between them they take whatever height the list leaves over, so they sit on the
-floor of the pane when there is room and scroll along at the end of the list
-when there is not. Both shut until you open them. Every other section answers
-by getting shorter, so this is the only place a morning of triage leaves a mark.
+Below the stages, two sections hold the papers nothing is outstanding for.
+**Deferred** is what you parked, with the condition you set in each row's
+tooltip, so a promise to come back stays in front of you with a count on it.
+**Filed** is the rest, dropped, summarised or assessed, newest first. Neither is
+ever counted as outstanding.
 
-It lives in the sidebar (ribbon icon, or **Open queue**), and **Insert queue
-block** will put the stages on a note of your own. The block is what is
-outstanding and nothing else: the three buttons stay in the pane, where the
-plugin lives, rather than sitting on top of your writing, and so do Deferred and
-Filed, which are not outstanding and would pour a record of everything you have
-finished into your note. Its rows still act, and **Next** is in the palette.
+### Working the list
 
-Nothing here refuses: there is no order you have to work in and no stage that
+Clicking a row takes you to the work: Zotero for a reading, the heading for a
+claim or an assessment, the dialog for triage, and the paper itself from
+Deferred or Filed. The button at the end of each row, shown on hover, does the
+same and says in advance where the click goes. The row for the note you are in
+is marked, and clicking it never takes the cursor off what you are writing; its
+button still takes you back to the heading.
+
+**Next** opens the most perishable thing you owe: a claim before an assessment,
+both before a new reading, and triage last. A paper you read yesterday decays,
+and one you have never opened will triage just as well in March.
+
+Right-click any row to change where it is. **Set reading status** is also in the
+command palette and on the pill at the top of every paper. It offers only what
+would move the paper, and says where each choice lands. A paper you have already
+read can be sent back to be read again, keeping everything you wrote.
+
+Nothing here refuses: there is no order you have to work in, and no stage that
 locks until an earlier one is clear.
+
+The queue lives in the sidebar (ribbon icon, or **Open queue**). **Insert queue
+block** puts the stages on a note of your own, such as a dashboard: what is
+outstanding and nothing else, without the toolbar, and without Deferred and
+Filed, which would pour a record of everything you have finished into your note.
+
+## The note
+
+Each paper gets one note, named for its Better BibTeX citation key, or for its
+author, title and year without Better BibTeX. Under a frontmatter block holding
+what Zotero knows about the paper and what you decided about it, the note
+starts as a title, links to the item and the PDF, and your annotations:
+
+```markdown
+# How to Read a Paper
+
+[Zotero](zotero://select/library/items/ABCD2345) · [PDF](zotero://open-pdf/library/items/EFGH6789)
+
+<!--paper-trail-->
+
+## Annotations
+
+> a passage you highlighted in Zotero (p. 4) ^zt-JKLM2345
+
+a note you wrote on it
+
+<!--/paper-trail-->
+```
+
+The Claim heading is written in above the annotations when the paper comes to
+owe a claim, and the Assessment heading when its claim is ticked off, so a paper
+dropped on its abstract stays three lines long rather than carrying an outline
+of work that never happened. The question for each is drawn faintly on the
+empty line and disappears as you type. It is written into no file.
+
+The annotations are every Zotero annotation with text or a comment:
+highlights, underlines, and notes stuck to a page. They refresh whenever you
+open the note while Zotero is running, and are only written when something has
+changed. Each is anchored by its Zotero key, so a link to one passage keeps
+resolving across refreshes, and a passage that crosses a column or a page
+arrives as one line.
+
+A paper nothing is outstanding for opens rendered rather than in the editor,
+and turns rendered the moment you tick off the last pass it owed. Its title bar
+carries a refresh button, the paper's next step, and its reading status as a
+pill that opens the chooser.
 
 ## What a note is for
 
@@ -143,132 +196,16 @@ named for author, title and year, so Obsidian’s own `[[` finds them by what yo
 would type. With it, a note is named for its key, `[[` finds papers by key
 rather than by title, and **Insert citation** is what closes that gap.
 
-## The passes
+## Citations
 
-The reading model is S. Keshav's *How to Read a Paper*: increasingly expensive
-passes, each ending in a decision about whether to make the next one.
+**Insert citation** picks an item from your Zotero library and writes
+`[[citekey]]`. It needs Better BibTeX, which is what gives an item a citation
+key. Better BibTeX's own dialog is a chord away in the picker, for
+`[@key, p. 45]` and the other citations a bare key cannot express.
 
-Three passes, four sections. Keshav's second pass ends in a test rather than a
-document, and writing the summary down is this plugin's own addition to it. So
-it gets a section of its own, because a section here is named for what a paper
-is waiting on, and a paper you have read but not summarised is not waiting to
-be read.
-
-**Triage** is what Zotero holds that your vault has no note for. It is computed,
-not stored, so importing four hundred search results gives you four hundred rows
-and zero files. Nothing is written until you decide on one, and deciding is what
-makes the note.
-
-If your Zotero is older than this thesis, point **Papers from** at one
-collection and only that collection arrives. Papers outside it that already have
-a note go on working: it narrows what turns up, not what counts as a paper.
-
-Triage is opt-in, and off. Leave it off if you read the abstract in the browser
-and only save to Zotero what you want: the deciding happened there, so papers
-arrive already queued to read. Turn it on if Zotero is where you put things you
-have not decided about, and each one comes up with its title, venue, year and
-abstract, and three buttons: drop it and say why, queue it, or mark it already
-read.
-
-**Reading** holds what triage kept. Its button opens the paper in Zotero, where
-your annotations belong. When you are done, **Reading finished** asks what came
-of it, in Keshav's terms: *worth summarising*, *worth a third pass*, *worth
-another hour, but not now*, or *not worth finishing*.
-
-**Claim** is the other half of that pass, and it has its own section because it
-is different work. Keshav's test for the second pass is not that you have
-stopped reading, it is that *you should be able to summarize the main thrust of
-the paper, with supporting evidence, to someone else*. You have just said you
-can. This is where you make good on it.
-
-Saying so takes you straight to the note, cursor on an empty line under the
-Claim heading, with the annotations Zotero synced sitting right below. Write what
-the paper argues, in your own words, and what it sits with or against, and tick
-it off. The pencil on the row puts you back in the same place whenever you come
-back to it, and the tick beside it is what ends the pass. Arrive at a claim you
-have already written and nothing is moved and nothing is asked: you are taken
-to it and left alone.
-
-The tick asks once, when there is nothing under the heading at all: an empty
-section is a tick pressed on the wrong row or before the work rather than a
-claim you consider short, so it offers to take you there instead. Write one
-word and it never appears.
-
-The tick rather than the prose, and that is a deliberate retreat. The plugin
-used to watch the heading and call the pass finished the moment anything
-appeared under it, which read the state straight off what you had written and
-needed no extra press. One character counted, so the paper left the section
-mid-sentence, and there was nowhere to leave yourself a note under a heading
-without it being taken for the work. What is under the heading is yours; the
-status says only that you consider it done.
-
-Ticking moves `reading-progress` on, and leaves `reading` alone. The two are
-different kinds of fact: what a paper earns is a judgement you made about it,
-and how far you have got is a report about yourself. Keeping them apart is why
-dropping a paper you had summarised does not unsummarise it, and why picking it
-back up returns it to where it was rather than to the start.
-
-It is also why **Set reading status** offers five things rather than nine. You
-pick from the judgements; the reports are ticked off on the row that owes them.
-A paper you have already read gets a sixth, **Queued, read it again**, because
-a judgement leaves progress alone and Queued on its own would leave a finished
-paper exactly where it is. The claim and the assessment stay in the note, to be
-read against on the way back through.
-
-It only offers what would move the paper. On an assessed paper, Queued and
-Promoted would each rewrite a field and change nothing you can see, because the
-question of whether it earned a third pass was answered by doing one, so neither
-is in the list. Where the paper is now is in the title instead. With triage off
-there is no Untriaged either: nothing in that workflow opens Triage, so a paper
-sent there would sit somewhere hidden.
-
-The plugin writes none of it, only the heading it goes under. A new paper is a
-title, its links and the annotations region; the Claim heading is written in
-above the annotations at the moment the paper comes to owe a claim, and the
-Assessment heading when the claim is ticked off. So the section is there
-whenever you open the note, however you got to it, and a paper you drop on its
-abstract stays three lines long rather than carrying an outline of work that
-was never going to happen. What goes under each is drawn faintly on the empty
-line, and gone as soon as you type. It is written into no file, so it is not a
-comment you would have to type around and then delete, and it is not a popup
-repeating itself at somebody who knows it by now.
-
-**Assessment** is for the few papers you promote, and ends the same way. It is
-Keshav's third pass: arguing with a paper you can already summarise. Ticking off
-the claim on a promoted paper takes you straight to the assessment, the way
-finishing a reading takes you to the claim: the claim is what you are about to
-argue with, and it will never be fresher.
-
-## The record
-
-A dropped paper is not a deletion. The note stays, and so do:
-
-| | |
-| --- | --- |
-| `reading` | what the paper earns: `untriaged`, `queued`, `promoted`, `deferred` or `dropped` |
-| `reading-progress` | how far you got: `read`, `summarised`, `assessed`, or absent |
-| `reading-date` | when the status last changed |
-| `triaged-date` | when you first formed an opinion, written once |
-| `reading-reason` | why, on a drop or a deferral |
-
-Nothing about Zotero overwrites those. **Export excluded papers** turns
-them into a plain markdown table, oldest first, every row linking back to the
-paper, ready for an appendix.
-
-## Your own notes
-
-Paper Trail has no opinion about them. It writes nothing on a note you wrote,
-asks nothing about it afterwards, and the queue is papers only. Making notes is
-what Obsidian's own Templates plugin is for.
-
-**Insert citation** writes `[[citekey]]`, a link rather than pandoc syntax. It
-resolves, because a paper is named for its citation key and carries it as an
-alias either way; it opens the paper; it shows the paper on hover; and every
-place you cited something turns up in that paper's backlinks, which is the
-question a thesis asks of its own corpus. It is still exportable: a link whose
-target is a citation key is something a pandoc filter turns into a real
-citation. Better BibTeX's own dialog still writes `[@key, p. 45]` for the
-citations a bare key cannot express, and pandoc reads those natively.
+Pandoc turns those links into real citations with
+[`pandoc/wikilink-citations.lua`](pandoc/wikilink-citations.lua), which is in
+this repository:
 
 ```sh
 pandoc chapter.md \
@@ -278,94 +215,105 @@ pandoc chapter.md \
   --citeproc --output=chapter.docx
 ```
 
-[`pandoc/wikilink-citations.lua`](pandoc/wikilink-citations.lua) is in this
-repository. It makes a wikilink a citation only when the bibliography has an
-entry by that name, so a link to a note of your own stays a link. Order matters
-in that command: pandoc cannot read `[[...]]` at all without the `--from`
-extension, and runs filters where you write them, so citeproc has to come after
-the one that creates the citations.
+The filter turns a wikilink into a citation only when the bibliography has an
+entry by that name, so a link to a note of your own stays a link. Order
+matters in that command: pandoc cannot read `[[...]]` at all without the
+`--from` extension, and runs filters in the order given, so citeproc has to come
+after the filter that creates the citations. Paper Trail does not run pandoc, or
+anything else; exporting is your build's job.
 
-The plugin does not run it, and never runs anything. Exporting is your build's
-job; this is what it needs to read what the plugin writes.
+## The record
 
-A literature note carries its buttons in its own title bar: refresh from Zotero,
-and whatever that paper is waiting for.
+A dropped paper is not a deletion. The note stays, and so does what you decided
+about it:
 
-It also carries its state, as a pill that opens the chooser when you click it.
-While you edit, the pill is in the title bar; in reading view, embeds and hover
-previews it is at the top of the note, because a preview renders the file afresh
-and cannot see anything a pane added. **Show reading status on papers** turns it
-off. Nothing about it is written into the note: the frontmatter is the record,
-and this only reads it.
+| | |
+| --- | --- |
+| `reading` | what the paper earns: `untriaged`, `queued`, `promoted`, `deferred` or `dropped` |
+| `reading-progress` | how far you got: `read`, `summarised`, `assessed`, or absent |
+| `reading-date` | when the status last changed |
+| `triaged-date` | when you first formed an opinion, written once |
+| `reading-reason` | why, on a drop or a deferral |
 
-## Safety
+The two halves are different kinds of fact. What a paper earns is a judgement
+about it; how far you got is a report about you. Keeping them apart is why
+dropping a paper you had summarised does not unsummarise it, and why picking it
+back up returns it to where it was rather than to the start.
 
-Paper Trail owns a fixed set of frontmatter keys (`title`, `aliases`, `authors`,
-`year`, `citekey`, `zotero`, and whichever property names the Zotero item) and
-one delimited region:
-
-```
-<!--paper-trail-->
-
-## Annotations
-
-> a passage you highlighted in Zotero (p. 4) ^zt-ABCD2345
-
-a note you wrote on it
-
-<!--/paper-trail-->
-```
-
-Every Zotero annotation with text or a comment: highlights, underlines, and
-notes stuck to a page, which is why the heading is Zotero’s word for all of
-them rather than the name of one. The markers are HTML comments, so they are
-invisible in a rendered note. The region sits directly under the last heading
-a paper has, and the check for whether a section has anything written in it
-stops at the marker, so the annotations under an assessment are never taken
-for the assessment.
-
-A sync may overwrite those and nothing else. Every other key, every heading and
-every word you wrote is yours. Each annotation is anchored by its Zotero key,
-so a link to one passage keeps resolving across re-syncs.
-
-You never have to run a sync: a paper is refreshed when its note is created and
-whenever you open it, and only written when Zotero has something different.
+A refresh from Zotero never touches any of these. **Export excluded papers**
+writes `Excluded papers.md` to the vault root: every paper you dropped or
+deferred, oldest decision first, with its authors, year, date and reason, each
+row linking back to the paper. It is plain markdown, ready for an appendix or a
+methods section, and it is rewritten on every run. It only ever replaces a file
+it wrote itself, so a note of yours by that name is left alone.
 
 ## Requirements
 
-- **Zotero**, running, with *Allow other applications on this computer to
-  communicate with Zotero* enabled in Settings → Advanced.
+- **Zotero 7**, running, with *Allow other applications on this computer to
+  communicate with Zotero* enabled in Settings → Advanced. Paper Trail talks to
+  its local API on `127.0.0.1:23119` and to nothing else. When Zotero is not
+  answering, the queue says so rather than showing an empty list.
 - **Better BibTeX**, optional. With it, notes are named for the citation key and
-  **Insert citation** has a key to insert. Without it, notes get a readable
-  author-title-year name and everything else works unchanged.
-- Desktop only, because it talks to Zotero over localhost. It reads no files
-  outside your vault.
+  **Insert citation** has a key to insert. Without it, notes get an
+  author-title-year name and everything else works the same.
+- **Obsidian 1.13** or later, on desktop.
 
-It never runs a shell command, and the only thing it talks to is Zotero on
-localhost. It does not need another Zotero-to-Obsidian bridge; it creates the
-literature note itself.
+## Installation
+
+Download `main.js`, `manifest.json` and `styles.css` from the latest release
+into `.obsidian/plugins/paper-trail/` in your vault, then enable **Paper Trail**
+under Settings → Community plugins.
+
+On first load it opens the queue in the sidebar and checks that Zotero is
+answering. Save a paper to Zotero, come back to Obsidian, and it is in Reading.
+
+## Commands
+
+None has a hotkey, so pick your own.
+
+| Command | |
+| --- | --- |
+| **Open queue** | Show the queue in the sidebar. |
+| **Next** | Open the most perishable thing you owe. |
+| **Set reading status** | Queue, promote, defer or drop the open paper, or send it back to be read again. |
+| **Refresh paper from Zotero** | Refresh the open paper now, and say so. Opening a paper already does this quietly. |
+| **Insert citation** | Insert `[[citekey]]` for an item from your Zotero library. |
+| **Insert queue block** | Put the stages on the note you are editing. |
+| **Export excluded papers** | Write `Excluded papers.md`: every dropped and deferred paper, and why. |
 
 ## Settings
 
-Mostly addresses rather than opinions: which Zotero collection to triage from,
-which folders hold your papers and the template, which frontmatter property
-names the Zotero item, and which headings Claim and Assessment end under. Point
-the item key property at whatever your existing literature notes use and they
-are recognised without being rewritten.
+| Setting | Default | |
+| --- | --- | --- |
+| **Papers from** | Whole library | One Zotero collection, when your library holds more than this thesis. Papers outside it that already have a note keep working. |
+| **Triage before reading** | Off | Ask about each paper before it reaches Reading. |
+| **Template folder** | `Templates` | Where `Paper.md` lives. It is written there the first time a paper note is made, and your edits to it are kept. |
+| **Papers folder** | `Literature` | One note per paper. |
+| **Status tag** | Empty | Mirror each paper's status into a tag, such as `status/queued`. Empty writes none. |
+| **Item key property** | `zotero-key` | The frontmatter property naming the Zotero item. Point it at whatever your existing literature notes use and they are recognised as they are. |
+| **Show reading status on papers** | On | The pill in the title bar, and at the top of a rendered paper. |
+| **Quieter notifications** | Off | Stop saying what you can already see. Failures are always shown. |
+| **Claim heading**, **Assessment heading** | `Claim`, `Assessment` | The headings the two written passes go under. |
+| **Claim prompt**, **Assessment prompt** | A question | The faint text on the empty line under each heading. Empty turns it off. |
 
-Three are not addresses. **Triage before reading** records what putting an item
-in Zotero means to you, which is the one thing the plugin cannot work out and
-the one thing that decides whether it asks you a question you have already
-answered. **Claim prompt** and **Assessment prompt** are the questions drawn
-under each heading: settings because they are the words under a heading whose
-name already is one, so a section you call Summary can ask a different
-question. Empty either once you no longer need asking.
+The stages and the reading vocabulary are not settings. They are the product:
+an opinionated workflow rather than a rules engine that asks you to invent one.
 
-The stages and the `reading` vocabulary are not configurable. They are the
-product. Paper Trail writes no tags of its own either, beyond the reading status
-mirror you get by naming a namespace in **Status tag**: how you file your notes
-is yours, and a plugin that stamped its own vocabulary on them would leave you
-editing every file to undo it.
+## Safety
+
+Paper Trail writes to a paper's note in three ways, and no others:
+
+- A refresh from Zotero overwrites a fixed set of frontmatter keys (`title`,
+  `aliases`, `authors`, `year`, `citekey`, `zotero`, and whichever property
+  names the Zotero item) and the region between the two markers.
+- A decision you make writes the fields under [The record](#the-record), and
+  the status tag if you named a namespace for one.
+- When a paper comes to owe a claim or an assessment, the heading for it is
+  added above the annotations.
+
+Nothing else is ever removed or rewritten: every other key, and every word you
+wrote, is yours. Beyond what you ask it to insert, it never edits a note that
+is not a paper; it reads no files outside your vault, and it runs no commands.
 
 ## Development
 

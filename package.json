@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-paper-trail",
-	"version": "0.1.0",
-	"description": "Decide what to read before you read it, and keep the decision. Triage papers from your Zotero library and keep the record of what you ruled out and why.",
+	"version": "1.0.0",
+	"description": "Work through your Zotero library as a reading queue: read in Zotero, write what each paper argues with your annotations synced into its note, and keep a record of what you ruled out and why.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
