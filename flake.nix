@@ -1,5 +1,5 @@
 {
-  description = "Zotero Speed Reader Obsidian plugin";
+  description = "Paper Trail Obsidian plugin";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -16,11 +16,12 @@
       in
       {
         packages.default = pkgs.buildNpmPackage {
-          pname = "obsidian-zotero-speed-reader";
+          # Both from package.json, so a rename or a release cannot leave them behind.
+          pname = package.name;
           inherit (package) version;
           src = ./.;
           # Update with: nix run nixpkgs#prefetch-npm-deps -- package-lock.json
-          npmDepsHash = "sha256-M7ufJOn9kVeAHM9HYTa7fy8TKAu5TWa6gC/iCITEXWg=";
+          npmDepsHash = "sha256-gwjB3YjKi+7Hizfpm/asTT8XjTwgZBbWDDygM6r3XZs=";
           nodejs = pkgs.nodejs_24;
           installPhase = ''
             mkdir -p $out
