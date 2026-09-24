@@ -11,6 +11,7 @@ import { WORKFLOW_BLOCK, WorkflowBlock } from './ui/workflow-block';
 import { openQueue, QUEUE_VIEW, QueueView } from './ui/queue';
 import { decorate, undecorate } from './ui/view-actions';
 import { noteStatus } from './ui/note-status';
+import { explorerMenu } from './ui/paper-menu';
 import { questions } from './ui/ghost';
 import { notify } from './ui/notify';
 
@@ -61,6 +62,8 @@ export default class PaperTrail extends Plugin {
 		// reach a hover preview: a preview renders the file afresh and cannot see
 		// anything the pane it came from added.
 		this.registerMarkdownPostProcessor(noteStatus(this));
+		// A paper's menu on its note in the file explorer, the one its row has.
+		this.registerEvent(this.app.workspace.on('file-menu', explorerMenu(this)));
 		// What goes under an empty Claim or Assessment heading, on the line itself.
 		this.registerEditorExtension(questions(this));
 		this.registerMarkdownCodeBlockProcessor(WORKFLOW_BLOCK, (_source, el, ctx) => {

@@ -29,10 +29,10 @@ import {
 import { DEFAULT_ROWS, fit } from '../core/fit';
 import { act, finish, next, openNote } from '../commands/workflow';
 import { iconOf } from '../core/triage';
-import { offersFor, takeOffer, targetOf } from '../commands/reading';
 import { queue } from '../outstanding';
 import { WhileWriting } from './editing';
 import { say } from './notify';
+import { paperMenu } from './paper-menu';
 import { lastContact } from '../source';
 import { onLibraryChange, refreshLibrary, scopeProblem } from '../library';
 import type { Context } from '../context';
@@ -761,7 +761,9 @@ function backState(note: NoteState): string {
 }
 
 /**
- * What a row offers besides its own next step: changing where the paper sits.
+ * A row's right-click menu: the paper's menu from `paper-menu.ts`, which is its
+ * row's own steps and the statuses that would move it, the same one its note
+ * has in the file explorer.
  *
  * On every row, not just a filed one. Moving a paper between states was only
  * reachable from inside its note, which is a long way round for a list whose
@@ -774,12 +776,6 @@ function backState(note: NoteState): string {
  * though: a deferral is a promise to come back and this is where it resurfaces,
  * and a paper dropped on its abstract is exactly the one a citation sends you
  * back to two years later.
- *
- * The judgements themselves, only those that would move this paper, rather than
- * one item that opened the chooser: that was a menu of one line spent on
- * getting to a second list. What the menu cannot carry is the line under each
- * option saying where the paper lands. The notice after a decision says it,
- * and the chooser, from the pill and the palette, still shows it beforehand.
  *
  * No heading over them. The state the paper is in was named at the top for a
  * while, on the grounds that a filed row carries an icon and nothing else. A
@@ -796,24 +792,11 @@ function backState(note: NoteState): string {
  * menu that names each state, which is what this is.
  */
 function rowMenu(context: Context, row: Row, el: HTMLElement, event: MouseEvent): void {
-	const target = targetOf(context.app, row);
-	if (!target) return;
-
-	event.preventDefault();
+	// A paper that has no note yet is offered the statuses as well, and gets one
+	// written by the decision, exactly as it would from the chooser.
 	const menu = new Menu();
-
-	// The chooser's own options, laid out here rather than behind an item that
-	// opens it, and written the same way: a paper moved from here lands exactly
-	// where one moved from its own note would, and a paper that has no note yet
-	// gets one written by the decision.
-	for (const offer of offersFor(context, target).offers) {
-		menu.addItem((item) =>
-			item
-				.setTitle(offer.choice.label)
-				.setIcon(offer.icon)
-				.onClick(() => void takeOffer(context, target, rowTitle(row), offer.choice)),
-		);
-	}
+	if (!paperMenu(menu, context, row)) return;
+	event.preventDefault();
 
 	// The context-menu key raises this event too, and arrives with no pointer to
 	// anchor to. Without this the menu would open in the corner of the screen

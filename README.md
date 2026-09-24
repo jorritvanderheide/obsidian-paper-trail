@@ -98,11 +98,12 @@ button still takes you back to the heading.
 both before a new reading, and triage last. A paper you read yesterday decays,
 and one you have never opened will triage just as well in March.
 
-Right-click any row to change where it is: the menu lists the reading statuses
-that would move that paper. **Set reading status** offers the same ones from the
-command palette and the pill at the top of every paper, and says where each
-choice lands. A paper you have already read can be sent back to be read again,
-keeping everything you wrote.
+Right-click any row, or a paper's note in the file explorer, for the same menu:
+what the row's buttons do, such as **Reading finished** and **Open in Zotero**,
+then the reading statuses that would move that paper. **Set reading status**
+offers those statuses from the command palette and the pill at the top of every
+paper, and says where each choice lands. A paper you have already read can be
+sent back to be read again, keeping everything you wrote.
 
 Nothing here refuses: there is no order you have to work in, and no stage that
 locks until an earlier one is clear.
