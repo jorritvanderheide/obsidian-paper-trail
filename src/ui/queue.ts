@@ -15,6 +15,7 @@
 // note disagree, the note is right.
 import { ItemView, Menu, Notice, debounce, setIcon, type App, type WorkspaceLeaf } from 'obsidian';
 import {
+	decidedWords,
 	rowTask,
 	rowTitle,
 	type NoteState,
@@ -27,13 +28,15 @@ import {
 } from '../core/stages';
 import { DEFAULT_ROWS, fit } from '../core/fit';
 import { act, finish, next, openNote } from '../commands/workflow';
-import { iconOf, label } from '../core/triage';
-import { chooseReading, targetOf } from '../commands/reading';
+import { iconOf } from '../core/triage';
+import { offersFor, takeOffer, targetOf } from '../commands/reading';
 import { queue } from '../outstanding';
 import { WhileWriting } from './editing';
+import { say } from './notify';
 import { lastContact } from '../source';
 import { onLibraryChange, refreshLibrary, scopeProblem } from '../library';
 import type { Context } from '../context';
+import { today } from '../today';
 
 export const QUEUE_VIEW = 'paper-trail-queue';
 
@@ -49,6 +52,10 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 
 	root.empty();
 	root.addClass('paper-trail');
+	// The day this was drawn, because a deferral comes back on a date and nothing
+	// else happens at midnight to say so. Both hosts compare it when you come back
+	// to Obsidian and redraw on a new day.
+	root.dataset.day = today();
 	// Which host this is, for the handful of things that differ. A pane has a
 	// height to fill and controls to carry; a block is a view on somebody's note.
 	const sidebar = inSidebar(root);
@@ -150,8 +157,8 @@ function toolbar(root: HTMLElement, context: Context, buckets: Map<Task, Row[]>,
 	// Zotero is asked whenever you come back to Obsidian, which covers almost
 	// everything: you went to Zotero to add the paper. It does not cover Zotero
 	// coming back after being shut, or a window you never left. Pressing this
-	// always answers, because a refresh you asked for and got silence from is
-	// indistinguishable from a dead button.
+	// answers, because a refresh you asked for and got silence from is
+	// indistinguishable from a dead button, unless you have asked for quiet.
 	iconButton(
 		buttons,
 		'refresh-cw',
@@ -180,14 +187,14 @@ function toolbar(root: HTMLElement, context: Context, buckets: Map<Task, Row[]>,
 	);
 }
 
-/** Ask Zotero now, and say what it said either way. */
+/** Ask Zotero now, and say what it said: always when it is not there, and what it found unless told to be quiet. */
 async function recheck(root: HTMLElement, context: Context): Promise<void> {
 	const moved = await refreshLibrary(context.settings.collection);
 	renderQueue(paneOf(root), context);
 
 	const contact = lastContact();
 	if (contact !== null && !contact.reachable) new Notice(contact.reason);
-	else new Notice(moved ? 'Zotero had something new.' : 'Nothing new in Zotero.');
+	else say(context, moved ? 'Zotero had something new.' : 'Nothing new in Zotero.');
 }
 
 /**
@@ -569,13 +576,31 @@ function sectionRows(
 		// The button beside it is not covered either, and that is what it is for
 		// now: from inside a note scrolled somewhere else, it is how you get back
 		// to the heading you owe.
-		const row = treeRow(children, rowTitle(entry), () => {
-			if (entry.kind === 'note' && task !== 'reading' && showing(context.app, entry.note)) return;
-			if (entry.kind === 'note' && task === 'triage') void openNote(context.app, entry.note);
-			else void act(context, task, entry);
-		});
+		//
+		// A deferral that has come back is marked before its title with the icon
+		// its row in Deferred has. Not after: a long title is cut short with an
+		// ellipsis, and the mark went with it. Before costs nothing, because a
+		// row's icon hangs in the row's own padding and the title stays in line
+		// with the rows around it.
+		const returned = entry.kind === 'note' && entry.note.due;
+		const row = treeRow(
+			children,
+			rowTitle(entry),
+			() => {
+				if (entry.kind === 'note' && task !== 'reading' && showing(context.app, entry.note)) return;
+				if (entry.kind === 'note' && task === 'triage') void openNote(context.app, entry.note);
+				else void act(context, task, entry);
+			},
+			returned ? iconOf(entry.note.state) : undefined,
+		);
 
 		if (entry.kind === 'note') row.dataset.path = entry.note.path;
+
+		// The condition you set is the tooltip, since it is why the paper is here.
+		if (returned) {
+			row.addClass('paper-trail-returned');
+			row.setAttribute('aria-label', backState(entry.note));
+		}
 
 		// Overruling the workflow, on every row rather than only on a filed one.
 		// Moving a paper between states was reachable from inside its note and
@@ -723,31 +748,16 @@ function resting(
 		// The state in words as well as in the icon, because the icon is the only
 		// thing distinguishing the outcomes and an icon cannot be read aloud.
 		row.dataset.path = entry.note.path;
-		row.setAttribute('aria-label', decidedState(entry));
+		row.setAttribute('aria-label', decidedWords(entry.note));
 		row.addEventListener('contextmenu', (event) => rowMenu(context, { kind: 'note', note: entry.note }, row, event));
 	}
 }
 
-/**
- * What a resting row is, in words: the state, when it was reached, and what
- * you said at the time.
- *
- * The reason is the point of it on a deferred row, where it is the condition
- * the paper is waiting on and the row is otherwise a title you have to open
- * the note to understand. It earns its place on a dropped row too: why you
- * ruled a paper out is exactly what you will want two years later, and it is
- * the same sentence the record puts in its table.
- *
- * `landing` is deliberately not used, though it is the obvious candidate. It
- * describes where a decision puts a paper at the moment you take it, so on a
- * paper that has since been summarised it says to go and write the claim, which
- * is advice for work already done.
- */
-function decidedState(entry: Settled): string {
-	const when = entry.note.decided;
-	const word = label(entry.note.state);
-	const said = when ? `${word} on ${when}` : word;
-	return entry.note.reason ? `${said} · ${entry.note.reason}` : said;
+/** What a returned row is, in words: that it is back, and why it was away. */
+function backState(note: NoteState): string {
+	const why = note.reason ? `: ${note.reason}` : '';
+	const when = note.decided ? ` · deferred ${note.decided}` : '';
+	return `Back from Deferred${why}${when}`;
 }
 
 /**
@@ -765,11 +775,17 @@ function decidedState(entry: Settled): string {
  * and a paper dropped on its abstract is exactly the one a citation sends you
  * back to two years later.
  *
- * One item, and no heading over it. The state the paper is in was named at the
- * top for a while, on the grounds that a filed row carries an icon and nothing
- * else. A menu that opens with a line you cannot press, above a single line you
- * can, spends most of itself saying what you already knew: you right-clicked
- * that row. The words are still on the row, as the label a screen reader reads.
+ * The judgements themselves, only those that would move this paper, rather than
+ * one item that opened the chooser: that was a menu of one line spent on
+ * getting to a second list. What the menu cannot carry is the line under each
+ * option saying where the paper lands. The notice after a decision says it,
+ * and the chooser, from the pill and the palette, still shows it beforehand.
+ *
+ * No heading over them. The state the paper is in was named at the top for a
+ * while, on the grounds that a filed row carries an icon and nothing else. A
+ * line you cannot press spends itself saying what you already knew: you
+ * right-clicked that row. The words are still on the row, as the label a
+ * screen reader reads.
  *
  * Not drag and drop, which the shape of the workflow will not support. Claim
  * and Assessment are not states you can put a paper into: they mean the reading
@@ -777,7 +793,7 @@ function decidedState(entry: Settled): string {
  * would land it in Claim whenever the claim is unwritten, and dropping one on
  * Claim would land it in Filed whenever the claim is written. A target that
  * takes the paper somewhere other than where you dropped it is worse than a
- * menu that names where each state leads, which is what this opens.
+ * menu that names each state, which is what this is.
  */
 function rowMenu(context: Context, row: Row, el: HTMLElement, event: MouseEvent): void {
 	const target = targetOf(context.app, row);
@@ -786,15 +802,18 @@ function rowMenu(context: Context, row: Row, el: HTMLElement, event: MouseEvent)
 	event.preventDefault();
 	const menu = new Menu();
 
-	// Through the same chooser the palette offers, so a paper moved from here
-	// lands exactly where one moved from its own note would, and a paper that
-	// has no note yet gets one written by the decision.
-	menu.addItem((item) =>
-		item
-			.setTitle('Set reading status')
-			.setIcon('list-checks')
-			.onClick(() => void chooseReading(context, target, rowTitle(row))),
-	);
+	// The chooser's own options, laid out here rather than behind an item that
+	// opens it, and written the same way: a paper moved from here lands exactly
+	// where one moved from its own note would, and a paper that has no note yet
+	// gets one written by the decision.
+	for (const offer of offersFor(context, target).offers) {
+		menu.addItem((item) =>
+			item
+				.setTitle(offer.choice.label)
+				.setIcon(offer.icon)
+				.onClick(() => void takeOffer(context, target, rowTitle(row), offer.choice)),
+		);
+	}
 
 	// The context-menu key raises this event too, and arrives with no pointer to
 	// anchor to. Without this the menu would open in the corner of the screen
@@ -909,7 +928,11 @@ export class QueueView extends ItemView {
 		// the browser, so it is the moment worth asking. Asking costs one request
 		// that almost always answers with nothing, which is the only reason it
 		// can be hung on something this frequent.
-		this.registerDomEvent(window, 'focus', () => this.catchUp());
+		this.registerDomEvent(window, 'focus', () => {
+			this.catchUp();
+			// And on another day than the pane was drawn on, a deferral may be due.
+			if (this.contentEl.dataset.day !== today()) this.redraw();
+		});
 
 		// How many rows fit is measured from the pane, so a pane that changed
 		// size is a pane holding the wrong number of them. Debounced harder than

@@ -3,15 +3,19 @@ import type { CachedMetadata } from 'obsidian';
 import { PASS_PROGRESS, PROGRESS_ORDER, READING_ORDER, type Progress, type Reading } from '../src/core/triage';
 import {
 	byStage,
+	decidedWords,
 	headingCoverage,
 	headingLineIn,
 	questionLine,
 	headingSlot,
 	insertHeading,
+	isDue,
+	markDue,
 	nextAfter,
 	NEXT_ORDER,
 	noteState,
 	parked,
+	returnsTo,
 	rowsByStage,
 	rowTask,
 	rowTitle,
@@ -19,14 +23,17 @@ import {
 	settled,
 	outcomeOf,
 	STAGES,
+	statusWords,
 	taskFor,
 	taskOf,
+	unread,
 	TASKS,
 	visibleStages,
 	withHeading,
 	writtenUnder,
 	type NoteState,
 	type Row,
+	type Task,
 } from '../src/core/stages';
 
 const paper = (over: Partial<NoteState> = {}): NoteState => ({
@@ -37,6 +44,9 @@ const paper = (over: Partial<NoteState> = {}): NoteState => ({
 	state: { reading: 'untriaged', progress: null },
 	created: 0,
 	reason: null,
+	until: null,
+	after: null,
+	due: false,
 	decided: null,
 	...over,
 });
@@ -49,6 +59,9 @@ const note = (over: Partial<NoteState> = {}): NoteState => ({
 	state: { reading: 'untriaged', progress: null },
 	created: 0,
 	reason: null,
+	until: null,
+	after: null,
+	due: false,
 	decided: null,
 	...over,
 });
@@ -940,6 +953,44 @@ describe('parked and settled', () => {
 	});
 });
 
+describe('decidedWords', () => {
+	it('says the state, when it was reached, and why', () => {
+		const deferred = paper({ state: { reading: 'deferred', progress: null }, decided: '2026-09-20', reason: 'After my exams' });
+		expect(decidedWords(deferred)).toBe('Deferred on 2026-09-20 · After my exams');
+	});
+
+	it('leaves out what it was not given', () => {
+		expect(decidedWords(paper({ state: { reading: 'queued', progress: 'assessed' }, decided: '2026-09-20' }))).toBe(
+			'Assessed on 2026-09-20',
+		);
+		expect(decidedWords(paper({ state: { reading: 'dropped', progress: null }, reason: 'Off topic' }))).toBe(
+			'Dropped · Off topic',
+		);
+	});
+});
+
+describe('statusWords', () => {
+	// The condition is the one thing about a deferral the pill cannot show, and
+	// the sentence it replaces only said where to go and look for it.
+	it('gives a deferral’s condition, in the words its row uses', () => {
+		const deferred = paper({ state: { reading: 'deferred', progress: null }, decided: '2026-09-20', reason: 'After my exams' });
+		expect(statusWords(deferred)).toBe(decidedWords(deferred));
+		expect(statusWords(deferred)).toContain('After my exams');
+	});
+
+	it('gives why a paper was dropped', () => {
+		expect(statusWords(paper({ state: { reading: 'dropped', progress: null }, reason: 'Off topic' }))).toContain(
+			'Off topic',
+		);
+	});
+
+	it('says where a paper with no reason stands', () => {
+		expect(statusWords(paper({ state: { reading: 'queued', progress: null }, decided: '2026-09-20' }))).toBe(
+			'Queued. Queued, and waiting to be read.',
+		);
+	});
+});
+
 describe('questionLine', () => {
 	const note = ['# A paper', '', '[Zotero](x)', '', '<!--paper-trail-->', '<!--/paper-trail-->', ''].join('\n');
 
@@ -967,5 +1018,113 @@ describe('questionLine', () => {
 
 	it('draws nothing for a heading the note does not have', () => {
 		expect(questionLine(['# A paper', ''], 'Claim')).toBeNull();
+	});
+});
+
+/**
+ * A deferral that comes back. The note keeps saying deferred; the queue reads
+ * the date and the other paper and puts it back in the stage it returns to.
+ */
+describe('a deferral coming back', () => {
+	const TODAY = '2026-09-24';
+	const parkedPaper = (over: Partial<NoteState> = {}) =>
+		paper({ path: 'b.md', key: 'BBBB2345', state: { reading: 'deferred', progress: null }, ...over });
+	const other = (state: NoteState['state']) => paper({ path: 'a.md', key: 'AAAA2345', state });
+	const none = () => undefined;
+
+	it('comes back on its date, and not before', () => {
+		expect(isDue(parkedPaper({ until: '2026-09-25' }), TODAY, none)).toBe(false);
+		expect(isDue(parkedPaper({ until: '2026-09-24' }), TODAY, none)).toBe(true);
+		expect(isDue(parkedPaper({ until: '2026-01-01' }), TODAY, none)).toBe(true);
+	});
+
+	it('comes back once the paper it waits for has been read, however far', () => {
+		for (const progress of ['read', 'summarised', 'assessed'] as const) {
+			const found = other({ reading: 'queued', progress });
+			expect(isDue(parkedPaper({ after: 'AAAA2345' }), TODAY, () => found), progress).toBe(true);
+		}
+	});
+
+	// It will never be read, so there is nothing left to wait for.
+	it('comes back when the paper it waits for is dropped', () => {
+		const found = other({ reading: 'dropped', progress: null });
+		expect(isDue(parkedPaper({ after: 'AAAA2345' }), TODAY, () => found)).toBe(true);
+	});
+
+	it('keeps waiting while that paper is unread, parked, or has no note', () => {
+		for (const reading of ['untriaged', 'queued', 'deferred'] as const) {
+			const found = other({ reading, progress: null });
+			expect(isDue(parkedPaper({ after: 'AAAA2345' }), TODAY, () => found), reading).toBe(false);
+		}
+		expect(isDue(parkedPaper({ after: 'AAAA2345' }), TODAY, none)).toBe(false);
+	});
+
+	it('comes back on whichever happens first', () => {
+		const unreadOther = other({ reading: 'queued', progress: null });
+		expect(isDue(parkedPaper({ until: '2026-01-01', after: 'AAAA2345' }), TODAY, () => unreadOther)).toBe(true);
+	});
+
+	// Every 1.0 deferral, and the honest someday.
+	it('never comes back with neither', () => {
+		expect(isDue(parkedPaper(), TODAY, none)).toBe(false);
+	});
+
+	it('only ever brings back a deferral', () => {
+		expect(isDue(paper({ state: { reading: 'dropped', progress: null }, until: '2026-01-01' }), TODAY, none)).toBe(false);
+	});
+
+	it('returns a paper you had read to Claim, and anything else to Reading', () => {
+		expect(returnsTo('read')).toBe('claim');
+		expect(returnsTo(null)).toBe('reading');
+		expect(returnsTo('summarised')).toBe('reading');
+	});
+
+	it('is marked due across the vault, looking the other paper up by its key', () => {
+		const read = other({ reading: 'queued', progress: 'read' });
+		const waiting = parkedPaper({ after: 'AAAA2345' });
+		const marked = markDue([read, waiting], TODAY);
+		expect(marked.find((note) => note.path === 'b.md')?.due).toBe(true);
+		expect(marked.find((note) => note.path === 'a.md')?.due).toBe(false);
+	});
+
+	it('is outstanding again once due, in the stage it returns to', () => {
+		expect(taskOf(parkedPaper({ due: true }))).toBe('reading');
+		expect(taskOf(parkedPaper({ due: true, state: { reading: 'deferred', progress: 'read' } }))).toBe('claim');
+		expect(taskOf(parkedPaper())).toBeNull();
+	});
+
+	// Out of Deferred, and not counted as settled, because it is back.
+	it('leaves Deferred and the record once due', () => {
+		const back = parkedPaper({ due: true });
+		expect(outcomeOf(back)).toBeNull();
+		expect(parked([back])).toHaveLength(0);
+		expect(settled([back])).toHaveLength(0);
+		expect(parked([parkedPaper()])).toHaveLength(1);
+	});
+
+	it('is drawn in its stage like any other paper there', () => {
+		const rows = rowsByStage([parkedPaper({ due: true })], [], false);
+		expect(rows.get('reading')?.map(rowTitle)).toEqual(['A paper']);
+	});
+});
+
+describe('unread', () => {
+	const pending = (key: string): Row => ({ kind: 'pending', item: { key, title: key, abstract: null, venue: null, year: null, added: '' } });
+	const noted = (key: string, task: 'reading' | 'claim'): Row => ({
+		kind: 'note',
+		note: paper({ key, title: key, state: { reading: 'queued', progress: task === 'claim' ? 'read' : null } }),
+	});
+
+	it('offers what is still unread, with or without a note', () => {
+		const rows = new Map([['reading', [pending('PEND2345'), noted('NOTE2345', 'reading')]]]) as Map<Task, Row[]>;
+		expect(unread(rows, null).map((entry) => entry.key)).toEqual(['PEND2345', 'NOTE2345']);
+	});
+
+	it('leaves out the paper being deferred, and anything already read', () => {
+		const rows = new Map<Task, Row[]>([
+			['reading', [pending('SELF2345'), pending('PEND2345')]],
+			['claim', [noted('READ2345', 'claim')]],
+		]);
+		expect(unread(rows, 'SELF2345').map((entry) => entry.key)).toEqual(['PEND2345']);
 	});
 });

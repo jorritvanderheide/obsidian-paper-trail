@@ -46,7 +46,8 @@ came of it:
 
 - *Worth summarising*: a second pass is enough.
 - *Worth a third pass*: the paper will also owe an assessment.
-- *Worth another hour, but not now*: it asks what has to happen first.
+- *Worth another hour, but not now*: it asks what has to happen first, and when
+  it should come back.
 - *Not worth finishing*: it asks why.
 
 The first two take you to the paper's note, written then if it has none, with
@@ -76,6 +77,14 @@ tooltip, so a promise to come back stays in front of you with a count on it.
 **Filed** is the rest, dropped, summarised or assessed, newest first. Neither is
 ever counted as outstanding.
 
+A deferral comes back by itself. When you defer a paper you say what has to
+happen first, and pick when to look again: once you have read another paper
+that is still unread, in two weeks, a month, three months or six, or never. When
+that comes, it goes back to the stage it left, Reading or Claim, with a clock
+before its title and your condition in its tooltip, and **Next** can offer it.
+Its note still says deferred until you decide something: read it, defer it
+again for another date, or drop it.
+
 ### Working the list
 
 Clicking a row takes you to the work: Zotero for a reading, the heading for a
@@ -89,10 +98,11 @@ button still takes you back to the heading.
 both before a new reading, and triage last. A paper you read yesterday decays,
 and one you have never opened will triage just as well in March.
 
-Right-click any row to change where it is. **Set reading status** is also in the
-command palette and on the pill at the top of every paper. It offers only what
-would move the paper, and says where each choice lands. A paper you have already
-read can be sent back to be read again, keeping everything you wrote.
+Right-click any row to change where it is: the menu lists the reading statuses
+that would move that paper. **Set reading status** offers the same ones from the
+command palette and the pill at the top of every paper, and says where each
+choice lands. A paper you have already read can be sent back to be read again,
+keeping everything you wrote.
 
 Nothing here refuses: there is no order you have to work in, and no stage that
 locks until an earlier one is clear.
@@ -138,10 +148,12 @@ changed. Each is anchored by its Zotero key, so a link to one passage keeps
 resolving across refreshes, and a passage that crosses a column or a page
 arrives as one line.
 
-A paper nothing is outstanding for opens rendered rather than in the editor,
-and turns rendered the moment you tick off the last pass it owed. Its title bar
-carries a refresh button, the paper's next step, and its reading status as a
-pill that opens the chooser.
+A paper nothing is outstanding for opens rendered rather than in the editor. It
+turns rendered the moment it stops owing anything, when you tick off its last
+pass, defer it or drop it, and goes back to the editor when you put it back on
+the list. Its title bar carries a refresh button, the paper's next step, and
+its reading status as a pill that opens the chooser. On a deferred or dropped
+paper, hovering the pill shows the reason you gave.
 
 ## What a note is for
 
@@ -234,6 +246,8 @@ about it:
 | `reading-date` | when the status last changed |
 | `triaged-date` | when you first formed an opinion, written once |
 | `reading-reason` | why, on a drop or a deferral |
+| `reading-until` | on a deferral, the date it comes back |
+| `reading-after` | on a deferral, the Zotero key of the paper it waits for |
 
 The two halves are different kinds of fact. What a paper earns is a judgement
 about it; how far you got is a report about you. Keeping them apart is why
@@ -292,7 +306,7 @@ None has a hotkey, so pick your own.
 | **Status tag** | Empty | Mirror each paper's status into a tag, such as `status/queued`. Empty writes none. |
 | **Item key property** | `zotero-key` | The frontmatter property naming the Zotero item. Point it at whatever your existing literature notes use and they are recognised as they are. |
 | **Show reading status on papers** | On | The pill in the title bar, and at the top of a rendered paper. |
-| **Quieter notifications** | Off | Stop saying what you can already see. Failures are always shown. |
+| **Quieter notifications** | Off | Show only failures and warnings. |
 | **Claim heading**, **Assessment heading** | `Claim`, `Assessment` | The headings the two written passes go under. |
 | **Claim prompt**, **Assessment prompt** | A question | The faint text on the empty line under each heading. Empty turns it off. |
 

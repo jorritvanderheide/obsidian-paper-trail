@@ -24,7 +24,7 @@ import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } fr
 import { arrivalReading, type Reading } from '../core/triage';
 import { attachmentAnnotations, itemChildren, itemMetadata, SourceError } from '../source';
 import { settle } from '../ui/editing';
-import { notify } from '../ui/notify';
+import { notify, say } from '../ui/notify';
 import { statusTagsOf } from '../core/settings';
 import { ensureFolder, templateBody } from './seed';
 import type { Context } from '../context';
@@ -184,7 +184,9 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
  * The automatic sync is deliberately silent, which is right when it fires on
  * every note you open and wrong when you asked for it: pressing refresh and
  * getting no answer is indistinguishable from pressing a dead button. So this
- * one reports both ways round, including that Zotero is not running.
+ * one reports both ways round, including that Zotero is not running. The
+ * quiet setting takes the good news back out, because silence is what it asks
+ * for; a failure is said whatever it is set to.
  */
 export async function refreshPaper(context: Context, target?: TFile): Promise<void> {
 	const file = target ?? context.app.workspace.getActiveFile();
@@ -200,7 +202,7 @@ export async function refreshPaper(context: Context, target?: TFile): Promise<vo
 
 	try {
 		await syncPaper(context, file);
-		new Notice(`${file.basename} is up to date with Zotero.`);
+		say(context, `${file.basename} is up to date with Zotero.`);
 	} catch (error) {
 		notify(error);
 	}

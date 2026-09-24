@@ -69,8 +69,10 @@ describe('the paper template', () => {
 		expect(PAPER.replace(/\{\{[A-Z_]+\}\}/g, '')).not.toMatch(DUTCH);
 	});
 
-	it('opens on content, not a blank', () => {
-		expect(PAPER.split('\n')[0]).not.toBe('');
+	// A note is the template written under its frontmatter, so the first line
+	// is the one between the closing `---` and the title. One, not two.
+	it('leaves one blank line between the frontmatter and the title', () => {
+		expect(PAPER.split('\n').slice(0, 2)).toEqual(['', '# {{TITLE}}']);
 	});
 
 	it('ends with a newline', () => {

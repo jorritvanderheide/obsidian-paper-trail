@@ -8,11 +8,17 @@ import {
 	judgementIcon,
 	label,
 	landing,
+	deferralOf,
+	deferredLanding,
+	LOOK_AGAIN,
+	lookAgain,
+	lookAgainLine,
 	moves,
 	offered,
 	NO_STATUS_TAGS,
 	PASS_TWO,
 	READ_AGAIN,
+	resumed,
 	readTags,
 	retiredTagCount,
 	progressOf,
@@ -676,17 +682,193 @@ describe('offered', () => {
 	// With triage off, Triage is a section nothing in the workflow opens, so
 	// sending a paper there parks it somewhere hidden.
 	it('does not offer Untriaged when triage is off', () => {
-		expect(offered('untriaged', false)).toBe(false);
+		expect(offered('untriaged', false, null)).toBe(false);
 	});
 
 	it('offers it when triage is on', () => {
-		expect(offered('untriaged', true)).toBe(true);
+		expect(offered('untriaged', true, null)).toBe(true);
 	});
 
-	it('offers every other judgement either way', () => {
-		for (const reading of READING_ORDER.filter((value) => value !== 'untriaged')) {
-			expect(offered(reading, false), reading).toBe(true);
-			expect(offered(reading, true), reading).toBe(true);
+	// Worth a third pass is what a second pass concludes, so a paper in Reading
+	// cannot be promoted and one in Claim can.
+	it('offers Promoted only once the paper has been read', () => {
+		expect(offered('promoted', true, null)).toBe(false);
+		expect(offered('promoted', false, null)).toBe(false);
+		for (const progress of PROGRESS_ORDER) expect(offered('promoted', true, progress), progress).toBe(true);
+	});
+
+	it('offers Queued, Deferred and Dropped whatever has been read, triage or not', () => {
+		for (const reading of ['queued', 'deferred', 'dropped'] as const) {
+			for (const progress of [null, ...PROGRESS_ORDER]) {
+				expect(offered(reading, false, progress), reading).toBe(true);
+				expect(offered(reading, true, progress), reading).toBe(true);
+			}
 		}
+	});
+});
+
+/**
+ * When a deferral comes back. Two optional keys, written by a deferral and
+ * taken off by every other decision, the way the reason already is.
+ */
+describe('a deferral with a way back', () => {
+	const DATE = '2026-09-24';
+	const defer = (until: string | null, after: string | null) => ({ reading: 'deferred' as const, reason: 'after exams', until, after });
+
+	it('writes the date and the paper it waits for', () => {
+		const fm: Record<string, unknown> = {};
+		applyTriage(fm, defer('2026-12-24', 'ABCD2345'), DATE);
+		expect(fm['reading-until']).toBe('2026-12-24');
+		expect(fm['reading-after']).toBe('ABCD2345');
+	});
+
+	it('reads back exactly what it wrote', () => {
+		const fm: Record<string, unknown> = {};
+		applyTriage(fm, defer('2026-12-24', 'ABCD2345'), DATE);
+		expect(deferralOf(fm)).toEqual({ until: '2026-12-24', after: 'ABCD2345' });
+	});
+
+	// Or a paper queued again would come back later from nowhere.
+	it('is taken off by any decision that is not a deferral', () => {
+		for (const reading of ['queued', 'promoted', 'dropped', 'untriaged'] as const) {
+			const fm: Record<string, unknown> = {};
+			applyTriage(fm, defer('2026-12-24', 'ABCD2345'), DATE);
+			applyTriage(fm, { reading, reason: reading === 'dropped' ? 'why' : null }, DATE);
+			expect(deferralOf(fm), reading).toEqual({ until: null, after: null });
+		}
+	});
+
+	it('is taken off when a pass is ticked, which rewrites the decision too', () => {
+		const fm: Record<string, unknown> = {};
+		applyTriage(fm, defer('2026-12-24', null), DATE);
+		applyTriage(fm, { reading: 'queued', reason: null, progress: 'summarised' }, DATE);
+		expect(fm).not.toHaveProperty('reading-until');
+	});
+
+	it('replaces both when a paper is deferred again, dropping one left empty', () => {
+		const fm: Record<string, unknown> = {};
+		applyTriage(fm, defer('2026-12-24', 'ABCD2345'), DATE);
+		applyTriage(fm, defer('2027-03-01', null), DATE);
+		expect(deferralOf(fm)).toEqual({ until: '2027-03-01', after: null });
+	});
+
+	// Every 1.0 deferral, and the honest someday.
+	it('writes nothing for a deferral with no way back', () => {
+		const fm: Record<string, unknown> = {};
+		applyTriage(fm, defer(null, null), DATE);
+		expect(fm).not.toHaveProperty('reading-until');
+		expect(fm).not.toHaveProperty('reading-after');
+	});
+
+	// Dates are compared as text, so a hand-typed one in another shape would
+	// compare wrongly for ever rather than once.
+	it('reads a date in any other shape as no date', () => {
+		expect(deferralOf({ 'reading-until': '2026-1-5' }).until).toBeNull();
+		expect(deferralOf({ 'reading-until': 'next spring' }).until).toBeNull();
+	});
+});
+
+describe('lookAgain', () => {
+	const preset = (label: string) => LOOK_AGAIN.find((entry) => entry.label === label) ?? LOOK_AGAIN[0]!;
+
+	it('counts two weeks in days', () => {
+		expect(lookAgain(preset('In 2 weeks'), '2026-12-24')).toBe('2027-01-07');
+	});
+
+	it('counts months in months', () => {
+		expect(lookAgain(preset('In a month'), '2026-09-24')).toBe('2026-10-24');
+		expect(lookAgain(preset('In 3 months'), '2026-11-15')).toBe('2027-02-15');
+		expect(lookAgain(preset('In 6 months'), '2026-09-24')).toBe('2027-03-24');
+	});
+
+	// Rather than spilling into March.
+	it('lands a month from the 31st on the last day of a shorter month', () => {
+		expect(lookAgain(preset('In a month'), '2027-01-31')).toBe('2027-02-28');
+		expect(lookAgain(preset('In a month'), '2028-01-31')).toBe('2028-02-29');
+	});
+
+	it('gives no date for No date', () => {
+		expect(lookAgain(preset('No date'), '2026-09-24')).toBeNull();
+	});
+
+	// The paper is the way back, and a date as well would be a second one.
+	it('gives no date for waiting on a paper', () => {
+		expect(lookAgain(preset('After reading another paper'), '2026-09-24')).toBeNull();
+	});
+
+	// The first line of a chooser is the one Enter takes, and a deferral that
+	// never comes back should be one somebody chose. The paper is first when it
+	// is offered, and a date is first when it is not.
+	it('offers a way back that comes by itself first, and no date last', () => {
+		expect(LOOK_AGAIN[0]?.after).toBe(true);
+		const dated = LOOK_AGAIN.filter((entry) => !entry.after);
+		expect(lookAgain(dated[0]!, '2026-09-24')).not.toBeNull();
+		expect(LOOK_AGAIN.at(-1)?.label).toBe('No date');
+	});
+});
+
+describe('lookAgainLine', () => {
+	const preset = (label: string) => LOOK_AGAIN.find((entry) => entry.label === label) ?? LOOK_AGAIN[0]!;
+
+	it('says the date a preset comes to', () => {
+		expect(lookAgainLine(preset('In 2 weeks'), '2026-09-24')).toBe('Deferred until 2026-10-08.');
+	});
+
+	// The same sentence the notice gives once a paper has been picked.
+	it('says what waiting on a paper means, in the notice’s words', () => {
+		expect(lookAgainLine(preset('After reading another paper'), '2026-09-24')).toBe(
+			deferredLanding(null, 'a paper you choose'),
+		);
+	});
+
+	it('says that no date waits for you', () => {
+		expect(lookAgainLine(preset('No date'), '2026-09-24')).toBe('Deferred until you pick it back up.');
+	});
+});
+
+describe('moves, for a deferral that has come back', () => {
+	const deferred: State = { reading: 'deferred', progress: null };
+
+	it('offers deferring it again, which takes it out of its stage', () => {
+		expect(moves(deferred, deferred, true)).toBe(true);
+	});
+
+	it('still does not offer Deferred to a paper that has not come back', () => {
+		expect(moves(deferred, deferred)).toBe(false);
+	});
+});
+
+describe('deferredLanding', () => {
+	it('says when, and after what', () => {
+		expect(deferredLanding('2026-12-24', 'How to Read a Paper')).toBe(
+			'Deferred until 2026-12-24, or until you have read How to Read a Paper.',
+		);
+		expect(deferredLanding('2026-12-24', null)).toBe('Deferred until 2026-12-24.');
+		expect(deferredLanding(null, 'How to Read a Paper')).toBe('Deferred until you have read How to Read a Paper.');
+	});
+
+	it('leaves a deferral with no way back to the ordinary landing', () => {
+		expect(deferredLanding(null, null)).toBeNull();
+	});
+});
+
+describe('resumed', () => {
+	// A returned deferral in Claim is still marked deferred. Ticking its claim
+	// kept that, and filed a paper you had just summarised back in Deferred.
+	it('picks up a deferral when a pass on it is ticked off', () => {
+		expect(resumed('deferred')).toBe('queued');
+	});
+
+	it('leaves every other judgement as it was', () => {
+		for (const reading of ['untriaged', 'queued', 'promoted', 'dropped'] as const) {
+			expect(resumed(reading)).toBe(reading);
+		}
+	});
+
+	it('lands the ticked paper somewhere other than Deferred', () => {
+		const fm: Record<string, unknown> = { reading: 'deferred', 'reading-progress': 'read', 'reading-until': '2026-01-01' };
+		applyTriage(fm, { reading: resumed(stateOf(fm).reading), reason: null, progress: 'summarised' }, '2026-09-24');
+		expect(stateOf(fm)).toEqual({ reading: 'queued', progress: 'summarised' });
+		expect(fm).not.toHaveProperty('reading-until');
 	});
 });

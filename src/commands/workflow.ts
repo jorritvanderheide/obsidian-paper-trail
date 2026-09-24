@@ -7,7 +7,6 @@
 import { Notice, type App, type TFile } from 'obsidian';
 import {
 	NEXT_ORDER,
-	noteState,
 	outcomeOf,
 	rowTask,
 	rowTitle,
@@ -22,8 +21,8 @@ import { attachmentKeys, parseItemRef, readerUrl, type ItemRef } from '../core/z
 import { selectUrl } from '../core/paper-note';
 import { itemChildren, lastContact } from '../source';
 import { decideOn, openTriage, targetOf, writeTriage } from './reading';
-import { fileOf, queue } from '../outstanding';
-import { iconOf, landing, PASS_PROGRESS, PASS_TWO } from '../core/triage';
+import { fileOf, paperNote, queue } from '../outstanding';
+import { iconOf, landing, PASS_PROGRESS, PASS_TWO, resumed } from '../core/triage';
 import { suggest } from '../ui/prompt';
 import { say } from '../ui/notify';
 import { openAtHeading, openedIn, reveal } from '../ui/reveal';
@@ -55,15 +54,14 @@ export async function openNote(app: App, note: NoteState): Promise<void> {
  * pass opens as your default has it, because you may be going there to type.
  *
  * Taking a paper out of Deferred or Filed takes this with it, because nothing
- * was written to ask for it: the next time it opens, it is not finished.
+ * was written to ask for it: the next time it opens, it is not finished. A
+ * pane that has it open at the time is put back into the editor by the
+ * decision itself, in `fitNote`.
  */
 export async function opening(context: Context, file: TFile): Promise<void> {
-	const note = noteState(
-		context.app.metadataCache.getFileCache(file),
-		{ path: file.path, basename: file.basename, created: file.stat.ctime },
-		context.settings.keyField,
-	);
-	await openedIn(context.app, file, outcomeOf(note) !== null);
+	// A deferral that has come back is outstanding again, so it opens the way
+	// work does rather than rendered like something finished.
+	await openedIn(context.app, file, outcomeOf(paperNote(context, file)) !== null);
 }
 
 /**
@@ -231,10 +229,11 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 
 	// The pass, and only the pass. What the paper earns is a judgement you made
 	// and this is a report about you, so ticking a claim off leaves `reading`
-	// exactly as it was. Through `writeTriage` like every other change, so the
-	// date moves and the tag mirror follows.
+	// as it was, unless it was a deferral that had come back: `resumed` says why
+	// that one is picked up. Through `writeTriage` like every other change, so
+	// the date moves and the tag mirror follows.
 	const state = await writeTriage(context, file, {
-		reading: row.note.state.reading,
+		reading: resumed(row.note.state.reading),
 		reason: null,
 		progress: PASS_PROGRESS[pass],
 	});
@@ -341,7 +340,7 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	const written = await decideOn(context, target, choice.reading, choice.progress);
 	if (!written) return;
 
-	const landed = `${title}\n${landing(written.state)}`;
+	const landed = `${title}\n${written.landing}`;
 
 	// Both of the outcomes that mean you engaged with the paper leave it owing a
 	// claim, so this goes straight there rather than leaving you to find it.
@@ -389,5 +388,5 @@ export async function next(context: Context): Promise<void> {
 		return;
 	}
 
-	new Notice('Nothing outstanding.');
+	say(context, 'Nothing outstanding.');
 }

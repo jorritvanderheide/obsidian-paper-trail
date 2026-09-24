@@ -54,14 +54,15 @@ export interface Settings {
 	 * Whether to stop saying what you can already see.
 	 *
 	 * Off, and the second thing here that is a preference about chrome rather
-	 * than about the workflow. It silences answers: where a decision put a
-	 * paper, that a pass is finished, that the pile is empty. Each of those
-	 * follows something you pressed, and the queue has already moved.
+	 * than about the workflow. It silences everything that is neither a failure
+	 * nor a warning: where a decision put a paper, that a pass is finished, what
+	 * a refresh found, that nothing is left to do.
 	 *
 	 * It never silences a failure, because a plugin that fails quietly is a
-	 * plugin that looks broken. And it never silences an answer to a command that
-	 * would otherwise do nothing you can see: Next with nothing outstanding, or
-	 * a refresh that found no change, are dead keys without a word.
+	 * plugin that looks broken, and never a warning, which is a failure of the
+	 * thing you asked for: no paper open, no citation key. The price is a
+	 * command with nothing to do saying nothing, Next on an empty queue or a
+	 * refresh that found no change, and turning it on is asking to pay it.
 	 */
 	quietNotices: boolean;
 	/**

@@ -46,9 +46,23 @@ export async function reveal(app: App, file: TFile): Promise<void> {
  * Only panes in source mode. One already rendered needs nothing.
  */
 export async function readingView(app: App, file: TFile): Promise<void> {
+	await showAs(app, file, 'preview');
+}
+
+/**
+ * Show a note as an editor again, which undoes `readingView`: for a paper put
+ * back on the list, out of Deferred or Filed, while you have it open. It is work
+ * again, and it was only rendered because it had stopped being.
+ */
+export async function editingView(app: App, file: TFile): Promise<void> {
+	await showAs(app, file, 'source');
+}
+
+/** Put every pane holding a file into a mode. */
+async function showAs(app: App, file: TFile, mode: 'source' | 'preview'): Promise<void> {
 	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
 		const view = leaf.view;
-		if (view instanceof MarkdownView && view.file === file) await setMode(view, 'preview');
+		if (view instanceof MarkdownView && view.file === file) await setMode(view, mode);
 	}
 }
 

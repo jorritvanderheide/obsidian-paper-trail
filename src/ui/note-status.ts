@@ -16,41 +16,40 @@
 //
 // Wiring only. What the states are and what each one means is core's.
 import { MarkdownRenderChild, setIcon, type MarkdownPostProcessor, type TFile } from 'obsidian';
-import { iconOf, label, landing, stateOf, type State } from '../core/triage';
-import { isPaper } from '../core/paper-note';
+import { iconOf, label } from '../core/triage';
+import { statusWords, type NoteState } from '../core/stages';
+import { noteOf } from '../outstanding';
 import { setReading } from '../commands/reading';
 import type { Context } from '../context';
 
 /**
- * Put the state's mark and word in an element.
+ * Put the state's mark and word in an element, and what it means in its
+ * tooltip.
  *
  * Shared with the title bar so the two surfaces cannot come to say the same
  * state differently. It empties and refills rather than rebuilding, so a click
  * handler on the element itself survives a redraw.
  */
-export function fillPill(el: HTMLElement, state: State): void {
-	const words = label(state);
+export function fillPill(el: HTMLElement, note: NoteState): void {
 	el.empty();
-	setIcon(el.createSpan({ cls: 'paper-trail-status-icon' }), iconOf(state));
-	el.createSpan({ cls: 'paper-trail-status-word', text: words });
-	el.setAttribute('aria-label', `${words}. ${landing(state)}`);
+	setIcon(el.createSpan({ cls: 'paper-trail-status-icon' }), iconOf(note.state));
+	el.createSpan({ cls: 'paper-trail-status-word', text: label(note.state) });
+	el.setAttribute('aria-label', statusWords(note));
 }
 
 /**
- * The state of the paper at a path, or null when there is no paper there.
+ * The paper at a path, or null when there is no paper there.
  *
  * A missing `reading` reads as untriaged, which is what it means: no opinion has
  * been formed. A value no version of this plugin wrote reads as nothing at all,
  * rather than being shown as a seventh state.
  */
-function readingAt(context: Context, path: string): { file: TFile; state: State } | null {
+function readingAt(context: Context, path: string): { file: TFile; note: NoteState } | null {
 	const file = context.app.vault.getFileByPath(path);
 	if (!file) return null;
 
-	const frontmatter = context.app.metadataCache.getFileCache(file)?.frontmatter;
-	if (!isPaper(frontmatter, context.settings.keyField)) return null;
-
-	return { file, state: stateOf(frontmatter) };
+	const note = noteOf(context, file);
+	return note.isPaper ? { file, note } : null;
 }
 
 /**
@@ -128,7 +127,7 @@ class NoteStatus extends MarkdownRenderChild {
 
 		const found = readingAt(this.context, this.path);
 		pill.toggle(found !== null);
-		if (found) fillPill(pill, found.state);
+		if (found) fillPill(pill, found.note);
 	}
 }
 

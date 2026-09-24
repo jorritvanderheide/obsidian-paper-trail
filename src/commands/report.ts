@@ -4,11 +4,12 @@
 // overwritten on purpose every time you ask for it, because a report is a
 // snapshot of a record that lives elsewhere. The record is the frontmatter on
 // each paper; this is only a view of it.
-import { Notice, normalizePath, type TFile } from 'obsidian';
+import { normalizePath, type TFile } from 'obsidian';
 import { decidedOf, excluded, isReport, renderReport, type Decided } from '../core/record';
-import { today } from './reading';
+import { today } from '../today';
 import { settle } from '../ui/editing';
 import { reveal } from '../ui/reveal';
+import { say } from '../ui/notify';
 import type { Context } from '../context';
 
 const REPORT = 'Excluded papers.md';
@@ -61,5 +62,5 @@ export async function writeReport(context: Context): Promise<void> {
 	if (existing) await app.vault.process(existing, () => markdown);
 
 	await reveal(app, file);
-	new Notice(`Ruled out ${report.rows.length} of the ${report.considered} papers decided on.`);
+	say(context, `Ruled out ${report.rows.length} of the ${report.considered} papers decided on.`);
 }

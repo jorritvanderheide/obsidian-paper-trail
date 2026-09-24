@@ -33,10 +33,10 @@ export function notify(error: unknown, tag?: string): void {
 }
 
 /**
- * An answer: what just happened, where a paper went, that a pass is finished.
+ * Anything that is neither a failure nor a warning: where a paper went, that a
+ * pass is finished, what a refresh found, that nothing is left to do.
  *
- * Silenced by the quiet setting, because each of these follows something you
- * pressed and the queue has already moved to show it. A failure never comes
+ * Silenced by the quiet setting, all of it. A failure or a warning never comes
  * through here, because it is the difference between broken and busy.
  */
 export function say(context: Context, text: string): void {

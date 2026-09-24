@@ -29,8 +29,13 @@ import { REGION_END, REGION_START } from './paper-note';
  * the moment the wording changed anywhere else; and once the claim was written
  * it sat underneath as a prompt for work already done, invisible in reading
  * view and in the way in every other.
+ *
+ * It opens on a blank line, deliberately. A note is this written under its
+ * frontmatter, so that line is the one between the closing `---` and the
+ * title, which would otherwise sit pressed against the frontmatter.
  */
-export const PAPER = `# {{TITLE}}
+export const PAPER = `
+# {{TITLE}}
 
 {{LINKS}}
 

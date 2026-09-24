@@ -5,6 +5,25 @@
 // of options in this plugin is: a box to type in, and the options under it.
 import { FuzzySuggestModal, Modal, Setting, setIcon, type App, type ButtonComponent, type FuzzyMatch } from 'obsidian';
 
+/**
+ * One line of a chooser, with its icon and what choosing it does under it.
+ *
+ * Shared, so every chooser in the plugin draws a line the same way, including
+ * the deferral's, which is not one of these.
+ */
+export function renderChoice(el: HTMLElement, text: string, description?: string, icon?: string): void {
+	// The icon on the left edge rather than above the words, so a list of
+	// decisions scans down one column the way the triage dialog's buttons do.
+	if (icon) {
+		el.addClass('paper-trail-suggestion');
+		setIcon(el.createDiv({ cls: 'paper-trail-suggestion-icon' }), icon);
+	}
+
+	const lines = icon ? el.createDiv({ cls: 'paper-trail-suggestion-lines' }) : el;
+	lines.createDiv({ text });
+	if (description) lines.createEl('small', { cls: 'paper-trail-suggestion-desc', text: description });
+}
+
 class Suggester<T> extends FuzzySuggestModal<T> {
 	private result: T | null = null;
 
@@ -41,16 +60,7 @@ class Suggester<T> extends FuzzySuggestModal<T> {
 			return;
 		}
 
-		// The icon on the left edge rather than above the words, so a list of
-		// decisions scans down one column the way the triage dialog's buttons do.
-		if (this.icon) {
-			el.addClass('paper-trail-suggestion');
-			setIcon(el.createDiv({ cls: 'paper-trail-suggestion-icon' }), this.icon(match.item));
-		}
-
-		const lines = this.icon ? el.createDiv({ cls: 'paper-trail-suggestion-lines' }) : el;
-		lines.createDiv({ text: this.text(match.item) });
-		if (this.describe) lines.createEl('small', { cls: 'paper-trail-suggestion-desc', text: this.describe(match.item) });
+		renderChoice(el, this.text(match.item), this.describe?.(match.item), this.icon?.(match.item));
 	}
 
 	// Only records. SuggestModal does not guarantee that onChooseItem runs before

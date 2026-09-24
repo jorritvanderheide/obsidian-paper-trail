@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-paper-trail",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Work through your Zotero library as a reading queue: read in Zotero, write what each paper argues with your annotations synced into its note, and keep a record of what you ruled out and why.",
 	"main": "main.js",
 	"type": "module",

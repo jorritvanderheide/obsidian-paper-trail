@@ -1,7 +1,7 @@
 {
 	"id": "paper-trail",
 	"name": "Paper Trail",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"minAppVersion": "1.13.0",
 	"description": "Work through your Zotero library as a reading queue: read in Zotero, write what each paper argues with your annotations synced into its note, and keep a record of what you ruled out and why.",
 	"author": "Jorrit van der Heide",

@@ -7,7 +7,7 @@
 
 import type { CachedMetadata } from 'obsidian';
 import { isPaper, isRegionStart } from './paper-note';
-import { stateOf, type Outcome, type State } from './triage';
+import { deferralOf, label, landing, stateOf, type Outcome, type Progress, type State } from './triage';
 import type { Pending } from './pending';
 
 /** Everything the rules need, read from Obsidian's metadata cache. */
@@ -37,6 +37,21 @@ export interface NoteState {
 	 * dropped paper it is why you ruled it out, which is what year four asks.
 	 */
 	reason: string | null;
+	/**
+	 * When a deferral comes back, as an ISO date, or null.
+	 */
+	until: string | null;
+	/** The Zotero key of the paper a deferral waits for, or null. */
+	after: string | null;
+	/**
+	 * Whether a deferral has come back: its date has arrived, or the paper it
+	 * was waiting for has been read or dropped.
+	 *
+	 * Worked out across the whole vault by `markDue`, because the second needs
+	 * another paper's state. A note read on its own starts not due, which is
+	 * what it is until something has looked.
+	 */
+	due: boolean;
 	/**
 	 * The `reading-date` property, or null when the note has none.
 	 *
@@ -266,7 +281,52 @@ export function headingCoverage(papers: (CachedMetadata | null)[], heading: stri
  * you stop typing, and the plugin has no business having an opinion about it.
  */
 export function taskOf(note: NoteState): Task | null {
-	return note.isPaper ? taskFor(note.state) : null;
+	if (!note.isPaper) return null;
+
+	// A deferral that has come back is outstanding again, in the stage it would
+	// return to if you picked it up. Its note still says deferred: coming back is
+	// the queue reading a date and another paper, never a write, and the note
+	// changes only when you decide something about it.
+	if (note.due) return returnsTo(note.state.progress);
+	return taskFor(note.state);
+}
+
+/**
+ * The stage a deferral comes back to: Claim if you had read it, and Reading
+ * otherwise, which is also where a paper you had summarised goes to be looked
+ * at again.
+ */
+export function returnsTo(progress: Progress | null): Task {
+	return progress === 'read' ? 'claim' : 'reading';
+}
+
+/**
+ * Whether a deferred paper has come back.
+ *
+ * Its date has arrived, or the paper it waits for has been read (any progress
+ * at all) or dropped, whichever comes first. Only on that evidence: a paper
+ * that has no note yet has not been read, and one that has left Zotero never
+ * brings anything back, which is what the date is there to cover.
+ *
+ * `find` turns a Zotero key into the note for it, so this stays a question
+ * about plain data and whoever asks decides how to look notes up.
+ */
+export function isDue(note: NoteState, today: string, find: (key: string) => NoteState | undefined): boolean {
+	if (!note.isPaper || note.state.reading !== 'deferred') return false;
+	if (note.until !== null && note.until <= today) return true;
+	if (note.after === null) return false;
+
+	const other = find(note.after);
+	return other !== undefined && (other.state.reading === 'dropped' || other.state.progress !== null);
+}
+
+/** Every note, with the deferrals that have come back marked as due. */
+export function markDue(notes: NoteState[], today: string): NoteState[] {
+	const byKey = new Map(notes.flatMap((note) => (note.key === null ? [] : [[note.key, note] as const])));
+	return notes.map((note) => {
+		const due = isDue(note, today, (key) => byKey.get(key));
+		return due === note.due ? note : { ...note, due };
+	});
 }
 
 /**
@@ -376,6 +436,36 @@ export function settled(notes: NoteState[]): Settled[] {
  */
 export function parked(notes: NoteState[]): Settled[] {
 	return atRest(notes).filter((entry) => entry.reading === 'deferred');
+}
+
+/**
+ * A decided paper in words: the state, when it was reached, and what you said
+ * at the time. The tooltip on its row in Deferred or Filed.
+ *
+ * The reason is the point of it on a deferral, where it is the condition the
+ * paper is waiting on and the row is otherwise a title you have to open the
+ * note to understand. It earns its place on a drop too: why you ruled a paper
+ * out is exactly what you will want two years later, and it is the same
+ * sentence the record puts in its table.
+ */
+export function decidedWords(note: Pick<NoteState, 'state' | 'decided' | 'reason'>): string {
+	const word = label(note.state);
+	const said = note.decided ? `${word} on ${note.decided}` : word;
+	return note.reason ? `${said} · ${note.reason}` : said;
+}
+
+/**
+ * What a paper's status pill says on hover.
+ *
+ * Where the paper stands, as a decision would put it, unless you gave a reason
+ * for the decision. Then it is the same line its row shows, reason included,
+ * because the reason is what you would otherwise open the properties to find.
+ * Only a deferral and a drop have one: the first is the condition the paper is
+ * waiting on, and "Deferred, with the condition on the note" pointed at it
+ * without saying it.
+ */
+export function statusWords(note: Pick<NoteState, 'state' | 'decided' | 'reason'>): string {
+	return note.reason ? decidedWords(note) : `${label(note.state)}. ${landing(note.state)}`;
 }
 
 /** Oldest first within each stage, so the pile drains in the order it arrived. */
@@ -590,6 +680,8 @@ export function noteState(
 		state: stateOf(frontmatter),
 		created: file.created,
 		reason: typeof frontmatter?.['reading-reason'] === 'string' ? frontmatter['reading-reason'] : null,
+		...deferralOf(frontmatter),
+		due: false,
 		decided: typeof frontmatter?.['reading-date'] === 'string' ? frontmatter['reading-date'] : null,
 	};
 }
@@ -625,6 +717,26 @@ export function rowTitle(row: Row): string {
 export function rowTask(row: Row, triage: boolean): Task | null {
 	if (row.kind !== 'pending') return taskOf(row.note);
 	return triage ? 'triage' : 'reading';
+}
+
+/**
+ * The papers a deferral can wait for: the ones still unread, in Triage and
+ * Reading, whether they have a note yet or not.
+ *
+ * Unread is the whole test, and it also keeps waits from going round in a
+ * circle. A deferred paper is in neither section until it comes back, so
+ * nothing can be told to wait for a paper that is itself still waiting.
+ */
+export function unread(rows: ReadonlyMap<Task, Row[]>, except: string | null): { key: string; title: string }[] {
+	const seen = new Set<string>();
+	return (['triage', 'reading'] as const)
+		.flatMap((task) => rows.get(task) ?? [])
+		.flatMap((row) => {
+			const key = rowKey(row);
+			if (key === null || key === except || seen.has(key)) return [];
+			seen.add(key);
+			return [{ key, title: rowTitle(row) }];
+		});
 }
 
 /** The Zotero item a row is about, which is the one name both kinds share. */

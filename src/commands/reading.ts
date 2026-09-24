@@ -11,16 +11,18 @@ import { Notice, type App, type TFile } from 'obsidian';
 import { abstractOf, itemYear, parseItemRef, venueOf, type ItemRef } from '../core/zotero';
 import { itemMetadata, SourceError } from '../source';
 import { indexed, settle } from '../ui/editing';
-import { readingView } from '../ui/reveal';
+import { editingView, readingView } from '../ui/reveal';
 import { messageOf, say } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
 import {
 	applyTriage,
 	asks,
 	arrivalReading,
+	deferredLanding,
 	judgementIcon,
 	label,
 	landing,
+	lookAgain,
 	moves,
 	offered,
 	READ_AGAIN,
@@ -36,14 +38,11 @@ import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
 import { prompt, suggest } from '../ui/prompt';
-import { fileOf, nextTriage } from '../outstanding';
-import { taskFor, withHeading, type Row } from '../core/stages';
+import { askDeferral, type Waitable } from '../ui/defer-modal';
+import { fileOf, nextTriage, paperNote, queue } from '../outstanding';
+import { taskFor, unread, withHeading, type Row } from '../core/stages';
 import type { Context } from '../context';
-
-/** ISO date, which is what the Linter and every Dataview query want. */
-export function today(): string {
-	return new Date().toISOString().slice(0, 10);
-}
+import { today } from '../today';
 
 /**
  * Record a decision, put the note into the shape it leaves the paper in, and
@@ -68,13 +67,16 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
 	// The state as written, read back out of the object that was just written,
 	// rather than assembled from the decision. `applyTriage` is what decides
 	// which half of the pair a decision moves, and this has to agree with it.
+	// The state before it too, off the same object, for the same reason.
+	let before: State = { reading: 'untriaged', progress: null };
 	let after: State = { reading: 'untriaged', progress: null };
 	await context.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+		before = stateOf(frontmatter);
 		applyTriage(frontmatter, triage, date, statusTagsOf(context.settings));
 		after = stateOf(frontmatter);
 	});
 
-	await fitNote(context, file, after);
+	await fitNote(context, file, before, after);
 	return after;
 }
 
@@ -94,13 +96,19 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
  * while a fresh open of the same note rendered would be the plugin disagreeing
  * with itself about a note you are looking at.
  *
+ * It is undone the same way. A paper put back on the list, out of Deferred or
+ * Filed, gets the editor back in any pane that has it open, where it would
+ * otherwise sit rendered like something finished until you reopened it. Only
+ * on that way out, from owing nothing to owing something: a paper that was
+ * outstanding all along is in whatever mode you left it in.
+ *
  * The heading goes through the vault rather than the editor, unlike the blank
  * lines, because the note is usually not open at the moment a decision is made.
  * `process` rather than `modify`, so it edits what is on disk now rather than a
  * copy read before the call, and `withHeading` returns the note untouched when
  * it has the heading already, so nothing is written and no modified time moves.
  */
-async function fitNote(context: Context, file: TFile, state: State): Promise<void> {
+async function fitNote(context: Context, file: TFile, before: State, state: State): Promise<void> {
 	const task = taskFor(state);
 
 	// Nothing outstanding: dropped, parked, or both passes ticked off.
@@ -108,6 +116,8 @@ async function fitNote(context: Context, file: TFile, state: State): Promise<voi
 		await readingView(context.app, file);
 		return;
 	}
+
+	if (taskFor(before) === null) await editingView(context.app, file);
 
 	if (task !== 'claim' && task !== 'assessment') return;
 
@@ -143,7 +153,7 @@ const CHOICE_LABELS: Record<Reading, string> = {
 };
 
 /** One line of the chooser. `progress` and `icon` are set only by `READ_AGAIN`. */
-interface Choice {
+export interface Choice {
 	reading: Reading;
 	label: string;
 	progress?: null;
@@ -181,27 +191,30 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 	await chooseReading(context, { kind: 'note', file }, file.basename);
 }
 
+/** A judgement worth offering one paper: its line, its icon, and where it would leave the paper. */
+export interface Offer {
+	choice: Choice;
+	icon: string;
+	lands: State;
+}
+
 /**
- * Put the judgements to someone and write the one they pick.
+ * The judgements that would move a paper, and where it is now.
  *
- * Takes a target rather than a file, so a queue row can offer it whether or not
- * the paper has a note yet: for one that has none, deciding is what writes it,
- * exactly as it is in the triage dialog.
- *
- * Every judgement that would move the paper, including the ones no button
- * offers, because the reason to reach for this is to correct a record rather
- * than to make a decision. `landing` rides along on each option so the list
- * says where a paper will end up, which is the thing you cannot know from the
- * word alone.
+ * Every one that would move it, including the ones no button offers, because
+ * the reason to reach for these is to correct a record rather than to make a
+ * decision. Shared by the chooser and a queue row's menu, so the two offer the
+ * same things.
  */
-export async function chooseReading(context: Context, target: TriageTarget, name: string): Promise<void> {
+export function offersFor(context: Context, target: TriageTarget): { now: State; offers: Offer[] } {
 	// Where the paper is now. A paper with no note is wherever the queue shows
 	// it, which is what putting it in Zotero meant: Triage with triage on,
 	// Reading with it off.
-	const now: State =
-		target.kind === 'note'
-			? stateOf(context.app.metadataCache.getFileCache(target.file)?.frontmatter)
-			: { reading: arrivalReading(context.settings.triage), progress: null };
+	const note = target.kind === 'note' ? paperNote(context, target.file) : null;
+	const now: State = note?.state ?? { reading: arrivalReading(context.settings.triage), progress: null };
+	// A deferral that has come back can be deferred again, which is how you say
+	// "not yet", though the word on it would not change.
+	const due = note?.due ?? false;
 	// Where each option lands. A judgement leaves progress alone, so it rides
 	// along; `READ_AGAIN` is the one option that clears it.
 	const after = (entry: Choice): State => ({
@@ -213,27 +226,49 @@ export async function chooseReading(context: Context, target: TriageTarget, name
 	// case where Queued on its own could not send it back to be read.
 	const candidates =
 		now.progress === null ? CHOICES : CHOICES.flatMap((entry) => (entry.reading === 'queued' ? [entry, READ_AGAIN] : [entry]));
-	const choices = candidates.filter(
-		(entry) => offered(entry.reading, context.settings.triage) && moves(now, after(entry)),
-	);
+	const offers = candidates
+		.filter((entry) => offered(entry.reading, context.settings.triage, now.progress) && moves(now, after(entry), due))
+		.map((entry) => ({
+			choice: entry,
+			// The icon is the judgement being offered, and where it lands is said
+			// beside it. Drawing the landing as the icon as well put the Assessed
+			// mark on both Queued and Promoted for a paper already assessed, which
+			// read as two wrong icons rather than as one fact said three times.
+			icon: entry.icon ?? judgementIcon(entry.reading),
+			lands: after(entry),
+		}));
+	return { now, offers };
+}
 
-	const choice = await suggest(
+/** Write a judgement someone picked, and say where it left the paper. */
+export async function takeOffer(context: Context, target: TriageTarget, name: string, choice: Choice): Promise<void> {
+	const written = await decideOn(context, target, choice.reading, choice.progress);
+	if (written) say(context, `${name}\n${written.landing}`);
+}
+
+/**
+ * Put the judgements to someone and write the one they pick.
+ *
+ * Takes a target rather than a file, so a queue row can offer it whether or not
+ * the paper has a note yet: for one that has none, deciding is what writes it,
+ * exactly as it is in the triage dialog.
+ *
+ * `landing` rides along on each option so the list says where a paper will end
+ * up, which is the thing you cannot know from the word alone.
+ */
+export async function chooseReading(context: Context, target: TriageTarget, name: string): Promise<void> {
+	const { now, offers } = offersFor(context, target);
+	const offer = await suggest(
 		context.app,
-		choices,
-		(entry) => entry.label,
+		offers,
+		(entry) => entry.choice.label,
 		// Where it is now goes in the title, because it is no longer in the list:
 		// the line that would have said so was the one line that did nothing.
 		`Reading status of ${name} · ${label(now)}`,
-		(entry) => landing(after(entry)),
-		// The icon is the judgement being offered, and where it lands is the line
-		// under it. Drawing the landing as the icon as well put the Assessed mark
-		// on both Queued and Promoted for a paper already assessed, which read as
-		// two wrong icons rather than as one fact said three times.
-		(entry) => entry.icon ?? judgementIcon(entry.reading),
+		(entry) => landing(entry.lands),
+		(entry) => entry.icon,
 	);
-	if (!choice) return;
-	const written = await decideOn(context, target, choice.reading, choice.progress);
-	if (written) say(context, `${name}\n${landing(written.state)}`);
+	if (offer) await takeOffer(context, target, name, offer.choice);
 }
 
 /**
@@ -297,19 +332,50 @@ export async function decideOn(
 	const question = asks(reading);
 
 	let reason: string | null = null;
-	if (question) {
+	let until: string | null = null;
+	let after: Waitable | null = null;
+	if (question && reading === 'deferred') {
+		// The one decision that is a promise, so it asks for the way back as well
+		// as the reason: a date, or a paper still unread to wait for.
+		const deferral = await askDeferral(
+			context.app,
+			question.question,
+			question.cta,
+			unread(queue(context).rows, keyOf(context, target)),
+			today(),
+		);
+		if (!deferral) return null;
+		reason = deferral.reason;
+		until = lookAgain(deferral.lookAgain, today());
+		after = deferral.after;
+	} else if (question) {
 		reason = await prompt(context.app, question.question, { cta: question.cta });
 		if (!reason) return null;
 	}
 
 	const file = target.kind === 'note' ? target.file : await noteFor(context, target.item);
-	return { file, state: await writeTriage(context, file, { reading, reason, progress }) };
+	const state = await writeTriage(context, file, { reading, reason, progress, until, after: after?.key ?? null });
+	return { file, state, landing: deferredLanding(until, after?.title ?? null) ?? landing(state) };
 }
 
-/** A decision as written: the note it went to, and where it left the paper. */
+/** The Zotero key of the paper a target is about, so it is not offered as its own wait. */
+function keyOf(context: Context, target: TriageTarget): string | null {
+	if (target.kind === 'pending') return target.item.key;
+	const value: unknown = context.app.metadataCache.getFileCache(target.file)?.frontmatter?.[context.settings.keyField];
+	return typeof value === 'string' ? value : null;
+}
+
+/**
+ * A decision as written: the note it went to, where it left the paper, and
+ * the sentence saying so.
+ *
+ * The sentence is worked out here rather than by each caller, because only
+ * here is it known that a deferral has a way back, and when.
+ */
 export interface Written {
 	file: TFile;
 	state: State;
+	landing: string;
 }
 
 /**
@@ -416,7 +482,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 		// Where it landed, which is not always where the button points. A note
 		// can reach Triage again with progress on it, and a judgement leaves that
 		// alone: queue a summarised paper here and it goes to Filed.
-		say(context, `${title}\n${landing(written.state)}`);
+		say(context, `${title}\n${written.landing}`);
 		await advance(context, written.file, key);
 	};
 

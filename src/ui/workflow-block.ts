@@ -7,6 +7,7 @@ import { MarkdownRenderChild, debounce } from 'obsidian';
 import { renderQueue } from './queue';
 import { onLibraryChange, refreshLibrary } from '../library';
 import type { Context } from '../context';
+import { today } from '../today';
 
 /**
  * The fence that renders the queue block.
@@ -56,7 +57,11 @@ export class WorkflowBlock extends MarkdownRenderChild {
 		// already under way is shared rather than repeated, so both on screen cost
 		// one request.
 		this.register(onLibraryChange(this.redraw));
-		const ask = () => void refreshLibrary(this.context.settings.collection);
+		const ask = () => {
+			void refreshLibrary(this.context.settings.collection);
+			// And on another day than it was drawn on, a deferral may be due.
+			if (this.containerEl.dataset.day !== today()) this.redraw();
+		};
 		this.registerDomEvent(window, 'focus', ask);
 		ask();
 	}

@@ -186,6 +186,16 @@
 	color: var(--text-faint);
 }
 
+/*
+ * A deferral that has come back. Its clock is faint where the same clock in
+ * Deferred is not: there the icon is the row's state, and here it is a remark
+ * about where the paper has been. The title is what the row is for, and the
+ * words are in the tooltip.
+ */
+.paper-trail-returned .tree-item-icon {
+	color: var(--text-faint);
+}
+
 .paper-trail-picker-byline {
 	display: block;
 	color: var(--text-muted);
@@ -274,9 +284,14 @@
  * Quiet, so it reads as a section holding nothing rather than one waiting for
  * you. The markup leaves off `mod-collapsible` as well, so it takes no hover
  * treatment and is not focusable: there is nothing behind it to open.
+ *
+ * The count is the exception, because Obsidian brightens a row's count on hover
+ * whether the row can be clicked or not, and a zero that lights up under the
+ * cursor looks like something to open. So it is held down with the rest.
  */
 .paper-trail-stage-empty .tree-item-inner,
-.paper-trail-stage-empty .paper-trail-stage-icon {
+.paper-trail-stage-empty .paper-trail-stage-icon,
+.paper-trail-stage-empty .tree-item-self:hover .tree-item-flair {
 	color: var(--text-faint);
 }
 
@@ -333,13 +348,25 @@
 	display: flex;
 	align-items: center;
 	gap: var(--size-2-2);
-	width: auto;
-	padding: 0 var(--size-4-2);
 	border-radius: var(--radius-s);
 	background-color: var(--background-modifier-hover);
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 	white-space: nowrap;
+}
+
+/*
+ * The square taken back, with a selector no theme's icon rule outweighs.
+ *
+ * Themes size the bar's buttons too, and some do it hard: Border makes every
+ * one 32px square with a selector four classes deep, and the word spilled out
+ * of that square over the next icon. Only the width and the padding, which
+ * are what make it a pill; the height stays the theme's, so it sits in line
+ * with the icons beside it.
+ */
+.workspace-leaf .view-header .view-actions .view-action.paper-trail-status {
+	width: auto;
+	padding: 0 var(--size-4-2);
 }
 
 /*

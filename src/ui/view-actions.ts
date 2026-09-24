@@ -11,7 +11,8 @@ import { MarkdownView, setIcon, type App } from 'obsidian';
 
 import { fillPill } from './note-status';
 import { setReading } from '../commands/reading';
-import { noteState, taskOf, TASKS, type NoteState, type Task } from '../core/stages';
+import { taskOf, TASKS, type NoteState, type Task } from '../core/stages';
+import { paperNote } from '../outstanding';
 import { act, finish } from '../commands/workflow';
 import { refreshPaper } from '../commands/papers';
 import type { Context } from '../context';
@@ -142,7 +143,7 @@ function status(pill: HTMLElement, note: NoteState | null): void {
 	pill.toggle(note !== null && note.isPaper);
 	if (note === null || !note.isPaper) return;
 
-	fillPill(pill, note.state);
+	fillPill(pill, note);
 }
 
 /**
@@ -176,16 +177,13 @@ function withCurrent(
 	if (note && task) void what(context, task, { kind: 'note', note });
 }
 
-/** The note in this view, as the rules see it, or null when the view holds none. */
+/**
+ * The note in this view, as the rules see it, or null when the view holds none.
+ * Through `paperNote`, so a deferral that has come back offers its next step here
+ * as it does in the queue.
+ */
 function stateOf(context: Context, view: MarkdownView): NoteState | null {
-	const file = view.file;
-	if (!file) return null;
-
-	return noteState(
-		context.app.metadataCache.getFileCache(file),
-		{ path: file.path, basename: file.basename, created: file.stat.ctime },
-		context.settings.keyField,
-	);
+	return view.file ? paperNote(context, view.file) : null;
 }
 
 /** The action, made if this view has not got one yet. */

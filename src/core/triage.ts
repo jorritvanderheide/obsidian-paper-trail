@@ -99,6 +99,47 @@ export interface Triage {
 	 * only sending a paper back to be read again does.
 	 */
 	progress?: Progress | null;
+	/** When a deferral comes back, as an ISO date. Only a deferral carries one. */
+	until?: string | null;
+	/** The Zotero key of the paper a deferral waits for. Only a deferral carries one. */
+	after?: string | null;
+}
+
+/** The frontmatter keys a deferral comes back by, written and read only here. */
+const UNTIL_KEY = 'reading-until';
+const AFTER_KEY = 'reading-after';
+
+/** An ISO date, which is the only shape a date is compared in. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * When a deferral comes back, read off its frontmatter.
+ *
+ * Both optional, and a 1.0 deferral has neither, which reads as a paper parked
+ * until you act: exactly what it was when it was written. A date that is not
+ * `YYYY-MM-DD` is read as no date rather than guessed at, because dates are
+ * compared as text, and a hand-typed `2026-1-5` would compare wrongly for ever.
+ */
+export function deferralOf(frontmatter: Record<string, unknown> | undefined): { until: string | null; after: string | null } {
+	const text = (key: string): string | null => {
+		const value = frontmatter?.[key];
+		return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+	};
+	const until = text(UNTIL_KEY);
+	return { until: until !== null && ISO_DATE.test(until) ? until : null, after: text(AFTER_KEY) };
+}
+
+/**
+ * What a paper earns once you tick off a pass on it.
+ *
+ * The judgement it already had, with one exception. A deferral that has come
+ * back is still marked deferred, because coming back writes nothing, and the
+ * tick is the first thing written after it. Ticking a claim is working on the
+ * paper, which is picking it up; keeping it deferred would put a paper you had
+ * just summarised back in Deferred, with its reason taken off and no way back.
+ */
+export function resumed(reading: Reading): Reading {
+	return reading === 'deferred' ? 'queued' : reading;
 }
 
 /** What the tick on each of the two written passes records. */
@@ -210,15 +251,23 @@ const LANDINGS: Record<string, string> = {
 };
 
 /**
- * Whether a judgement is worth offering at all, in a vault working this way.
+ * Whether a judgement is worth offering at all, to a paper this far along, in a
+ * vault working this way.
  *
  * Untriaged only with triage on. With it off, Triage is not a stage you work:
  * a paper sent there sits in a section that is otherwise hidden, waiting on a
  * dialog nothing in your workflow opens. What you meant was almost always
  * Queued, and offering both is offering the wrong one beside the right one.
+ *
+ * Promoted only once the paper has been read. Worth a third pass is the
+ * verdict of a second one, which is where Keshav puts it and where finishing a
+ * reading asks it. On a paper you have not read it is a guess, and it would
+ * leave the paper in Reading all the same.
  */
-export function offered(reading: Reading, triage: boolean): boolean {
-	return triage || reading !== 'untriaged';
+export function offered(reading: Reading, triage: boolean, progress: Progress | null): boolean {
+	if (reading === 'untriaged') return triage;
+	if (reading === 'promoted') return progress !== null;
+	return true;
 }
 
 /**
@@ -236,7 +285,10 @@ export function offered(reading: Reading, triage: boolean): boolean {
  * them. It also takes the current state out of its own list, which is right:
  * choosing where a paper already is is not a choice.
  */
-export function moves(from: State, to: State): boolean {
+export function moves(from: State, to: State, due = false): boolean {
+	// A deferral that has come back is back in a stage, so deferring it again
+	// takes it out of that stage, though the word on it stays Deferred.
+	if (due && to.reading === 'deferred') return true;
 	return label(from) !== label(to);
 }
 
@@ -264,6 +316,88 @@ export const PASS_TWO: { reading: Reading; progress?: Progress; label: string }[
 	{ reading: 'deferred', label: 'Worth another hour, but not now' },
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];
+
+/** One way to say when a deferred paper should come back. */
+export interface LookAgain {
+	label: string;
+	icon: string;
+	days?: number;
+	months?: number;
+	/** Once another paper has been read, chosen next, rather than on a date. */
+	after?: true;
+}
+
+/**
+ * When a deferral comes back, as the deferral chooser offers it, in its order.
+ *
+ * A date, because it is the one condition the plugin can always check, and
+ * "look at this again in three months" makes sense whatever the real condition
+ * is. Presets rather than a calendar, because the date is a nudge and not an
+ * appointment: nobody knows which Tuesday they will be ready for a paper.
+ *
+ * Or another paper, for a deferral whose condition is a reading: it comes back
+ * once that one has been read, or dropped. That one is first when it is
+ * offered, which is only when something unread is left to wait for, because it
+ * is Keshav's own deferral: come back to this after reading something else.
+ *
+ * No date is still offered, and it is the honest someday. It is last, and
+ * whatever is first comes back by itself, because the first line of a chooser
+ * is the one Enter takes, and a deferral that never comes back should be one
+ * somebody chose.
+ */
+export const LOOK_AGAIN: readonly LookAgain[] = [
+	{ label: 'After reading another paper', icon: 'book-open', after: true },
+	{ label: 'In 2 weeks', icon: 'calendar', days: 14 },
+	{ label: 'In a month', icon: 'calendar', months: 1 },
+	{ label: 'In 3 months', icon: 'calendar', months: 3 },
+	{ label: 'In 6 months', icon: 'calendar', months: 6 },
+	{ label: 'No date', icon: 'calendar-off' },
+];
+
+/**
+ * The date a preset comes to from `today`, or null for no date.
+ *
+ * Worked on the date alone, in UTC, so no timezone can move it a day. A month
+ * on from the 31st lands on the last day of a shorter month rather than
+ * spilling into the next one: 31 January plus a month is the end of February.
+ */
+export function lookAgain(preset: LookAgain, today: string): string | null {
+	if (preset.days === undefined && preset.months === undefined) return null;
+
+	const [year = 1970, month = 1, day = 1] = today.split('-').map(Number);
+	if (preset.months !== undefined) {
+		const first = new Date(Date.UTC(year, month - 1 + preset.months, 1));
+		const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+		first.setUTCDate(Math.min(day, last));
+		return first.toISOString().slice(0, 10);
+	}
+	return new Date(Date.UTC(year, month - 1, day + (preset.days ?? 0))).toISOString().slice(0, 10);
+}
+
+/**
+ * What to say after a deferral that has a way back, or null when it has none.
+ *
+ * `after` is the other paper's title rather than its key: the key is what is
+ * stored, and the title is what anybody would recognise.
+ */
+export function deferredLanding(until: string | null, after: string | null): string | null {
+	if (until !== null && after !== null) return `Deferred until ${until}, or until you have read ${after}.`;
+	if (until !== null) return `Deferred until ${until}.`;
+	if (after !== null) return `Deferred until you have read ${after}.`;
+	return null;
+}
+
+/**
+ * The line under a way back in the chooser: where choosing it leaves the paper.
+ *
+ * The date itself for a preset, since "in 3 months" is only useful once you
+ * know when that is. In the words the notice will use once it is chosen, so the
+ * chooser and the notice after it say the same thing.
+ */
+export function lookAgainLine(preset: LookAgain, today: string): string {
+	const after = preset.after ? 'a paper you choose' : null;
+	return deferredLanding(lookAgain(preset, today), after) ?? 'Deferred until you pick it back up.';
+}
 
 /**
  * Sending a paper back to be read, which none of the five judgements can do.
@@ -430,6 +564,19 @@ export function applyTriage(
 	// reading, which is then wrong in the one place it will be trusted.
 	if (triage.reason) frontmatter['reading-reason'] = triage.reason;
 	else delete frontmatter['reading-reason'];
+
+	// When a deferral comes back, which only a deferral carries. Any other
+	// decision takes both off: a paper queued again is waiting for nothing, and a
+	// date left behind would bring it back later from nowhere. Deferring again
+	// replaces them, and one left empty is removed rather than kept from before.
+	const deferred = triage.reading === 'deferred';
+	for (const [key, value] of [
+		[UNTIL_KEY, triage.until],
+		[AFTER_KEY, triage.after],
+	] as const) {
+		if (deferred && value) frontmatter[key] = value;
+		else delete frontmatter[key];
+	}
 
 	sortKeys(frontmatter);
 }

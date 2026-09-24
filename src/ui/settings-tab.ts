@@ -244,7 +244,7 @@ export class SettingsTab extends PluginSettingTab {
 					{
 						name: 'Quieter notifications',
 						desc:
-							'Stops Paper Trail saying what you can already see: where a decision put a paper, that a pass is finished, that the pile is empty. Failures are always shown.',
+							'Shows only failures and warnings. Nothing is said about where a decision put a paper, that a pass is finished, what a refresh found, or that nothing is left to do.',
 						control: { type: 'toggle', key: 'quietNotices' },
 					},
 					{
