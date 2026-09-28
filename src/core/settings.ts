@@ -8,8 +8,12 @@
 // vocabulary. Those are the product. Making them configurable would turn an
 // opinionated workflow into a rules engine that asks the user to invent one,
 // which is what Dataview already is.
+//
+// A stage can be switched off, which is not the same thing: `triage` and
+// `passes` take stages away and never add, rename or reorder one, so every rule
+// about what a stage means still holds wherever the stage is worked.
 
-import type { StatusTags } from './triage';
+import { PASSES, type Passes, type StatusTags, type Workflow } from './triage';
 
 /**
  * Stamped on every save, and bumped when a saved key is renamed or its meaning
@@ -85,6 +89,21 @@ export interface Settings {
 	 * itself still exists, for a note that arrives with no `reading` on it.
 	 */
 	triage: boolean;
+	/**
+	 * Which written passes follow a reading: none, the claim, or the claim and,
+	 * for papers you promote, the assessment.
+	 *
+	 * Both, and the second setting here with an opinion in it. It earns the
+	 * exception the way triage does: what a reading is for is yours to know.
+	 * Somebody who annotates in Zotero and writes by theme rather than by paper
+	 * has nothing to put under a Claim heading, and a queue that keeps asking for
+	 * one is a queue they stop opening.
+	 *
+	 * It changes what is offered and nothing that is written. A paper already
+	 * promoted still owes its assessment, and a read paper waits on a claim again
+	 * the moment claims are turned back on.
+	 */
+	passes: Passes;
 	/**
 	 * Zotero collection key the queue draws papers from, or empty for the whole
 	 * library.
@@ -169,6 +188,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	statusPill: true,
 	quietNotices: false,
 	triage: false,
+	passes: 'both',
 	collection: '',
 	papersFolder: 'Literature',
 	statusTag: '',
@@ -203,6 +223,7 @@ export function loadSettings(raw: unknown): Settings {
 		statusPill: typeof data.statusPill === 'boolean' ? data.statusPill : DEFAULT_SETTINGS.statusPill,
 		quietNotices: typeof data.quietNotices === 'boolean' ? data.quietNotices : DEFAULT_SETTINGS.quietNotices,
 		triage: typeof data.triage === 'boolean' ? data.triage : DEFAULT_SETTINGS.triage,
+		passes: PASSES.find((known) => known === data.passes) ?? DEFAULT_SETTINGS.passes,
 		// Two fields where empty is meaningful rather than missing, so neither can
 		// go through `text`: an empty collection means the whole library, and an
 		// empty status tag means write no tags.
@@ -226,6 +247,11 @@ function namespaces(value: unknown): string[] {
 	if (!Array.isArray(value)) return [];
 	const cleaned = value.filter((entry): entry is string => typeof entry === 'string').map((entry) => entry.trim());
 	return [...new Set(cleaned.filter((entry) => entry.length > 0))].sort();
+}
+
+/** The stages this vault works, as every rule about what is outstanding wants them. */
+export function workflowOf(settings: Pick<Settings, 'triage' | 'passes'>): Workflow {
+	return { triage: settings.triage, passes: settings.passes };
 }
 
 /** The namespaces to write and to take back out, as `applyStatusTag` wants them. */

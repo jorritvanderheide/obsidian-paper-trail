@@ -36,6 +36,7 @@ import { say } from './notify';
 import { paperMenu } from './paper-menu';
 import { lastContact } from '../source';
 import { onLibraryChange, refreshLibrary, scopeProblem } from '../library';
+import { workflowOf } from '../core/settings';
 import type { Context } from '../context';
 import { today } from '../today';
 
@@ -80,7 +81,7 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	const waiting = matching(allWaiting, (entry) => ({ kind: 'note', note: entry.note }));
 	const done = matching(allDone, (entry) => ({ kind: 'note', note: entry.note }));
 
-	const visible = visibleStages(all, context.settings.triage);
+	const visible = visibleStages(all, workflowOf(context.settings));
 	const empty = [...all.values()].every((list) => list.length === 0);
 
 	// The pane only. A block is a view of the queue on a note of your own, and a
@@ -668,7 +669,7 @@ function sectionRows(
 		// section the triage setting sends it to, and what it is asking for is what
 		// putting it in Zotero meant, which is not always what the section is named
 		// for.
-		const task = rowTask(entry, context.settings.triage);
+		const task = rowTask(entry, workflowOf(context.settings));
 		if (!task) continue;
 		const { action, icon, done, doneIcon } = TASKS[task];
 

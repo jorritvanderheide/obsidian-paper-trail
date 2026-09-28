@@ -7,7 +7,7 @@
 
 import type { CachedMetadata } from 'obsidian';
 import { isPaper, isRegionStart } from './paper-note';
-import { deferralOf, label, landing, stateOf, type Outcome, type Progress, type State } from './triage';
+import { deferralOf, label, landing, stateOf, type Outcome, type Progress, type State, type Workflow } from './triage';
 import type { Pending } from './pending';
 
 /** Everything the rules need, read from Obsidian's metadata cache. */
@@ -249,13 +249,23 @@ export const STAGES: TaskDefinition[] = ORDER.map((task) => TASKS[task]);
  * where Reading sits; a zero is also worth reading, because "nothing to write
  * up" is different from not being told.
  *
- * Triage with triage turned off is the exception: it is not a stage you work,
- * so a permanent zero teaches nothing and never moves. It comes back the
- * moment something lands in it, which it still can: a note imported from
- * elsewhere with no `reading` on it, or one edited by hand.
+ * A stage the vault does not work is the exception: Triage with triage turned
+ * off, Claim where no pass is written, Assessment where only the claim is. A
+ * permanent zero teaches nothing and never moves. It comes back the moment
+ * something lands in it, which it still can: a note imported from elsewhere
+ * with no `reading` on it, one edited by hand, or a paper promoted before
+ * assessments were turned off.
  */
-export function visibleStages(rows: Map<Task, Row[]>, triage: boolean): TaskDefinition[] {
-	return STAGES.filter(({ task }) => !(task === 'triage' && !triage && (rows.get(task) ?? []).length === 0));
+export function visibleStages(rows: Map<Task, Row[]>, workflow: Workflow): TaskDefinition[] {
+	return STAGES.filter(({ task }) => works(task, workflow) || (rows.get(task) ?? []).length > 0);
+}
+
+/** Whether a vault works a stage, rather than a paper merely being able to land in it. */
+export function works(task: Task, workflow: Workflow): boolean {
+	if (task === 'triage') return workflow.triage;
+	if (task === 'claim') return workflow.passes !== 'none';
+	if (task === 'assessment') return workflow.passes === 'both';
+	return true;
 }
 
 /**
@@ -280,24 +290,25 @@ export function headingCoverage(papers: (CachedMetadata | null)[], heading: stri
  * Only papers can be outstanding. A note you wrote yourself is finished when
  * you stop typing, and the plugin has no business having an opinion about it.
  */
-export function taskOf(note: NoteState): Task | null {
+export function taskOf(note: NoteState, workflow: Workflow): Task | null {
 	if (!note.isPaper) return null;
 
 	// A deferral that has come back is outstanding again, in the stage it would
 	// return to if you picked it up. Its note still says deferred: coming back is
 	// the queue reading a date and another paper, never a write, and the note
 	// changes only when you decide something about it.
-	if (note.due) return returnsTo(note.state.progress);
-	return taskFor(note.state);
+	if (note.due) return returnsTo(note.state.progress, workflow);
+	return taskFor(note.state, workflow);
 }
 
 /**
  * The stage a deferral comes back to: Claim if you had read it, and Reading
  * otherwise, which is also where a paper you had summarised goes to be looked
- * at again.
+ * at again. Reading too for a read paper where no claim is written, since
+ * looking at it again is all there is to do with it.
  */
-export function returnsTo(progress: Progress | null): Task {
-	return progress === 'read' ? 'claim' : 'reading';
+export function returnsTo(progress: Progress | null, workflow: Workflow): Task {
+	return progress === 'read' && workflow.passes !== 'none' ? 'claim' : 'reading';
 }
 
 /**
@@ -338,7 +349,7 @@ export function markDue(notes: NoteState[], today: string): NoteState[] {
  * heading. Reading it back off a stale cache would answer for the state before
  * the decision.
  */
-export function taskFor(state: State): Task | null {
+export function taskFor(state: State, workflow: Workflow): Task | null {
 	const { reading, progress } = state;
 
 	// A missing or unreadable `reading` counts as untriaged rather than as
@@ -355,7 +366,11 @@ export function taskFor(state: State): Task | null {
 	// What is left is a paper that earns at least a second pass, so what it is
 	// waiting on is simply how far you have got with it.
 	if (progress === null) return 'reading';
-	if (progress === 'read') return 'claim';
+
+	// A read paper owes a claim wherever claims are written. Where none are, it
+	// is finished, unless you promoted it: that asked this one paper for both
+	// passes, and the setting stops the asking, not what was already asked.
+	if (progress === 'read') return workflow.passes !== 'none' || reading === 'promoted' ? 'claim' : null;
 
 	// Only a promoted paper is ever asked for a third pass, which is what
 	// promoting it meant.
@@ -366,21 +381,23 @@ export function taskFor(state: State): Task | null {
 /**
  * Where a paper came to rest, or null while it is still outstanding.
  *
- * Every one of the four is an answer somebody gave: three ways a paper can be
- * done with you and one way you can be done with it.
+ * Every one is an answer somebody gave: the ways a paper can be done with you,
+ * and the one way you can be done with it.
  *
  * A paper and nothing outstanding is a paper at rest, and there is nothing
  * further to test: `taskOf` sends untriaged to Triage and queued to Reading, so
- * what reaches here is always one of the four a decision can leave behind. It
+ * what reaches here is always one of the states a decision can leave behind. It
  * used to re-check the value against that list, and the second check is what
  * made a settled paper vanish from both the queue and the record whenever the
  * two readings of the field disagreed. One reading, in one place, stops that.
  */
-export function outcomeOf(note: NoteState): Outcome | null {
-	if (!note.isPaper || taskOf(note) !== null) return null;
+export function outcomeOf(note: NoteState, workflow: Workflow): Outcome | null {
+	if (!note.isPaper || taskOf(note, workflow) !== null) return null;
 
 	const { reading, progress } = note.state;
 	if (reading === 'dropped' || reading === 'deferred') return reading;
+	// At rest only where no claim is written, which `taskOf` has just said.
+	if (progress === 'read') return 'read';
 	return progress === 'assessed' ? 'assessed' : 'summarised';
 }
 
@@ -403,10 +420,10 @@ export interface Settled {
  * brought in from another vault, or decided before the field existed, is still
  * a decision, and hiding it would make the count disagree with the list.
  */
-function atRest(notes: NoteState[]): Settled[] {
+function atRest(notes: NoteState[], workflow: Workflow): Settled[] {
 	return notes
 		.flatMap((note) => {
-			const reading = outcomeOf(note);
+			const reading = outcomeOf(note, workflow);
 			return reading === null ? [] : [{ note, reading }];
 		})
 		.sort((a, b) => (b.note.decided ?? '').localeCompare(a.note.decided ?? '') || b.note.created - a.note.created);
@@ -415,14 +432,14 @@ function atRest(notes: NoteState[]): Settled[] {
 /**
  * Everything you are done with.
  *
- * Three of the four outcomes, because a deferral is not one of them. It is
+ * Every outcome but one, because a deferral is not one of them. It is
  * the one decision that is a promise rather than an ending, and filing it
  * with the papers you finished is how the promise goes quiet: the section is
  * shut by default, so a paper you parked until March joins a list you open
  * once a year to admire.
  */
-export function settled(notes: NoteState[]): Settled[] {
-	return atRest(notes).filter((entry) => entry.reading !== 'deferred');
+export function settled(notes: NoteState[], workflow: Workflow): Settled[] {
+	return atRest(notes, workflow).filter((entry) => entry.reading !== 'deferred');
 }
 
 /**
@@ -434,8 +451,8 @@ export function settled(notes: NoteState[]): Settled[] {
  * includes one; the section is there so that a standing count of parked
  * papers is in front of you, and the condition you set is on the row.
  */
-export function parked(notes: NoteState[]): Settled[] {
-	return atRest(notes).filter((entry) => entry.reading === 'deferred');
+export function parked(notes: NoteState[], workflow: Workflow): Settled[] {
+	return atRest(notes, workflow).filter((entry) => entry.reading === 'deferred');
 }
 
 /**
@@ -464,15 +481,15 @@ export function decidedWords(note: Pick<NoteState, 'state' | 'decided' | 'reason
  * waiting on, and "Deferred, with the condition on the note" pointed at it
  * without saying it.
  */
-export function statusWords(note: Pick<NoteState, 'state' | 'decided' | 'reason'>): string {
-	return note.reason ? decidedWords(note) : `${label(note.state)}. ${landing(note.state)}`;
+export function statusWords(note: Pick<NoteState, 'state' | 'decided' | 'reason'>, workflow: Workflow): string {
+	return note.reason ? decidedWords(note) : `${label(note.state)}. ${landing(note.state, workflow)}`;
 }
 
 /** Oldest first within each stage, so the pile drains in the order it arrived. */
-export function byStage(notes: NoteState[]): Map<Task, NoteState[]> {
+export function byStage(notes: NoteState[], workflow: Workflow): Map<Task, NoteState[]> {
 	const out = new Map<Task, NoteState[]>(ORDER.map((task) => [task, []]));
 	for (const note of notes) {
-		const stage = taskOf(note);
+		const stage = taskOf(note, workflow);
 		if (stage) out.get(stage)?.push(note);
 	}
 	for (const list of out.values()) list.sort((a, b) => a.created - b.created);
@@ -744,9 +761,9 @@ function folded(text: string): string {
  * Either way nothing is written until you decide on it, and deciding is what
  * gives it a note.
  */
-export function rowTask(row: Row, triage: boolean): Task | null {
-	if (row.kind !== 'pending') return taskOf(row.note);
-	return triage ? 'triage' : 'reading';
+export function rowTask(row: Row, workflow: Workflow): Task | null {
+	if (row.kind !== 'pending') return taskOf(row.note, workflow);
+	return workflow.triage ? 'triage' : 'reading';
 }
 
 /**
@@ -830,11 +847,11 @@ function arrivedAt(row: Row, arrived: ReadonlyMap<string, string>): number {
 export function rowsByStage(
 	notes: NoteState[],
 	pending: Pending[],
-	triage: boolean,
+	workflow: Workflow,
 	arrived: ReadonlyMap<string, string> = new Map(),
 ): Map<Task, Row[]> {
 	const out = new Map<Task, Row[]>();
-	for (const [stage, list] of byStage(notes)) {
+	for (const [stage, list] of byStage(notes, workflow)) {
 		out.set(
 			stage,
 			list.map((note) => ({ kind: 'note' as const, note })),
@@ -843,7 +860,7 @@ export function rowsByStage(
 
 	// A paper Zotero holds that the vault has no note for is asking for whatever
 	// the first thing you do with a paper is, which is what the setting decides.
-	const stage: Task = triage ? 'triage' : 'reading';
+	const stage: Task = workflow.triage ? 'triage' : 'reading';
 	out.set(stage, [...(out.get(stage) ?? []), ...pending.map((item) => ({ kind: 'pending' as const, item }))]);
 
 	for (const [task, rows] of out) {

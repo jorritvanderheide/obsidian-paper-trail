@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, SETTINGS_VERSION, loadSettings, retireStatusTag } from '../src/core/settings';
+import { DEFAULT_SETTINGS, SETTINGS_VERSION, loadSettings, retireStatusTag, workflowOf } from '../src/core/settings';
 
 describe('loadSettings', () => {
 	it('fills in defaults', () => {
@@ -80,6 +80,27 @@ describe('the toggles', () => {
 	it('takes only a boolean as an answer, on either of them', () => {
 		expect(loadSettings({ statusPill: 'no' }).statusPill).toBe(true);
 		expect(loadSettings({ triage: 'yes' }).triage).toBe(false);
+	});
+});
+
+describe('written passes', () => {
+	it('writes both passes unless you say otherwise, which is the workflow as it was', () => {
+		expect(loadSettings(null).passes).toBe('both');
+	});
+
+	it('keeps each of the three', () => {
+		for (const passes of ['none', 'claim', 'both'] as const) expect(loadSettings({ passes }).passes).toBe(passes);
+	});
+
+	// A value no version wrote is not an answer, and the one it falls back to is
+	// the one that switches nothing off.
+	it('falls back to both for anything else', () => {
+		expect(loadSettings({ passes: 'assessment' }).passes).toBe('both');
+		expect(loadSettings({ passes: 2 }).passes).toBe('both');
+	});
+
+	it('hands the rules both switches together', () => {
+		expect(workflowOf(loadSettings({ triage: true, passes: 'none' }))).toEqual({ triage: true, passes: 'none' });
 	});
 });
 

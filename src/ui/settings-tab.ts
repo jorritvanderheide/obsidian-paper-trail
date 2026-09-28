@@ -1,8 +1,8 @@
 import { PluginSettingTab, type App, type SettingDefinitionItem } from 'obsidian';
-import { headingCoverage } from '../core/stages';
+import { headingCoverage, works } from '../core/stages';
 import { collectionPaths } from '../core/collections';
-import { loadSettings, retireStatusTag } from '../core/settings';
-import { readTags, retiredTagCount } from '../core/triage';
+import { loadSettings, retireStatusTag, workflowOf } from '../core/settings';
+import { readTags, retiredTagCount, type Passes } from '../core/triage';
 import { collections, forgetLibrary, refreshCollections } from '../library';
 import { lastContact } from '../source';
 import { decorate } from './view-actions';
@@ -10,6 +10,13 @@ import type PaperTrail from '../main';
 import type { Settings } from '../core/settings';
 
 type Key = keyof Settings;
+
+/** The written passes, in the order the dropdown offers them: the default first. */
+const PASS_OPTIONS: Record<Passes, string> = {
+	both: 'Claim and assessment',
+	claim: 'Claim only',
+	none: 'None',
+};
 
 /** What the scope control offers when nothing is chosen, which is the default. */
 const WHOLE_LIBRARY = 'Whole library';
@@ -90,6 +97,9 @@ export class SettingsTab extends PluginSettingTab {
 		if (key === 'collection') forgetLibrary();
 
 		await this.plugin.saveSettings();
+
+		// The heading and prompt fields for a pass that is switched off go with it.
+		if (key === 'passes') this.update();
 
 		// The title bar is drawn from workspace events, and changing a setting is
 		// not one of them. Without this, turning the status pill on does nothing
@@ -179,6 +189,15 @@ export class SettingsTab extends PluginSettingTab {
 		return ` ⚠ ${left} ${left === 1 ? 'paper' : 'papers'} still ${left === 1 ? 'carries' : 'carry'} ${names}. Each one sheds it the next time you decide anything about that paper.`;
 	}
 
+	/**
+	 * Whether a pass is written, so its heading and prompt are worth showing.
+	 * The values are kept either way, and still used for a paper promoted before
+	 * assessments were switched off.
+	 */
+	private writes(pass: 'claim' | 'assessment'): boolean {
+		return works(pass, workflowOf(this.plugin.settings));
+	}
+
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		this.askZotero();
 		const { statusTag, retiredStatusTags } = this.plugin.settings;
@@ -248,24 +267,33 @@ export class SettingsTab extends PluginSettingTab {
 						control: { type: 'toggle', key: 'quietNotices' },
 					},
 					{
+						name: 'Written passes',
+						desc: 'What you write after reading a paper. Claim and assessment asks every paper you read for a claim, and the ones you promote for an assessment as well. Claim only never offers the third pass. None files a paper as read once you have read it, for writing by theme rather than by paper. Nothing in your notes changes: a paper you already promoted still owes its assessment, and read papers wait on a claim again when claims come back.',
+						control: { type: 'dropdown', key: 'passes', options: PASS_OPTIONS },
+					},
+					{
 						name: 'Claim heading',
 						desc: `What the second pass is written under. The heading is written in when a paper comes to owe a claim, so one you drop never carries an empty section.${this.headingStatus(this.plugin.settings.claimHeading)}`,
 						control: { type: 'text', key: 'claimHeading' },
+						visible: () => this.writes('claim'),
 					},
 					{
 						name: 'Assessment heading',
 						desc: `What the third pass is written under, and only papers you promote are asked for one. It arrives the same way, below the claim, when the claim is ticked off.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
 						control: { type: 'text', key: 'assessmentHeading' },
+						visible: () => this.writes('assessment'),
 					},
 					{
 						name: 'Claim prompt',
 						desc: 'Shown faintly on the empty line under the Claim heading, and gone as soon as you start writing. Leave it empty once you no longer need asking.',
 						control: { type: 'textarea', key: 'claimPrompt', rows: 3, placeholder: 'Empty: nothing is shown.' },
+						visible: () => this.writes('claim'),
 					},
 					{
 						name: 'Assessment prompt',
 						desc: 'The same, under the Assessment heading. Nothing is written into the note either way.',
 						control: { type: 'textarea', key: 'assessmentPrompt', rows: 3, placeholder: 'Empty: nothing is shown.' },
+						visible: () => this.writes('assessment'),
 					},
 				],
 			},

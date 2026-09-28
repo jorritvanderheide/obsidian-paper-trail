@@ -19,6 +19,7 @@ import {
 	asks,
 	arrivalReading,
 	deferredLanding,
+	firstPass,
 	judgementIcon,
 	label,
 	landing,
@@ -33,7 +34,7 @@ import {
 	type State,
 	type Triage,
 } from '../core/triage';
-import { statusTagsOf } from '../core/settings';
+import { statusTagsOf, workflowOf } from '../core/settings';
 import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
 import type { Pending } from '../core/pending';
@@ -109,7 +110,8 @@ export async function writeTriage(context: Context, file: TFile, triage: Triage)
  * it has the heading already, so nothing is written and no modified time moves.
  */
 async function fitNote(context: Context, file: TFile, before: State, state: State): Promise<void> {
-	const task = taskFor(state);
+	const workflow = workflowOf(context.settings);
+	const task = taskFor(state, workflow);
 
 	// Nothing outstanding: dropped, parked, or both passes ticked off.
 	if (task === null) {
@@ -117,7 +119,7 @@ async function fitNote(context: Context, file: TFile, before: State, state: Stat
 		return;
 	}
 
-	if (taskFor(before) === null) await editingView(context.app, file);
+	if (taskFor(before, workflow) === null) await editingView(context.app, file);
 
 	if (task !== 'claim' && task !== 'assessment') return;
 
@@ -227,7 +229,7 @@ export function offersFor(context: Context, target: TriageTarget): { now: State;
 	const candidates =
 		now.progress === null ? CHOICES : CHOICES.flatMap((entry) => (entry.reading === 'queued' ? [entry, READ_AGAIN] : [entry]));
 	const offers = candidates
-		.filter((entry) => offered(entry.reading, context.settings.triage, now.progress) && moves(now, after(entry), due))
+		.filter((entry) => offered(entry.reading, workflowOf(context.settings), now.progress) && moves(now, after(entry), due))
 		.map((entry) => ({
 			choice: entry,
 			// The icon is the judgement being offered, and where it lands is said
@@ -265,7 +267,7 @@ export async function chooseReading(context: Context, target: TriageTarget, name
 		// Where it is now goes in the title, because it is no longer in the list:
 		// the line that would have said so was the one line that did nothing.
 		`Reading status of ${name} · ${label(now)}`,
-		(entry) => landing(entry.lands),
+		(entry) => landing(entry.lands, workflowOf(context.settings)),
 		(entry) => entry.icon,
 	);
 	if (offer) await takeOffer(context, target, name, offer.choice);
@@ -355,7 +357,7 @@ export async function decideOn(
 
 	const file = target.kind === 'note' ? target.file : await noteFor(context, target.item);
 	const state = await writeTriage(context, file, { reading, reason, progress, until, after: after?.key ?? null });
-	return { file, state, landing: deferredLanding(until, after?.title ?? null) ?? landing(state) };
+	return { file, state, landing: deferredLanding(until, after?.title ?? null) ?? landing(state, workflowOf(context.settings)) };
 }
 
 /** The Zotero key of the paper a target is about, so it is not offered as its own wait. */
@@ -466,7 +468,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 		}
 	}
 
-	const loaded = { title, brief, problem };
+	const loaded = { title, brief, problem, choices: firstPass(workflowOf(settings)) };
 
 	// Rebuilt for every paper, because it is what closes over the one being
 	// decided. Handing the dialog a new paper to show and leaving it the handler

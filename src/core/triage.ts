@@ -25,13 +25,41 @@ export type Reading = 'untriaged' | 'queued' | 'promoted' | 'deferred' | 'droppe
 export type Progress = 'read' | 'summarised' | 'assessed';
 
 /**
- * Why a paper is filed: the four things that mean nothing is outstanding.
+ * Why a paper is filed: the things that mean nothing is outstanding.
  *
- * Two are judgements about the paper and two are reports about you, which is
- * the split showing through at the one place it should: what you want to know
- * about a filed paper is why it is there, and those are the four reasons.
+ * Two are judgements about the paper and the rest are reports about you, which
+ * is the split showing through at the one place it should: what you want to
+ * know about a filed paper is why it is there, and those are the reasons.
+ * `read` is one only in a vault that writes no passes, where reading a paper
+ * is the end of it.
  */
-export type Outcome = 'dropped' | 'deferred' | 'summarised' | 'assessed';
+export type Outcome = 'dropped' | 'deferred' | 'read' | 'summarised' | 'assessed';
+
+/**
+ * Which of the two written passes a vault works: none, the claim, or the claim
+ * and, for the papers you promote, the assessment.
+ *
+ * A stage can be switched off, and never invented or reordered. Switching one
+ * off takes away what would send a paper into it and hides its section while it
+ * is empty; it never changes how a paper already in it is read, so a paper you
+ * promoted before turning assessments off still owes one. The one reading that
+ * does change is a read paper in a vault that writes nothing, because there
+ * reading it is the end of it.
+ */
+export type Passes = 'none' | 'claim' | 'both';
+
+export const PASSES: readonly Passes[] = ['none', 'claim', 'both'];
+
+/**
+ * The stages a vault works: whether papers arrive to be triaged, and which of
+ * the written passes follow a reading. Everything that decides what is
+ * outstanding or what to offer takes one, so the two switches cannot be
+ * consulted in one place and forgotten in another.
+ */
+export interface Workflow {
+	triage: boolean;
+	passes: Passes;
+}
 
 /** Where a paper is: the pair, which is the only thing that answers it. */
 export interface State {
@@ -264,9 +292,11 @@ const LANDINGS: Record<string, string> = {
  * reading asks it. On a paper you have not read it is a guess, and it would
  * leave the paper in Reading all the same.
  */
-export function offered(reading: Reading, triage: boolean, progress: Progress | null): boolean {
-	if (reading === 'untriaged') return triage;
-	if (reading === 'promoted') return progress !== null;
+export function offered(reading: Reading, workflow: Workflow, progress: Progress | null): boolean {
+	if (reading === 'untriaged') return workflow.triage;
+	// And only in a vault that writes assessments, since an assessment is what
+	// promoting a paper asks of it.
+	if (reading === 'promoted') return workflow.passes === 'both' && progress !== null;
 	return true;
 }
 
@@ -292,8 +322,12 @@ export function moves(from: State, to: State, due = false): boolean {
 	return label(from) !== label(to);
 }
 
-export function landing(state: State): string {
-	return LANDINGS[label(state)] ?? '';
+export function landing(state: State, workflow: Workflow): string {
+	const word = label(state);
+	// Read is the one word whose landing depends on the vault: it owes a claim
+	// wherever claims are written, and is the end of the paper where none are.
+	if (word === 'Read' && workflow.passes === 'none') return 'Read, and done with.';
+	return LANDINGS[word] ?? '';
 }
 
 /**
@@ -309,13 +343,76 @@ export function landing(state: State): string {
  * progress alone: a paper you gave up on an hour in has not been read, and one
  * you park keeps whatever it had, so coming back to either returns it to where
  * it was rather than to the start.
+ *
+ * Fewer in a vault that writes fewer passes. Without assessments there is no
+ * third pass to be worth, and without claims the first answer is not "worth
+ * summarising" but that the reading was the whole of it: the same write, a
+ * read paper, which in that vault is a finished one.
  */
-export const PASS_TWO: { reading: Reading; progress?: Progress; label: string }[] = [
+export function passTwo(workflow: Workflow): PassTwoChoice[] {
+	if (workflow.passes === 'both') return PASS_TWO;
+	const noThird = PASS_TWO.filter((entry) => entry.reading !== 'promoted');
+	if (workflow.passes === 'claim') return noThird;
+	return noThird.map((entry) => (entry.progress === 'read' ? { ...entry, label: 'Done with it' } : entry));
+}
+
+/** One answer to the end of a reading. */
+export interface PassTwoChoice {
+	reading: Reading;
+	progress?: Progress;
+	label: string;
+}
+
+const PASS_TWO: PassTwoChoice[] = [
 	{ reading: 'queued', progress: 'read', label: 'Worth summarising' },
 	{ reading: 'promoted', progress: 'read', label: 'Worth a third pass' },
 	{ reading: 'deferred', label: 'Worth another hour, but not now' },
 	{ reading: 'dropped', label: 'Not worth finishing' },
 ];
+
+/** One answer to the first pass, and what it means said beforehand. */
+export interface FirstPassChoice {
+	reading: Reading;
+	progress?: Progress;
+	label: string;
+	hint: string;
+}
+
+/**
+ * What the first pass can end in. Keshav's own question is binary, read on or
+ * do not, and the third answer is the honest extra: some of what you triage
+ * turns out to be something you have already read.
+ *
+ * Here rather than in the dialog because what the third one leads to depends
+ * on the vault, and the hint has to agree with `landing`, which says the same
+ * thing a second later.
+ */
+export function firstPass(workflow: Workflow): FirstPassChoice[] {
+	return [
+		{
+			reading: 'dropped',
+			label: 'Drop',
+			hint: 'Assessed and not going further. Asks why, so the exclusion is on the record.',
+		},
+		{
+			reading: 'queued',
+			label: 'Queue',
+			hint: 'Worth a real read. Goes on the reading list.',
+		},
+		{
+			reading: 'queued',
+			progress: 'read',
+			label: 'Already read',
+			// Not "this one is done", which is what it used to say and what the paper
+			// then was not: it skips the reading list and lands in Claim, still owing
+			// a summary. Where no claim is written it is done, and says so.
+			hint:
+				workflow.passes === 'none'
+					? 'Read already, so it skips the reading list and is filed as read.'
+					: 'Read already, so it skips the reading list. Goes to Claim, to be summarised.',
+		},
+	];
+}
 
 /** One way to say when a deferred paper should come back. */
 export interface LookAgain {

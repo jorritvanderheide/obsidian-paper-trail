@@ -71,11 +71,19 @@ have not decided about: each paper then comes up first with its title, venue,
 year and abstract, and three answers: drop it and say why, queue it, or mark it
 already read.
 
+**Claim** and **Assessment** can be switched off too, under **Written passes**.
+With the claim only, there is no third pass to promote a paper to. With
+neither, *Worth summarising* becomes *Done with it*, and a paper you have read
+is filed as read: for writing by theme rather than by paper, with your
+annotations as the note. Switching a pass off changes what is offered and
+nothing in your notes, so a paper you promoted before turning assessments off
+still owes one.
+
 Below the stages, two sections hold the papers nothing is outstanding for.
 **Deferred** is what you parked, with the condition you set in each row's
 tooltip, so a promise to come back stays in front of you with a count on it.
-**Filed** is the rest, dropped, summarised or assessed, newest first. Neither is
-ever counted as outstanding.
+**Filed** is the rest, dropped, read, summarised or assessed, newest first.
+Neither is ever counted as outstanding.
 
 A deferral comes back by itself. When you defer a paper you say what has to
 happen first, and pick when to look again: once you have read another paper
@@ -345,11 +353,14 @@ None has a hotkey, so pick your own.
 | **Item key property** | `zotero-key` | The frontmatter property naming the Zotero item. Point it at whatever your existing literature notes use and they are recognised as they are. |
 | **Show reading status on papers** | On | The pill in the title bar, and at the top of a rendered paper. |
 | **Quieter notifications** | Off | Show only failures and warnings. |
-| **Claim heading**, **Assessment heading** | `Claim`, `Assessment` | The headings the two written passes go under. |
+| **Written passes** | Claim and assessment | What follows a reading: both passes, the claim only, or none, which files a paper once you have read it. |
+| **Claim heading**, **Assessment heading** | `Claim`, `Assessment` | The headings the two written passes go under. Shown for the passes you write. |
 | **Claim prompt**, **Assessment prompt** | A question | The faint text on the empty line under each heading. Empty turns it off. |
 
 The stages and the reading vocabulary are not settings. They are the product:
 an opinionated workflow rather than a rules engine that asks you to invent one.
+A stage can be switched off, and that is all: none can be added, renamed or
+reordered.
 
 ## Safety
 

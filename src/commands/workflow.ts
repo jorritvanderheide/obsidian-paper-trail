@@ -22,7 +22,8 @@ import { selectUrl } from '../core/paper-note';
 import { itemChildren, lastContact } from '../source';
 import { decideOn, openTriage, targetOf, writeTriage } from './reading';
 import { fileOf, paperNote, queue } from '../outstanding';
-import { iconOf, landing, PASS_PROGRESS, PASS_TWO, resumed } from '../core/triage';
+import { iconOf, landing, PASS_PROGRESS, passTwo, resumed } from '../core/triage';
+import { workflowOf } from '../core/settings';
 import { suggest } from '../ui/prompt';
 import { say } from '../ui/notify';
 import { openAtHeading, openedIn, reveal } from '../ui/reveal';
@@ -48,7 +49,7 @@ export async function openNote(app: App, note: NoteState): Promise<void> {
  * A note has just been opened in a pane, by anything at all.
  *
  * A paper nothing is outstanding for opens as a document rather than as an
- * editor. The four outcomes have one thing in common, which is that the
+ * editor. The outcomes have one thing in common, which is that the
  * writing is over: what is left is something to read, and the editor is a
  * pane of markdown syntax standing between you and it. A paper still owing a
  * pass opens as your default has it, because you may be going there to type.
@@ -61,7 +62,7 @@ export async function openNote(app: App, note: NoteState): Promise<void> {
 export async function opening(context: Context, file: TFile): Promise<void> {
 	// A deferral that has come back is outstanding again, so it opens the way
 	// work does rather than rendered like something finished.
-	await openedIn(context.app, file, outcomeOf(paperNote(context, file)) !== null);
+	await openedIn(context.app, file, outcomeOf(paperNote(context, file), workflowOf(context.settings)) !== null);
 }
 
 /**
@@ -244,14 +245,15 @@ async function finishPass(context: Context, pass: 'claim' | 'assessment', row: R
 	// the tick can be pressed over an empty heading, and it said the same thing
 	// whether the paper was finished with or had just acquired an assessment to
 	// write. `landing` knows the difference because it reads the pair.
-	const landed = `${rowTitle(row)}\n${landing(state)}`;
+	const workflow = workflowOf(context.settings);
+	const landed = `${rowTitle(row)}\n${landing(state, workflow)}`;
 
 	// A promoted paper whose claim has just been ticked owes an assessment, and
 	// goes straight to it, the way finishing a reading goes straight to the
 	// claim. It is the same moment for the same reason: the claim is what you
 	// argue with, and it has never been fresher than it is now. The note opens
 	// if it is shut and comes forward if it is not.
-	if (taskFor(state) === 'assessment') {
+	if (taskFor(state, workflow) === 'assessment') {
 		await writeUnder(context, file, 'assessment', landed);
 		return;
 	}
@@ -326,13 +328,14 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	const target = targetOf(app, row);
 	if (!target) return;
 
+	const workflow = workflowOf(context.settings);
 	const title = rowTitle(row);
 	const choice = await suggest(
 		app,
-		PASS_TWO,
+		passTwo(workflow),
 		(entry) => entry.label,
 		`Finished with ${title}`,
-		(entry) => landing({ reading: entry.reading, progress: entry.progress ?? null }),
+		(entry) => landing({ reading: entry.reading, progress: entry.progress ?? null }, workflow),
 		(entry) => iconOf({ reading: entry.reading, progress: entry.progress ?? null }),
 	);
 	if (!choice) return;
@@ -352,7 +355,7 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	//
 	// The two that end the paper are not followed anywhere. A drop and a
 	// deferral have already been answered, and there is nothing left to type.
-	if (taskFor(written.state) === 'claim') {
+	if (taskFor(written.state, workflow) === 'claim') {
 		await writeUnder(context, written.file, 'claim', landed);
 		return;
 	}
@@ -374,7 +377,7 @@ export async function next(context: Context): Promise<void> {
 		const first = buckets.get(section)?.[0];
 		// The row's own task, not the section's: a pending paper in Reading is
 		// asking to be read whatever the section it was filed under is called.
-		const task = first ? rowTask(first, context.settings.triage) : null;
+		const task = first ? rowTask(first, workflowOf(context.settings)) : null;
 		if (!first || !task) continue;
 
 		// Only where the action will not say it itself. Triage opens a dialog

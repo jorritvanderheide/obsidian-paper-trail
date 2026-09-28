@@ -16,7 +16,8 @@
 //
 // Wiring only. What the states are and what each one means is core's.
 import { MarkdownRenderChild, setIcon, type MarkdownPostProcessor, type TFile } from 'obsidian';
-import { iconOf, label } from '../core/triage';
+import { iconOf, label, type Workflow } from '../core/triage';
+import { workflowOf } from '../core/settings';
 import { statusWords, type NoteState } from '../core/stages';
 import { noteOf } from '../outstanding';
 import { setReading } from '../commands/reading';
@@ -30,11 +31,11 @@ import type { Context } from '../context';
  * state differently. It empties and refills rather than rebuilding, so a click
  * handler on the element itself survives a redraw.
  */
-export function fillPill(el: HTMLElement, note: NoteState): void {
+export function fillPill(el: HTMLElement, note: NoteState, workflow: Workflow): void {
 	el.empty();
 	setIcon(el.createSpan({ cls: 'paper-trail-status-icon' }), iconOf(note.state));
 	el.createSpan({ cls: 'paper-trail-status-word', text: label(note.state) });
-	el.setAttribute('aria-label', statusWords(note));
+	el.setAttribute('aria-label', statusWords(note, workflow));
 }
 
 /**
@@ -127,7 +128,7 @@ class NoteStatus extends MarkdownRenderChild {
 
 		const found = readingAt(this.context, this.path);
 		pill.toggle(found !== null);
-		if (found) fillPill(pill, found.note);
+		if (found) fillPill(pill, found.note, workflowOf(this.context.settings));
 	}
 }
 

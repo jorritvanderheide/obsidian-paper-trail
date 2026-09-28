@@ -15,6 +15,7 @@ import { rowTask, rowTitle, TASKS, type Row } from '../core/stages';
 import { act, finish } from '../commands/workflow';
 import { offersFor, takeOffer, targetOf } from '../commands/reading';
 import { paperNote } from '../outstanding';
+import { workflowOf } from '../core/settings';
 import type { Context } from '../context';
 
 /**
@@ -44,7 +45,7 @@ export function paperMenu(menu: Menu, context: Context, row: Row): boolean {
 
 	menu.addSeparator();
 
-	const task = rowTask(row, context.settings.triage);
+	const task = rowTask(row, workflowOf(context.settings));
 	if (task) {
 		const { action, icon, done, doneIcon } = TASKS[task];
 		if (done && doneIcon) {

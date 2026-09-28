@@ -15,6 +15,8 @@ import { taskOf, TASKS, type NoteState, type Task } from '../core/stages';
 import { paperNote } from '../outstanding';
 import { act, finish } from '../commands/workflow';
 import { refreshPaper } from '../commands/papers';
+import { workflowOf } from '../core/settings';
+import type { Workflow } from '../core/triage';
 import type { Context } from '../context';
 
 const REFRESH = 'paper-trail-refresh';
@@ -82,7 +84,7 @@ function decorateOne(context: Context, view: MarkdownView): void {
 	// in it, and `ensure` hands back a button it has already made without
 	// rebinding: a handler that captured a note would still be holding the
 	// first paper ever opened in that tab, and would act on it.
-	const task = note ? taskOf(note) : null;
+	const task = note ? taskOf(note, workflowOf(context.settings)) : null;
 	const outstanding = task ? TASKS[task] : null;
 
 	// Made in the reverse of the order they appear. `addAction` puts each new
@@ -116,7 +118,7 @@ function decorateOne(context: Context, view: MarkdownView): void {
 	// Reading view has the document carrying it, which is the one that shows up
 	// in a hover preview. Two pills for one state would be one too many.
 	const rendered = view.getMode() !== 'source';
-	status(pill, context.settings.statusPill && !rendered ? note : null);
+	status(pill, context.settings.statusPill && !rendered ? note : null, workflowOf(context.settings));
 }
 
 /**
@@ -139,11 +141,11 @@ function decorateOne(context: Context, view: MarkdownView): void {
  * worth more than a label, and it is the shortest route from noticing a paper
  * is in the wrong state to putting it right.
  */
-function status(pill: HTMLElement, note: NoteState | null): void {
+function status(pill: HTMLElement, note: NoteState | null, workflow: Workflow): void {
 	pill.toggle(note !== null && note.isPaper);
 	if (note === null || !note.isPaper) return;
 
-	fillPill(pill, note);
+	fillPill(pill, note, workflow);
 }
 
 /**
@@ -173,7 +175,7 @@ function withCurrent(
 	what: (context: Context, task: Task, row: { kind: 'note'; note: NoteState }) => Promise<void>,
 ): void {
 	const note = stateOf(context, view);
-	const task = note ? taskOf(note) : null;
+	const task = note ? taskOf(note, workflowOf(context.settings)) : null;
 	if (note && task) void what(context, task, { kind: 'note', note });
 }
 

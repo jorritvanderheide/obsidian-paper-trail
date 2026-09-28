@@ -22,6 +22,7 @@ import {
 	type Task,
 } from './core/stages';
 import { pendingOf } from './core/pending';
+import { workflowOf } from './core/settings';
 import { library } from './library';
 import type { Context } from './context';
 import { today } from './today';
@@ -96,6 +97,7 @@ export function queue(context: Context): {
 	done: Settled[];
 } {
 	const notes = collect(context);
+	const workflow = workflowOf(context.settings);
 	const items = library();
 	const keys = notes.flatMap((note) => (note.key === null ? [] : [note.key]));
 
@@ -106,9 +108,9 @@ export function queue(context: Context): {
 
 	return {
 		notes,
-		rows: rowsByStage(notes, pendingOf(items, keys), context.settings.triage, arrived),
-		waiting: parked(notes),
-		done: settled(notes),
+		rows: rowsByStage(notes, pendingOf(items, keys), workflow, arrived),
+		waiting: parked(notes, workflow),
+		done: settled(notes, workflow),
 	};
 }
 

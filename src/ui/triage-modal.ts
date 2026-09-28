@@ -19,7 +19,7 @@
 // and title, venue and year come with it. That is what Keshav's first pass is
 // mostly made of, and it is what the twenty seconds are actually spent on.
 import { Modal, setIcon, type App } from 'obsidian';
-import { iconOf, type Progress, type Reading } from '../core/triage';
+import { iconOf, type FirstPassChoice, type Progress, type Reading } from '../core/triage';
 import { notify } from './notify';
 
 /** What Zotero hands over without anything being opened. */
@@ -34,35 +34,9 @@ export interface Triaged {
 	brief: Brief;
 	/** Why the brief is empty, said in the dialog rather than a notice that scrolls away. */
 	problem: string | null;
+	/** What the pass can end in, which depends on the passes the vault writes. */
+	choices: FirstPassChoice[];
 }
-
-/**
- * What the first pass can end in. Keshav's own question is binary, read on or
- * do not, and the third button is the honest extra: some of what you triage
- * turns out to be something you have already read.
- */
-const DECISIONS: { reading: Reading; progress?: Progress; label: string; hint: string }[] = [
-	{
-		reading: 'dropped',
-		label: 'Drop',
-		hint: 'Assessed and not going further. Asks why, so the exclusion is on the record.',
-	},
-	{
-		reading: 'queued',
-		label: 'Queue',
-		hint: 'Worth a real read. Goes on the reading list.',
-	},
-	{
-		reading: 'queued',
-		progress: 'read',
-		label: 'Already read',
-		// Not "this one is done", which is what it used to say and what the paper
-		// then was not: it skips the reading list and lands in Claim, still owing
-		// a summary. `landing` says so a second later, and a hint disagreeing with
-		// it is the wrong one of the two.
-		hint: 'Read already, so it skips the reading list. Goes to Claim, to be summarised.',
-	},
-];
 
 /**
  * One paper, one decision.
@@ -140,7 +114,7 @@ export class TriageModal extends Modal {
 
 	private decisions(parent: HTMLElement): void {
 		const row = parent.createDiv({ cls: 'paper-trail-triage-decisions' });
-		for (const decision of DECISIONS) {
+		for (const decision of this.loaded.choices) {
 			const button = row.createEl('button', { attr: { 'aria-label': decision.hint } });
 			setIcon(button.createSpan(), iconOf({ reading: decision.reading, progress: decision.progress ?? null }));
 			button.createSpan({ text: decision.label });
@@ -174,7 +148,7 @@ export class TriageModal extends Modal {
 	 * second found the first's file before Obsidian had read it and reported it
 	 * as somebody else's note: an alarming failure for having clicked twice.
 	 */
-	private async answer(decision: (typeof DECISIONS)[number]): Promise<void> {
+	private async answer(decision: FirstPassChoice): Promise<void> {
 		if (this.answering) return;
 		this.answering = true;
 		try {

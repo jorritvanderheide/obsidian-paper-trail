@@ -16,7 +16,8 @@ import {
 	moves,
 	offered,
 	NO_STATUS_TAGS,
-	PASS_TWO,
+	passTwo,
+	firstPass,
 	READ_AGAIN,
 	resumed,
 	readTags,
@@ -28,7 +29,14 @@ import {
 	stateOf,
 	type Reading,
 	type State,
+	type Workflow,
 } from '../src/core/triage';
+
+/** A vault working every stage, which is what the rules were written for. */
+const FULL: Workflow = { triage: true, passes: 'both' };
+
+/** Every pass, with triage on or off. */
+const wf = (triage: boolean): Workflow => ({ triage, passes: 'both' });
 
 /** A literature note as it is created, before any decision. */
 const untriaged = () => ({
@@ -164,24 +172,24 @@ describe('asks', () => {
 	});
 });
 
-describe('PASS_TWO', () => {
+describe('passTwo', () => {
 	it('offers Keshav\'s three, plus abandoning a paper an hour in', () => {
-		expect(PASS_TWO.map((entry) => entry.reading)).toEqual(['queued', 'promoted', 'deferred', 'dropped']);
+		expect(passTwo(FULL).map((entry) => entry.reading)).toEqual(['queued', 'promoted', 'deferred', 'dropped']);
 	});
 
 	it('never sends a read paper back to be triaged', () => {
-		expect(PASS_TWO.map((entry) => entry.reading)).not.toContain('untriaged');
+		expect(passTwo(FULL).map((entry) => entry.reading)).not.toContain('untriaged');
 	});
 
 	// The two that mean you engaged with the paper record the reading as done.
 	// The two that end it leave progress alone, so picking the paper up again
 	// returns it to where it was rather than to the start.
 	it('records the reading only on the two that finished it', () => {
-		expect(PASS_TWO.filter((entry) => entry.progress === 'read').map((entry) => entry.reading)).toEqual([
+		expect(passTwo(FULL).filter((entry) => entry.progress === 'read').map((entry) => entry.reading)).toEqual([
 			'queued',
 			'promoted',
 		]);
-		expect(PASS_TWO.filter((entry) => entry.progress === undefined).map((entry) => entry.reading)).toEqual([
+		expect(passTwo(FULL).filter((entry) => entry.progress === undefined).map((entry) => entry.reading)).toEqual([
 			'deferred',
 			'dropped',
 		]);
@@ -197,7 +205,7 @@ describe('PASS_TWO', () => {
 	// a claim about you rather than about the paper. It survives in the Claim
 	// section's tooltip and in the question asked at the heading.
 	it('answers the one question in one grammar', () => {
-		expect(PASS_TWO.map((entry) => entry.label)).toEqual([
+		expect(passTwo(FULL).map((entry) => entry.label)).toEqual([
 			'Worth summarising',
 			'Worth a third pass',
 			'Worth another hour, but not now',
@@ -206,7 +214,45 @@ describe('PASS_TWO', () => {
 	});
 
 	it('gives every option a label', () => {
-		for (const entry of PASS_TWO) expect(entry.label, entry.reading).toBeTruthy();
+		for (const entry of passTwo(FULL)) expect(entry.label, entry.reading).toBeTruthy();
+	});
+});
+
+describe('passTwo, with fewer passes written', () => {
+	const choices = (passes: Workflow['passes']) => passTwo({ triage: false, passes });
+
+	// Without assessments there is no third pass to be worth.
+	it('offers no third pass where only the claim is written', () => {
+		expect(choices('claim').map((entry) => entry.label)).toEqual([
+			'Worth summarising',
+			'Worth another hour, but not now',
+			'Not worth finishing',
+		]);
+	});
+
+	// The same write as Worth summarising: a read paper, which in that vault is
+	// a finished one. Only the words change, because nothing is left to summarise.
+	it('ends the paper at the reading where nothing is written', () => {
+		const [done, ...rest] = choices('none');
+		expect(done).toEqual({ reading: 'queued', progress: 'read', label: 'Done with it' });
+		expect(rest.map((entry) => entry.reading)).toEqual(['deferred', 'dropped']);
+	});
+});
+
+describe('firstPass', () => {
+	it('offers the same three answers whatever the vault writes', () => {
+		for (const passes of ['none', 'claim', 'both'] as const) {
+			expect(firstPass({ triage: true, passes }).map((entry) => entry.label)).toEqual(['Drop', 'Queue', 'Already read']);
+		}
+	});
+
+	// The hint says beforehand what the landing says a second later, so the two
+	// must agree about where a paper already read goes.
+	it('says an already read paper goes to Claim only where claims are written', () => {
+		const hint = (passes: Workflow['passes']) => firstPass({ triage: true, passes })[2]?.hint;
+		expect(hint('both')).toContain('Claim');
+		expect(hint('claim')).toContain('Claim');
+		expect(hint('none')).not.toContain('Claim');
 	});
 });
 
@@ -225,11 +271,21 @@ const EVERY_STATE: State[] = [
 
 describe('landing', () => {
 	it('says something different for every state, so no two decisions look alike', () => {
-		expect(new Set(EVERY_STATE.map(landing)).size).toBe(EVERY_STATE.length);
+		expect(new Set(EVERY_STATE.map((state) => landing(state, FULL))).size).toBe(EVERY_STATE.length);
 	});
 
 	it('has something to say about every one of them', () => {
-		for (const state of EVERY_STATE) expect(landing(state), label(state)).toBeTruthy();
+		for (const state of EVERY_STATE) expect(landing(state, FULL), label(state)).toBeTruthy();
+	});
+
+	// Read owes a claim wherever one is written, and is the end of the paper
+	// where none is. Every other word lands the same in every vault.
+	it('says a read paper is done with where no claim is written', () => {
+		const none: Workflow = { triage: false, passes: 'none' };
+		expect(landing({ reading: 'queued', progress: 'read' }, none)).toBe('Read, and done with.');
+		for (const state of EVERY_STATE.filter((entry) => label(entry) !== 'Read')) {
+			expect(landing(state, none), label(state)).toBe(landing(state, FULL));
+		}
 	});
 });
 
@@ -624,7 +680,7 @@ describe('READ_AGAIN', () => {
 	});
 
 	it('lands where Queued lands on a paper nobody has read', () => {
-		expect(landing({ reading: READ_AGAIN.reading, progress: READ_AGAIN.progress })).toBe(landing({ reading: 'queued', progress: null }));
+		expect(landing({ reading: READ_AGAIN.reading, progress: READ_AGAIN.progress }, FULL)).toBe(landing({ reading: 'queued', progress: null }, FULL));
 	});
 });
 
@@ -682,26 +738,33 @@ describe('offered', () => {
 	// With triage off, Triage is a section nothing in the workflow opens, so
 	// sending a paper there parks it somewhere hidden.
 	it('does not offer Untriaged when triage is off', () => {
-		expect(offered('untriaged', false, null)).toBe(false);
+		expect(offered('untriaged', wf(false), null)).toBe(false);
 	});
 
 	it('offers it when triage is on', () => {
-		expect(offered('untriaged', true, null)).toBe(true);
+		expect(offered('untriaged', wf(true), null)).toBe(true);
 	});
 
 	// Worth a third pass is what a second pass concludes, so a paper in Reading
 	// cannot be promoted and one in Claim can.
 	it('offers Promoted only once the paper has been read', () => {
-		expect(offered('promoted', true, null)).toBe(false);
-		expect(offered('promoted', false, null)).toBe(false);
-		for (const progress of PROGRESS_ORDER) expect(offered('promoted', true, progress), progress).toBe(true);
+		expect(offered('promoted', wf(true), null)).toBe(false);
+		expect(offered('promoted', wf(false), null)).toBe(false);
+		for (const progress of PROGRESS_ORDER) expect(offered('promoted', wf(true), progress), progress).toBe(true);
+	});
+
+	// Promoting a paper asks it for an assessment, which only a vault writing
+	// them can ask.
+	it('offers Promoted only where assessments are written', () => {
+		expect(offered('promoted', { triage: true, passes: 'claim' }, 'read')).toBe(false);
+		expect(offered('promoted', { triage: true, passes: 'none' }, 'read')).toBe(false);
 	});
 
 	it('offers Queued, Deferred and Dropped whatever has been read, triage or not', () => {
 		for (const reading of ['queued', 'deferred', 'dropped'] as const) {
 			for (const progress of [null, ...PROGRESS_ORDER]) {
-				expect(offered(reading, false, progress), reading).toBe(true);
-				expect(offered(reading, true, progress), reading).toBe(true);
+				expect(offered(reading, wf(false), progress), reading).toBe(true);
+				expect(offered(reading, wf(true), progress), reading).toBe(true);
 			}
 		}
 	});
