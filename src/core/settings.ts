@@ -173,7 +173,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	papersFolder: 'Literature',
 	statusTag: '',
 	retiredStatusTags: [],
-	templateFolder: 'Templates',
+	templateFolder: 'Templates/Paper Trail',
 	claimHeading: 'Claim',
 	assessmentHeading: 'Assessment',
 	// Two questions, because the second is only answerable here. A literature

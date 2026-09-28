@@ -308,7 +308,7 @@ None has a hotkey, so pick your own.
 | --- | --- | --- |
 | **Papers from** | Whole library | One Zotero collection, when your library holds more than this thesis. Papers outside it that already have a note keep working. |
 | **Triage before reading** | Off | Ask about each paper before it reaches Reading. |
-| **Template folder** | `Templates` | Where `Paper.md` lives. It is written there the first time a paper note is made, and your edits to it are kept. |
+| **Template folder** | `Templates/Paper Trail` | Where `Paper.md` lives. It is written there the first time a paper note is made, and your edits to it are kept. |
 | **Papers folder** | `Literature` | One note per paper. |
 | **Status tag** | Empty | Mirror each paper's status into a tag, such as `status/queued`. Empty writes none. |
 | **Item key property** | `zotero-key` | The frontmatter property naming the Zotero item. Point it at whatever your existing literature notes use and they are recognised as they are. |
