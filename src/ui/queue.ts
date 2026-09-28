@@ -37,7 +37,7 @@ import { paperMenu } from './paper-menu';
 import { lastContact } from '../source';
 import { onLibraryChange, refreshLibrary, scopeProblem } from '../library';
 import { workflowOf } from '../core/settings';
-import type { Context } from '../context';
+import { onSettingsChanged, type Context } from '../context';
 import { today } from '../today';
 
 export const QUEUE_VIEW = 'paper-trail-queue';
@@ -1026,6 +1026,7 @@ export class QueueView extends ItemView {
 		this.registerEvent(this.app.metadataCache.on('changed', (file) => this.writing.changed(file)));
 		this.registerEvent(this.app.vault.on('delete', this.redraw));
 		this.registerEvent(this.app.vault.on('rename', this.redraw));
+		this.registerEvent(onSettingsChanged(this.app, this.redraw));
 
 		// Leaving the note is what lets the held change land, and clicking this
 		// pane counts as leaving. The same two events move the highlight, which

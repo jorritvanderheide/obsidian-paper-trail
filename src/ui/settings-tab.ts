@@ -3,9 +3,10 @@ import { headingCoverage, works } from '../core/stages';
 import { collectionPaths } from '../core/collections';
 import { loadSettings, retireStatusTag, workflowOf } from '../core/settings';
 import { readTags, retiredTagCount, type Passes } from '../core/triage';
-import { collections, forgetLibrary, refreshCollections } from '../library';
+import { collections, forgetLibrary, refreshCollections, refreshLibrary } from '../library';
 import { lastContact } from '../source';
 import { decorate } from './view-actions';
+import { settingsChanged } from '../context';
 import type PaperTrail from '../main';
 import type { Settings } from '../core/settings';
 
@@ -93,10 +94,15 @@ export class SettingsTab extends PluginSettingTab {
 		this.plugin.settings = loadSettings(this.plugin.settings);
 
 		// Another collection means another set of items, so what is cached is the
-		// wrong set rather than a stale one.
-		if (key === 'collection') forgetLibrary();
+		// wrong set rather than a stale one. Asked for at once, so the queue fills
+		// with the new set rather than waiting for you to come back to Obsidian.
+		if (key === 'collection') {
+			forgetLibrary();
+			void refreshLibrary(this.plugin.settings.collection);
+		}
 
 		await this.plugin.saveSettings();
+		settingsChanged(this.app);
 
 		// The heading and prompt fields for a pass that is switched off go with it.
 		if (key === 'passes') this.update();
