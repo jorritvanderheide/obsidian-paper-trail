@@ -704,6 +704,36 @@ export function rowTitle(row: Row): string {
 }
 
 /**
+ * Whether a row answers what was typed in the pane's search box.
+ *
+ * Every word has to turn up somewhere, in any order and any case, and an
+ * accent is not a difference: someone typing "Godel" is looking for Gödel.
+ * Where it looks is the title, and on a paper with a note also the note's file
+ * name, which is the citation key when Better BibTeX named it, and the reason
+ * you gave for parking or dropping it, which is often all you remember of a
+ * paper you ruled out long ago. A paper with no note has only its title.
+ *
+ * A query with no words in it matches everything, so an empty box filters
+ * nothing.
+ */
+export function matchesQuery(row: Row, query: string): boolean {
+	const words = folded(query).split(/\s+/).filter(Boolean);
+	if (words.length === 0) return true;
+
+	const fields =
+		row.kind === 'note'
+			? [row.note.title, row.note.path.slice(row.note.path.lastIndexOf('/') + 1).replace(/\.md$/, ''), row.note.reason ?? '']
+			: [row.item.title];
+	const text = folded(fields.join(' '));
+	return words.every((word) => text.includes(word));
+}
+
+/** Lower case, with accents taken off, so a search does not have to guess either. */
+function folded(text: string): string {
+	return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
+/**
  * What a row is asking for.
  *
  * A pending paper is one Zotero holds that the vault has no note for, so what

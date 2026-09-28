@@ -13,9 +13,10 @@
 // Derived, never authoritative: everything is read from the metadata cache and
 // every write goes through the same commands the palette uses. If this and a
 // note disagree, the note is right.
-import { ItemView, Menu, Notice, debounce, setIcon, type App, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Menu, Notice, SearchComponent, debounce, setIcon, type App, type WorkspaceLeaf } from 'obsidian';
 import {
 	decidedWords,
+	matchesQuery,
 	rowTask,
 	rowTitle,
 	type NoteState,
@@ -48,7 +49,17 @@ export const QUEUE_VIEW = 'paper-trail-queue';
  * living in the sidebar. Neither wants to inherit from the other.
  */
 export function renderQueue(root: HTMLElement, context: Context): void {
-	const { notes, rows: buckets, waiting, done } = queue(context);
+	const { notes, rows: all, waiting: allWaiting, done: allDone } = queue(context);
+
+	// Which host this is, for the handful of things that differ. A pane has a
+	// height to fill and controls to carry; a block is a view on somebody's note.
+	const sidebar = inSidebar(root);
+
+	// The search box outlives the redraw, because typing in it is what asks for
+	// one. Drawing a new box each time would drop the cursor after every word.
+	const box = sidebar ? root.querySelector<HTMLElement>('.paper-trail-search') : null;
+	const typing = box?.contains(root.doc.activeElement) ?? false;
+	box?.detach();
 
 	root.empty();
 	root.addClass('paper-trail');
@@ -56,20 +67,27 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	// else happens at midnight to say so. Both hosts compare it when you come back
 	// to Obsidian and redraw on a new day.
 	root.dataset.day = today();
-	// Which host this is, for the handful of things that differ. A pane has a
-	// height to fill and controls to carry; a block is a view on somebody's note.
-	const sidebar = inSidebar(root);
 	root.toggleClass('paper-trail-block', !sidebar);
 	offline(root, context);
 
-	const visible = visibleStages(buckets, context.settings.triage);
-	const empty = [...buckets.values()].every((list) => list.length === 0);
+	// A search narrows what is drawn and nothing else. `next` and the count on
+	// its button still answer for the whole queue, and a section with nothing
+	// that matches stays where it is, at zero, so the pane keeps its shape.
+	const searching = sidebar && query !== null && query.trim() !== '';
+	const matching = <T>(list: T[], row: (entry: T) => Row): T[] =>
+		searching ? list.filter((entry) => matchesQuery(row(entry), query ?? '')) : list;
+	const buckets = new Map([...all].map(([task, rows]) => [task, matching(rows, (row) => row)]));
+	const waiting = matching(allWaiting, (entry) => ({ kind: 'note', note: entry.note }));
+	const done = matching(allDone, (entry) => ({ kind: 'note', note: entry.note }));
+
+	const visible = visibleStages(all, context.settings.triage);
+	const empty = [...all.values()].every((list) => list.length === 0);
 
 	// The pane only. A block is a view of the queue on a note of your own, and a
 	// row of controls at the top of somebody's writing is the plugin making
 	// itself at home: the pane is where it lives, and the palette has Next in it
 	// for anywhere else. The list still acts, because the rows still do.
-	if (sidebar) toolbar(root, context, buckets, visible);
+	if (sidebar) toolbar(root, context, all, buckets, visible, searching, box, typing);
 
 	// The tree inside the scroller, rather than the scroller itself, and it is
 	// stretched to the pane's full height. That is what lets the record below
@@ -94,13 +112,22 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	// to go: the record drawn under it then sat outside the container everything
 	// else is styled and measured in, so the one section still on screen was the
 	// one that did not look like itself.
-	if (empty) {
+	//
+	// A search that finds nothing is a third, and it says so in the same place
+	// rather than as four sections at zero, which would read as an empty queue.
+	const found = [...buckets.values(), waiting, done].some((list) => list.length > 0);
+	if (empty || (searching && !found)) {
 		const started = notes.some((note) => note.isPaper);
 		tree.createDiv({
 			cls: 'pane-empty',
-			text: started ? 'Nothing outstanding.' : 'No papers yet. Add them to Zotero and they turn up here.',
+			text:
+				searching && !found
+					? 'No papers match.'
+					: started
+						? 'Nothing outstanding.'
+						: 'No papers yet. Add them to Zotero and they turn up here.',
 		});
-		if (sidebar) foot(tree, context, waiting, done);
+		if (sidebar) foot(tree, context, waiting, done, searching);
 		root.style.setProperty('--paper-trail-clearance', `${clearance(root, files)}px`);
 		highlight(root, context.app);
 		return;
@@ -109,14 +136,14 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	const open: { task: Task; rows: Row[]; children: HTMLElement }[] = [];
 	for (const definition of visible) {
 		const rows = buckets.get(definition.task) ?? [];
-		const children = section(tree, context, definition, rows);
+		const children = section(tree, context, definition, rows, searching);
 		if (children) open.push({ task: definition.task, rows, children });
 	}
 
 	// Drawn before the rows are counted, and it has to be: their headers are two
 	// of the rows the list has to share, so measuring without them would promise
 	// room the record is standing in.
-	const pinned = sidebar ? foot(tree, context, waiting, done) : 0;
+	const pinned = sidebar ? foot(tree, context, waiting, done, searching) : 0;
 
 	// Now that every header is in place and no row is, what is left of the
 	// container is exactly what the rows have to share. The record's own rows
@@ -128,8 +155,10 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 	open.forEach((entry, index) => {
 		// An opened section ignores the budget. You asked to see all of them, and
 		// the container scrolls; overruling that to keep the pane tidy would be
-		// answering a question nobody asked.
-		const shown = expanded.has(entry.task) ? entry.rows.length : (shares[index] ?? DEFAULT_ROWS);
+		// answering a question nobody asked. So does a search, for the same
+		// reason: a match behind "and 3 more" is a search that failed.
+		const shown =
+			searching || expanded.has(entry.task) ? entry.rows.length : (shares[index] ?? DEFAULT_ROWS);
 		sectionRows(entry.children, context, entry.task, entry.rows, shown);
 	});
 
@@ -146,12 +175,23 @@ export function renderQueue(root: HTMLElement, context: Context): void {
  * on the Next button now, where you get it by reaching for the thing it would
  * have made you reach for anyway.
  */
-function toolbar(root: HTMLElement, context: Context, buckets: Map<Task, Row[]>, visible: TaskDefinition[]): void {
-	const buttons = root.createDiv({ cls: 'nav-header' }).createDiv({ cls: 'nav-buttons-container' });
+function toolbar(
+	root: HTMLElement,
+	context: Context,
+	all: Map<Task, Row[]>,
+	buckets: Map<Task, Row[]>,
+	visible: TaskDefinition[],
+	searching: boolean,
+	box: HTMLElement | null,
+	typing: boolean,
+): void {
+	const header = root.createDiv({ cls: 'nav-header' });
+	const buttons = header.createDiv({ cls: 'nav-buttons-container' });
 
 	// The thing the pane is for, beyond reading it: one key, no choice about
-	// which pile to work first.
-	const outstanding = [...buckets.values()].reduce((sum, list) => sum + list.length, 0);
+	// which pile to work first. Counted before any search, because that is what
+	// `next` will offer from.
+	const outstanding = [...all.values()].reduce((sum, list) => sum + list.length, 0);
 	iconButton(buttons, 'arrow-right', `Next · ${outstanding} outstanding`, () => void next(context), 'nav-action-button');
 
 	// Zotero is asked whenever you come back to Obsidian, which covers almost
@@ -167,24 +207,95 @@ function toolbar(root: HTMLElement, context: Context, buckets: Map<Task, Row[]>,
 		'nav-action-button',
 	);
 
+	// A box that opens under the buttons rather than one that is always there,
+	// which is what Backlinks does with its own. Always there, it would take a
+	// row from a list whose length is measured in rows, for something you reach
+	// for now and then. Before the fold button, which goes while a search is on,
+	// so the button you just pressed does not move out from under you.
+	iconButton(
+		buttons,
+		'search',
+		query === null ? 'Search papers' : 'Close search',
+		() => {
+			query = query === null ? '' : null;
+			renderQueue(paneOf(root), context);
+		},
+		`nav-action-button${query === null ? '' : ' is-active'}`,
+	);
+
 	// Only where there is something to fold. Four sections is few enough that
 	// this is a convenience rather than a necessity, but it is the affordance
 	// every other tree in the app has, and its absence is what you notice.
+	//
+	// Not during a search, which opens every section that has a match.
 	const foldable = visible.filter(({ task }) => (buckets.get(task) ?? []).length > 0);
-	if (foldable.length === 0) return;
+	if (foldable.length > 0 && !searching) {
+		const anyOpen = foldable.some(({ task }) => !collapsed.has(task));
+		iconButton(
+			buttons,
+			anyOpen ? 'chevrons-down-up' : 'chevrons-up-down',
+			anyOpen ? 'Collapse all' : 'Expand all',
+			() => {
+				collapsed.clear();
+				if (anyOpen) for (const { task } of foldable) collapsed.add(task);
+				renderQueue(paneOf(root), context);
+			},
+			'nav-action-button',
+		);
+	}
 
-	const anyOpen = foldable.some(({ task }) => !collapsed.has(task));
-	iconButton(
-		buttons,
-		anyOpen ? 'chevrons-down-up' : 'chevrons-up-down',
-		anyOpen ? 'Collapse all' : 'Expand all',
+	if (query !== null) searchBox(header, context, box, typing);
+}
+
+/**
+ * The box a search is typed into, under the buttons.
+ *
+ * Obsidian's own search field, so it has the theme's look and its clear
+ * button without either being made here. The box from the last draw is handed
+ * back when there was one, with the cursor put back in it if that is where it
+ * was; only opening the search makes a new one.
+ *
+ * Escape shuts it, which is also what clears it: a search is something you do
+ * to find one paper, not a view of the queue to leave standing.
+ */
+function searchBox(header: HTMLElement, context: Context, kept: HTMLElement | null, typing: boolean): void {
+	if (kept) {
+		header.appendChild(kept);
+		if (typing) kept.querySelector('input')?.focus();
+		return;
+	}
+
+	const box = header.createDiv({ cls: 'paper-trail-search' });
+	const search = new SearchComponent(box).setPlaceholder('Search papers...');
+
+	// A redraw reads every note in the vault, so it waits for a pause in the
+	// typing rather than following each key. Not while a word is still being
+	// composed in an input method either, which a redraw would cut short. And
+	// not at all once the box is gone, which Escape may have done in the pause.
+	let composing = false;
+	const redraw = debounce(
 		() => {
-			collapsed.clear();
-			if (anyOpen) for (const { task } of foldable) collapsed.add(task);
-			renderQueue(paneOf(root), context);
+			if (box.isConnected && !composing) renderQueue(paneOf(box), context);
 		},
-		'nav-action-button',
+		150,
+		true,
 	);
+	search.onChange((value) => {
+		query = value;
+		redraw();
+	});
+	search.inputEl.addEventListener('compositionstart', () => (composing = true));
+	search.inputEl.addEventListener('compositionend', () => {
+		composing = false;
+		redraw();
+	});
+	search.inputEl.addEventListener('keydown', (event) => {
+		if (event.key !== 'Escape') return;
+		event.preventDefault();
+		query = null;
+		renderQueue(paneOf(box), context);
+	});
+	search.inputEl.focus();
 }
 
 /** Ask Zotero now, and say what it said: always when it is not there, and what it found unless told to be quiet. */
@@ -330,6 +441,15 @@ const expanded = new Set<Task>();
 const collapsed = new Set<Task>();
 
 /**
+ * What the pane is being searched for, or null when the search box is shut.
+ *
+ * Session-scoped like the folds, and cleared with them when the pane opens: a
+ * search is how you find one paper, and a queue that came back narrowed to
+ * whatever you last looked for would be hiding the rest of it.
+ */
+let query: string | null = null;
+
+/**
  * The element the whole queue was drawn into.
  *
  * Redrawing from a section would nest a second copy of the queue inside the
@@ -437,7 +557,8 @@ interface Folder {
 	hint: string;
 	count: number;
 	open: boolean;
-	toggle: () => void;
+	/** How it folds, or nothing to draw it open with no fold at all, which is what a search does. */
+	toggle?: () => void;
 }
 
 /**
@@ -457,7 +578,8 @@ function folder(root: HTMLElement, { label, icon, hint, count, open, toggle }: F
 	// An empty section cannot be folded: there is nothing behind the chevron,
 	// and offering one would be a control that does nothing.
 	const empty = count === 0;
-	const shut = !empty && !open;
+	const fixed = empty || toggle === undefined;
+	const shut = !fixed && !open;
 
 	// A section is a folder and its papers are the files in it, which is what
 	// the nav classes mean. The count goes in the flair slot, where the file
@@ -466,8 +588,8 @@ function folder(root: HTMLElement, { label, icon, hint, count, open, toggle }: F
 		cls: `tree-item nav-folder${shut ? ' is-collapsed' : ''}${empty ? ' paper-trail-stage-empty' : ''}`,
 	});
 	const header = el.createDiv({
-		cls: `tree-item-self nav-folder-title${empty ? '' : ' is-clickable mod-collapsible'}`,
-		attr: empty ? { 'aria-label': hint } : { 'aria-label': hint, tabindex: '0' },
+		cls: `tree-item-self nav-folder-title${fixed ? '' : ' is-clickable mod-collapsible'}`,
+		attr: fixed ? { 'aria-label': hint } : { 'aria-label': hint, tabindex: '0' },
 	});
 
 	// One mark, and it stays. A chevron used to take the slot over on hover, on
@@ -481,6 +603,7 @@ function folder(root: HTMLElement, { label, icon, hint, count, open, toggle }: F
 	header.createDiv({ cls: 'tree-item-flair-outer' }).createSpan({ cls: 'tree-item-flair', text: String(count) });
 
 	if (empty) return null;
+	if (toggle === undefined) return el.createDiv({ cls: 'tree-item-children nav-folder-children' });
 
 	// The count stays visible while folded, which is the point of folding one:
 	// a section you are not working today should say how much it is holding
@@ -512,6 +635,7 @@ function section(
 	context: Context,
 	{ task, stageIcon, label, hint }: TaskDefinition,
 	rows: Row[],
+	searching: boolean,
 ): HTMLElement | null {
 	return folder(root, {
 		label,
@@ -519,11 +643,14 @@ function section(
 		hint,
 		count: rows.length,
 		open: !collapsed.has(task),
-		toggle: () => {
-			if (collapsed.has(task)) collapsed.delete(task);
-			else collapsed.add(task);
-			renderQueue(paneOf(root), context);
-		},
+		// A search that finds a paper and leaves it behind a fold has not found it.
+		toggle: searching
+			? undefined
+			: () => {
+					if (collapsed.has(task)) collapsed.delete(task);
+					else collapsed.add(task);
+					renderQueue(paneOf(root), context);
+				},
 	});
 }
 
@@ -680,9 +807,12 @@ let openDecided = false;
  * than under it: two scrolling boxes in one pane means a wheel that stops
  * working halfway down for no reason you can see.
  */
-function foot(root: HTMLElement, context: Context, waiting: Settled[], done: Settled[]): number {
+function foot(root: HTMLElement, context: Context, waiting: Settled[], done: Settled[], searching: boolean): number {
 	const box = root.createDiv({ cls: 'paper-trail-decided' });
 
+	// Shut by default is for a list you are glancing at. A search is looking for
+	// one paper, and the one you ruled out years ago is in here if anywhere, so
+	// both open while it is on and go back to how you left them after.
 	resting(box, context, waiting, {
 		label: 'Deferred',
 		// The same mark the chooser puts on a deferral and the pill shows on the
@@ -690,10 +820,12 @@ function foot(root: HTMLElement, context: Context, waiting: Settled[], done: Set
 		icon: 'clock',
 		hint: 'Papers you deferred, each with the condition you gave. Right-click one to pick it back up.',
 		open: openWaiting,
-		toggle: () => {
-			openWaiting = !openWaiting;
-			renderQueue(paneOf(root), context);
-		},
+		toggle: searching
+			? undefined
+			: () => {
+					openWaiting = !openWaiting;
+					renderQueue(paneOf(root), context);
+				},
 	});
 
 	resting(box, context, done, {
@@ -703,10 +835,12 @@ function foot(root: HTMLElement, context: Context, waiting: Settled[], done: Set
 		icon: 'archive',
 		hint: 'Papers nothing is outstanding for. Dropped, read, or assessed.',
 		open: openDecided,
-		toggle: () => {
-			openDecided = !openDecided;
-			renderQueue(paneOf(root), context);
-		},
+		toggle: searching
+			? undefined
+			: () => {
+					openDecided = !openDecided;
+					renderQueue(paneOf(root), context);
+				},
 	});
 
 	return 2;
@@ -875,6 +1009,7 @@ export class QueueView extends ItemView {
 		expanded.clear();
 		collapsed.clear();
 		openDecided = false;
+		query = null;
 		renderQueue(this.contentEl, this.context);
 
 		// Draw first from what is already known, then ask Zotero, which redraws if

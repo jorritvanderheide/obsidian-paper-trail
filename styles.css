@@ -75,6 +75,14 @@
 }
 
 /*
+ * The search box, under the buttons and inside the header's own padding. The
+ * field is Obsidian's, so this only puts some air between it and the buttons.
+ */
+.paper-trail-search {
+	margin-top: var(--size-4-2);
+}
+
+/*
  * The list is a `nav-files-container`, because that is the class a theme hangs
  * a section's indent and side padding on. Its foot padding is kept: it is the
  * air under the last row, and with the record pinned there it is the air under

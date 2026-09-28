@@ -98,6 +98,12 @@ button still takes you back to the heading.
 both before a new reading, and triage last. A paper you read yesterday decays,
 and one you have never opened will triage just as well in March.
 
+The search button opens a box that narrows the pane to the papers whose title,
+file name (the citation key, with Better BibTeX) or deferral or drop reason
+contains every word you type. Every section with a match opens, Deferred and
+Filed included, and shows all of them. **Next** still works from the whole
+queue. Escape closes the search.
+
 Right-click any row, or a paper's note in the file explorer, for the same menu:
 what the row's buttons do, such as **Reading finished** and **Open in Zotero**,
 then the reading statuses that would move that paper. **Set reading status**

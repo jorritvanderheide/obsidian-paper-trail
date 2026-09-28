@@ -11,6 +11,7 @@ import {
 	insertHeading,
 	isDue,
 	markDue,
+	matchesQuery,
 	nextAfter,
 	NEXT_ORDER,
 	noteState,
@@ -413,6 +414,45 @@ describe('settled', () => {
 
 	it('leaves out everything still outstanding', () => {
 		expect(settled([paper(), paper({ state: { reading: 'queued', progress: null } }), note()])).toEqual([]);
+	});
+});
+
+describe('matchesQuery', () => {
+	const noted = (over: Partial<NoteState> = {}): Row => ({ kind: 'note', note: paper(over) });
+	const pending = (title: string): Row => ({
+		kind: 'pending',
+		item: { key: 'AAAA1111', title, abstract: null, venue: null, year: null, added: '2026-01-01' },
+	});
+
+	it('matches everything when nothing is typed', () => {
+		expect(matchesQuery(noted(), '')).toBe(true);
+		expect(matchesQuery(noted(), '   ')).toBe(true);
+	});
+
+	it('needs every word, in any order and any case', () => {
+		const row = noted({ title: 'Attention Is All You Need' });
+		expect(matchesQuery(row, 'need ATTENTION')).toBe(true);
+		expect(matchesQuery(row, 'attention convolution')).toBe(false);
+	});
+
+	it('does not care about accents on either side', () => {
+		expect(matchesQuery(noted({ title: 'On Gödel numbering' }), 'godel')).toBe(true);
+		expect(matchesQuery(noted({ title: 'On Godel numbering' }), 'gödel')).toBe(true);
+	});
+
+	it('finds a note by its file name, which is the citation key when Better BibTeX named it', () => {
+		expect(matchesQuery(noted({ path: 'Literature/vaswani2017attention.md', title: 'Attention' }), 'vaswani2017')).toBe(true);
+		expect(matchesQuery(noted({ path: 'Literature/a.md' }), 'literature')).toBe(false);
+	});
+
+	it('finds a note by the reason you gave', () => {
+		const row = noted({ state: { reading: 'dropped', progress: null }, reason: 'only simulations, no field data' });
+		expect(matchesQuery(row, 'field data')).toBe(true);
+	});
+
+	it('looks at the title alone for a paper with no note', () => {
+		expect(matchesQuery(pending('Deep residual learning'), 'residual')).toBe(true);
+		expect(matchesQuery(pending('Deep residual learning'), 'aaaa1111')).toBe(false);
 	});
 });
 
