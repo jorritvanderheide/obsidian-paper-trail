@@ -268,6 +268,37 @@ row linking back to the paper. It is plain markdown, ready for an appendix or a
 methods section, and it is rewritten on every run. It only ever replaces a file
 it wrote itself, so a note of yours by that name is left alone.
 
+### Your own views
+
+The queue is one way of looking at these fields, and not the only one. They
+are plain frontmatter, so anything that reads properties can draw another,
+such as Obsidian's Bases or Dataview. If your reading has steps the queue does
+not know about, keep them in properties of your own beside these, and build the
+view you want over both.
+
+A base listing every paper you parked, in `Parked.base`, with `Literature`
+standing for your papers folder:
+
+```yaml
+filters:
+  and:
+    - file.inFolder("Literature")
+    - reading == "deferred"
+views:
+  - type: table
+    name: Parked
+```
+
+Add `reading-reason` and `reading-until` as columns from the view's properties
+menu. In a filter, a key with a hyphen in it is written `note["reading-progress"]`,
+so papers read and not yet summarised are `note["reading-progress"] == "read"`.
+
+You can also change `reading` by hand, or from another plugin, and the queue
+follows, because the note is the record and the queue only reads it. A value
+Paper Trail does not know reads as `untriaged`, which puts the paper back in
+front of you. Only a decision made here tidies the fields around it: the reason,
+the dates and the status tag stay as they were until the next one.
+
 ## Requirements
 
 - **Zotero 7**, running, with *Allow other applications on this computer to
