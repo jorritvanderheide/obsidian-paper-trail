@@ -94,15 +94,19 @@ describe('browsing the library', () => {
  */
 describe('pickCitation', () => {
 	it('returns what the dialog gave back', async () => {
-		getText.mockResolvedValue({ status: 200, body: '[@vanderhaerReframingHeatPump2026, p. 45]\n' });
-		expect(await pickCitation()).toBe('[@vanderhaerReframingHeatPump2026, p. 45]');
+		// Trimmed from a real answer: each source also carries the whole item.
+		const body = '[{"id":12,"locator":"45","suppressAuthor":false,"prefix":"","suffix":"","label":"page","citationKey":"vanderhaerReframingHeatPump2026"}]\n';
+		getText.mockResolvedValue({ status: 200, body });
+		expect(await pickCitation()).toEqual([
+			expect.objectContaining({ citationKey: 'vanderhaerReframingHeatPump2026', locator: '45', label: 'page' }),
+		]);
 	});
 
 	it('runs without a timeout, because the dialog waits on a person', async () => {
-		getText.mockResolvedValue({ status: 200, body: '[@x]' });
+		getText.mockResolvedValue({ status: 200, body: '[]' });
 		await pickCitation();
 		// The five seconds that suit a database read would cancel it under them.
-		expect(getText).toHaveBeenCalledWith('/better-bibtex/cayw?format=pandoc&brackets=true', 0);
+		expect(getText).toHaveBeenCalledWith('/better-bibtex/cayw?format=json', 0);
 	});
 
 	it('reads an empty answer as a cancelled dialog, not a failure', async () => {

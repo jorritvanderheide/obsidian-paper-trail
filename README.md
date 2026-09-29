@@ -227,8 +227,18 @@ rather than by title, and **Insert citation** is what closes that gap.
 
 **Insert citation** picks an item from your Zotero library and writes
 `[[citekey]]`. It needs Better BibTeX, which is what gives an item a citation
-key. Better BibTeX's own dialog is a chord away in the picker, for
-`[@key, p. 45]` and the other citations a bare key cannot express.
+key. Better BibTeX's own dialog is a chord away in the picker, for a page, a
+prefix or several sources at once. What you pick there is written as links too:
+
+| Picked | Written |
+| --- | --- |
+| a paper | `[[a]]` |
+| page 4 | `[[a\|a, p. 4]]` |
+| "see", page 4 | `see [[a\|a, p. 4]]` |
+| two papers | `[[a\|a, p. 4]]; [[b]]` |
+
+The page is in the label after `|`, so the link still points at the paper: it
+opens it, previews it on hover, and counts in its backlinks.
 
 Pandoc turns those links into real citations with
 [`pandoc/wikilink-citations.lua`](pandoc/wikilink-citations.lua), which is in
@@ -243,8 +253,27 @@ pandoc chapter.md \
 ```
 
 The filter turns a wikilink into a citation only when the bibliography has an
-entry by that name, so a link to a note of your own stays a link. Order
-matters in that command: pandoc cannot read `[[...]]` at all without the
+entry by that name, so a link to a note of your own stays a link. A page in the
+label, after its first comma, becomes the citation's locator, and citations
+next to each other, with nothing but spaces or one `;` between them, share one
+pair of parentheses:
+
+| Written | Exported |
+| --- | --- |
+| `[[a]]` | (A 2024) |
+| `[[a\|a, p. 12]]` | (A 2024, 12) |
+| `[[a\|Jacobs, ch. 3]]` | (A 2024, ch. 3) |
+| `[[a#Claim]]` | (A 2024) |
+| `[[a\|a, p. 12]]; [[b]]` | (A 2024, 12; B 2025) |
+| `[[a]] and [[b]]` | (A 2024) and (B 2025) |
+
+What follows the comma only counts as a page when it starts with a number, `§`
+or a locator term such as `p.` or `ch.`, so a label of your own is still a
+plain citation. A link to a heading, `[[a#Claim]]`, cites the paper. Don't put
+your own parentheses around a citation: the filter adds them, and `([[a]])`
+exports as "((A 2024))".
+
+Order matters in that command: pandoc cannot read `[[...]]` at all without the
 `--from` extension, and runs filters in the order given, so citeproc has to come
 after the filter that creates the citations. Paper Trail does not run pandoc, or
 anything else; exporting is your build's job.

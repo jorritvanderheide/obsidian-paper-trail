@@ -1,8 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	abstractOf,
 	venueOf,
 	attachmentKeys,
+	citation,
+	LOCATOR_LABELS,
 	libraryPath,
 	authorNames,
 	annotations,
@@ -142,6 +145,64 @@ describe('noteName', () => {
 
 	it('copes with nothing to work from', () => {
 		expect(noteName({ key: 'X', data: {} })).toBe('unknown-untitled');
+	});
+});
+
+describe('citation', () => {
+	it('links a bare key', () => {
+		expect(citation([{ citationKey: 'jacobsAuthenticity2025' }])).toBe('[[jacobsAuthenticity2025]]');
+	});
+
+	it('puts a page in the label, where you read it and the filter reads it', () => {
+		expect(citation([{ citationKey: 'jacobsAuthenticity2025', locator: '4', label: 'page' }])).toBe(
+			'[[jacobsAuthenticity2025|jacobsAuthenticity2025, p. 4]]',
+		);
+	});
+
+	it('abbreviates other locators as Better BibTeX does', () => {
+		expect(citation([{ citationKey: 'a', locator: '3', label: 'chapter' }])).toBe('[[a|a, ch. 3]]');
+	});
+
+	it('keeps a label it has no abbreviation for', () => {
+		expect(citation([{ citationKey: 'a', locator: '3', label: 'folio' }])).toBe('[[a|a, folio 3]]');
+	});
+
+	it('writes a locator without a label as it is', () => {
+		expect(citation([{ citationKey: 'a', locator: '12', label: '' }])).toBe('[[a|a, 12]]');
+	});
+
+	it('ignores a label with no locator', () => {
+		// Better BibTeX sends the label field either way.
+		expect(citation([{ citationKey: 'a', locator: '', label: 'page' }])).toBe('[[a]]');
+	});
+
+	it('keeps a prefix and a suffix as words outside the link, so an export keeps them', () => {
+		const cited = citation([{ citationKey: 'a', locator: '4', label: 'page', prefix: 'see', suffix: 'emphasis added' }]);
+		expect(cited).toBe('see [[a|a, p. 4]] emphasis added');
+	});
+
+	it('closes up to a suffix that starts with punctuation', () => {
+		const cited = citation([{ citationKey: 'a', locator: '4', label: 'page', suffix: ', emphasis added' }]);
+		expect(cited).toBe('[[a|a, p. 4]], emphasis added');
+	});
+
+	it('writes only locators the pandoc filter reads, so an export keeps them', () => {
+		// The filter is Lua and cannot import this list, so this is what keeps
+		// the two from drifting: a term missing there drops the page silently.
+		const lua = readFileSync(new URL('../pandoc/wikilink-citations.lua', import.meta.url), 'utf8');
+		const terms = /local LOCATOR_TERMS = \{\}\nfor term in \(\[\[([^\]]*)\]\]/.exec(lua)?.[1]?.trim().split(/\s+/) ?? [];
+		expect(terms.length).toBeGreaterThan(0);
+		for (const label of Object.values(LOCATOR_LABELS)) expect(terms).toContain(label);
+	});
+
+	it('separates several sources with a semicolon', () => {
+		const cited = citation([{ citationKey: 'a', locator: '4', label: 'page' }, { citationKey: 'b' }]);
+		expect(cited).toBe('[[a|a, p. 4]]; [[b]]');
+	});
+
+	it('leaves out a Zotero note, which has no key to link', () => {
+		expect(citation([{ citationKey: '' }, { citationKey: 'b' }])).toBe('[[b]]');
+		expect(citation([{ citationKey: '' }])).toBe('');
 	});
 });
 

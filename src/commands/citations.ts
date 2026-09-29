@@ -13,33 +13,36 @@
 // What that picker cannot write is a locator, a prefix, or several sources in
 // one citation. Those are still Better BibTeX's to do, so it is still there,
 // one chord away in the footer, for the citations that need it. The common case
-// stops raising Zotero; the rare one still can.
+// stops raising Zotero; the rare one still can. Either way the link is written
+// in core/zotero.ts, so both look the same.
 import { MarkdownView, Notice } from 'obsidian';
 import { pickItem } from '../ui/item-picker';
 import { pickCitation } from '../source';
+import { citation } from '../core/zotero';
 import { notify } from '../ui/notify';
 import type { Context } from '../context';
 
-/**
- * Hand over to Better BibTeX's own dialog, for the citations this cannot write.
- *
- * It comes back already formatted, locator and all, so there is nothing to
- * parse: whatever it says goes in verbatim.
- */
+/** Hand over to Better BibTeX's own dialog, for the citations this cannot write. */
 async function advanced(context: Context): Promise<void> {
 	const app = context.app;
 	try {
-		const citation = await pickCitation();
-		if (!citation) return;
+		const sources = await pickCitation();
+		if (!sources) return;
+		const cited = citation(sources);
+		// Nothing picked had a citation key: a Zotero note has none.
+		if (!cited) {
+			new Notice('Nothing to cite: Better BibTeX gave no citation key for what was picked.');
+			return;
+		}
 
 		// Fetched after the dialog closes, for the same reason as below: it was
 		// open long enough for the cursor to have moved.
 		const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 		if (!editor) {
-			new Notice(`Nowhere to put it. The citation was: ${citation}`);
+			new Notice(`Nowhere to put it. The citation was: ${cited}`);
 			return;
 		}
-		editor.replaceSelection(citation);
+		editor.replaceSelection(cited);
 	} catch (error) {
 		notify(error);
 	}
@@ -71,36 +74,18 @@ export async function insertCitation(context: Context): Promise<void> {
 			);
 			return;
 		}
+		const cited = citation([{ citationKey: key }]);
 
 		// Fetch the editor after the picker closes, not before: it was open long
 		// enough for the cursor to have moved, or the pane to have changed.
 		const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 		if (!editor) {
-			new Notice(`Nowhere to put it. The citation was: ${wikilink(key)}`);
+			new Notice(`Nowhere to put it. The citation was: ${cited}`);
 			return;
 		}
-		editor.replaceSelection(wikilink(key));
+		editor.replaceSelection(cited);
 	} catch (error) {
 		notify(error);
 	}
 }
 
-/**
- * A citation as a link to the paper, rather than as pandoc syntax.
- *
- * `[@key]` is inert in Obsidian: the right thing to hand a bibliography
- * processor and nothing at all to the vault. A wikilink is both. It resolves,
- * because a paper is named for its citation key and carries it as an alias
- * either way; it opens the paper; it shows the paper on hover, status and all;
- * and every place you cited something turns up in that paper's backlinks, which
- * is the question a thesis actually asks of its own corpus.
- *
- * It stays exportable, and that is why it is the bare key rather than a
- * prettier label: a link whose target is a citation key is something a pandoc
- * filter can turn into a real citation without knowing anything about this
- * vault. Better BibTeX's own dialog still writes `[@key, p. 45]`, because a
- * locator is not a thing a wikilink can say, and pandoc reads that natively.
- */
-function wikilink(key: string): string {
-	return `[[${key}]]`;
-}

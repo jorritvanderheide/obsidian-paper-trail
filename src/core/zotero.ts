@@ -214,6 +214,100 @@ export function noteName(item: ApiItem): string {
 }
 
 /**
+ * One source as Better BibTeX's cite-as-you-write dialog hands it back with
+ * `format=json`, and only the fields read here.
+ *
+ * `label` is a CSL locator type, `page` or `chapter`, and Better BibTeX fills
+ * in `page` when a locator was typed without one. A Zotero note picked in the
+ * dialog comes back too, with no citation key.
+ */
+export interface CitedSource {
+	citationKey?: string;
+	locator?: string;
+	label?: string;
+	prefix?: string;
+	suffix?: string;
+}
+
+/**
+ * Better BibTeX's abbreviations, so a locator reads as its pandoc citation did.
+ * The pandoc filter only reads a locator it knows the term of, so every one of
+ * these is in its list too, and a test holds them together.
+ */
+export const LOCATOR_LABELS: Record<string, string> = {
+	article: 'art.',
+	chapter: 'ch.',
+	subchapter: 'subch.',
+	column: 'col.',
+	figure: 'fig.',
+	line: 'l.',
+	note: 'n.',
+	issue: 'no.',
+	opus: 'op.',
+	page: 'p.',
+	paragraph: 'para.',
+	subparagraph: 'subpara.',
+	part: 'pt.',
+	rule: 'r.',
+	section: 'sec.',
+	subsection: 'subsec.',
+	'sub-verbo': 'sv.',
+	schedule: 'sch.',
+	title: 'tit.',
+	verse: 'vrs.',
+	volume: 'vol.',
+};
+
+/**
+ * A citation as a link to the paper, rather than as pandoc syntax.
+ *
+ * `[@key]` is inert in Obsidian: the right thing to hand a bibliography
+ * processor and nothing at all to the vault. A wikilink is both. It resolves,
+ * because a paper is named for its citation key; it opens the paper; it shows
+ * the paper on hover, status and all; and every place you cited something
+ * turns up in that paper's backlinks, which is the question a thesis actually
+ * asks of its own corpus.
+ *
+ * It stays exportable, and that is why the target is the bare key: a link
+ * whose target is a citation key is something a pandoc filter can turn into a
+ * real citation without knowing anything about this vault.
+ *
+ * A locator goes in the label, `[[key|key, p. 4]]`, after the first comma,
+ * which is where the pandoc filter reads it. Not after `#`: Obsidian takes
+ * `[[key#p. 4]]` for a heading, and hovering it says the section is not in the
+ * note instead of showing the paper.
+ *
+ * A prefix and a suffix go outside the link, as words, so an export keeps them.
+ * A suffix that starts with punctuation, ", emphasis added", closes up to it.
+ */
+export function citation(sources: CitedSource[]): string {
+	return sources
+		.flatMap((source) => {
+			const key = source.citationKey?.trim();
+			if (!key) return [];
+			const locator = source.locator?.trim();
+			const label = source.label ? (LOCATOR_LABELS[source.label] ?? source.label) : '';
+			const at = locator ? [label, locator].filter(Boolean).join(' ') : '';
+			const link = citationLink(key, at);
+			const prefix = source.prefix?.trim();
+			const suffix = source.suffix?.trim() ?? '';
+			const cited = prefix ? `${prefix} ${link}` : link;
+			if (!suffix) return [cited];
+			return [/^[,.;:)]/.test(suffix) ? `${cited}${suffix}` : `${cited} ${suffix}`];
+		})
+		.join('; ');
+}
+
+/**
+ * One link, with a locator in the label when there is one: `[[key]]`, or
+ * `[[key|key, p. 4]]`. `name` is what the label says before the page, which
+ * is the key unless the link already said something else.
+ */
+function citationLink(target: string, at: string, name = target): string {
+	return at ? `[[${target}|${name}, ${at}]]` : `[[${target}]]`;
+}
+
+/**
  * One Zotero annotation, flattened to what a note needs.
  *
  * Highlights, underlines and notes alike, which is why it is not called a

@@ -13,6 +13,7 @@ import {
 	libraryPath,
 	type ApiItem,
 	type Annotation,
+	type CitedSource,
 	type ItemRef,
 } from './core/zotero';
 import type { ApiCollection } from './core/collections';
@@ -134,21 +135,22 @@ const BBT_MISSING = 'Could not reach Better BibTeX. Is it installed in Zotero?';
 
 /**
  * Better BibTeX's cite-as-you-write picker. One GET opens Zotero's own citation
- * dialog and returns what was chosen, already formatted.
+ * dialog and returns what was chosen, as JSON: the key, locator, prefix and
+ * suffix of each source. `citation` in core/zotero.ts writes it as a link.
  *
  * Kept as the escape hatch behind the picker here, not as the way in. It raises
  * Zotero over whatever you were writing, which is the thing to avoid, but it is
  * the only way to get locators, prefixes and several sources in one citation,
- * and reimplementing that syntax would be worse than borrowing it.
+ * and reimplementing that dialog would be worse than borrowing it.
  *
  * The request blocks until the dialog is answered, which may be a minute of
  * someone searching their library, so it runs without a timeout. The five
  * seconds that suit a database read would cancel the dialog under them.
  */
-export async function pickCitation(): Promise<string | null> {
+export async function pickCitation(): Promise<CitedSource[] | null> {
 	let response;
 	try {
-		response = await getText('/better-bibtex/cayw?format=pandoc&brackets=true', 0);
+		response = await getText('/better-bibtex/cayw?format=json', 0);
 	} catch (error) {
 		console.error('paper-trail: cite-as-you-write request failed', error);
 		throw new SourceError(BBT_MISSING);
@@ -157,7 +159,8 @@ export async function pickCitation(): Promise<string | null> {
 	if (response.status >= 400) throw new SourceError(`Better BibTeX answered with HTTP ${response.status}.`);
 
 	// Cancelling the dialog is an empty body, not an error.
-	return response.body.trim() || null;
+	const body = response.body.trim();
+	return body ? (JSON.parse(body) as CitedSource[]) : null;
 }
 
 

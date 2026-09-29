@@ -6,6 +6,16 @@
 --- which is the question a thesis asks of its own corpus. Outside the vault it
 --- is not a citation yet. This is what makes it one.
 ---
+--- Two things beyond a bare key:
+---
+--- - A page in the label, after the first comma: `[[key|key, p. 12]]` cites
+---   page 12, as `[@key, p. 12]` would. That is what Insert citation writes,
+---   and what the reader sees in Obsidian is what the export cites. The label
+---   rather than `[[key#p. 12]]`, because Obsidian reads that as a heading and
+---   its hover preview reports the section missing instead of showing the paper.
+--- - Neighbouring citations share brackets: `[[a|a, p. 12]]; [[b|b, p. 3]]` is
+---   "(A 2024, 12; B 2025, 3)", as `[@a, p. 12; @b, p. 3]` would be.
+---
 --- Usage, and the order matters:
 ---
 ---   pandoc chapter.md \
@@ -100,20 +110,108 @@ end
 --- your laptop, and the reader finds that out by clicking it. The words stay,
 --- which is all the sentence needed from it: whether that is the note's name or
 --- a label you wrote, it is what you chose to have on the page.
+--- Locator terms, so a label is read as carrying a page only when it does:
+--- `[[key|key, p. 12]]` cites page 12, `[[key|Smith, Jones]]` is just a label.
+---
+--- Every abbreviation Insert citation writes is here (`LOCATOR_LABELS` in
+--- src/core/zotero.ts, which a test holds to this list), with the plurals and
+--- the full words someone might type by hand.
+local LOCATOR_TERMS = {}
+for term in ([[
+  p. pp. page pages
+  ch. chap. chapter subch. subchapter
+  sec. section subsec. subsection
+  para. paragraph subpara. subparagraph
+  fig. figure col. column l. ll. line
+  n. note vol. volume no. issue
+  art. article op. opus pt. part r. rule
+  vrs. verse sv. sch. schedule tit. title
+  book folio
+]]):gmatch('%S+') do LOCATOR_TERMS[term] = true end
+
+--- The page in a link's label, after its first comma, or nil when it names none.
+--- The first comma rather than the last, so `key, pp. 4, 6` keeps both pages.
+local function locator_of(el)
+  local ref = pandoc.utils.stringify(el.content):match(",%s*(.-)%s*$")
+  if not ref then return nil end
+  if ref:match("^%d") or ref:match("^§") then return ref end
+  local term = ref:match("^(%a+%.?)")
+  if term and LOCATOR_TERMS[term:lower()] then return ref end
+  return nil
+end
+
 local function link(el)
   local key = key_of(el.target)
   if keys[key] then
-    return pandoc.Cite({ pandoc.Str('@' .. key) }, { pandoc.Citation(key, 'NormalCitation') })
+    local citation = pandoc.Citation(key, 'NormalCitation')
+    local text = '@' .. key
+    local locator = locator_of(el)
+    if locator then
+      citation.suffix = pandoc.Inlines(', ' .. locator)
+      text = text .. ', ' .. locator
+    end
+    return pandoc.Cite({ pandoc.Str(text) }, { citation })
   end
 
   if reachable(el.target) then return nil end
   return el.content
 end
 
--- Two passes, in this order, and not one filter with both functions in it: a
+--- Whether an inline is a citation that can share brackets with its neighbour.
+--- `NormalCitation` only, so "Jacobs (2024) argues", written as `@key`, is never
+--- pulled into the parentheses next to it.
+local function groupable(el)
+  if el == nil or el.t ~= "Cite" then return false end
+  for _, citation in ipairs(el.citations) do
+    if citation.mode ~= "NormalCitation" then return false end
+  end
+  return true
+end
+
+--- What may stand between two citations that belong together: spaces, a line
+--- break, and at most one `;`, the separator pandoc itself uses.
+local function separator(el)
+  return el.t == "Space" or el.t == "SoftBreak" or (el.t == "Str" and el.text == ";")
+end
+
+--- Neighbouring citations become one: `[[a|a, p. 12]]; [[b|b, p. 3]]` exports as
+--- "(A 2024, 12; B 2025, 3)", the way `[@a, p. 12; @b, p. 3]` would.
+local function group(inlines)
+  local out = pandoc.Inlines({})
+  local i = 1
+  while i <= #inlines do
+    local cite = inlines[i]
+    local j = i + 1
+    if groupable(cite) then
+      while true do
+        local k, semicolons = j, 0
+        while inlines[k] and separator(inlines[k]) do
+          if inlines[k].t == "Str" then semicolons = semicolons + 1 end
+          k = k + 1
+        end
+        if semicolons > 1 or not groupable(inlines[k]) then break end
+        local citations = pandoc.List({})
+        citations:extend(cite.citations)
+        citations:extend(inlines[k].citations)
+        local content = pandoc.Inlines({})
+        content:extend(cite.content)
+        content:extend({ pandoc.Str(";"), pandoc.Space() })
+        content:extend(inlines[k].content)
+        cite = pandoc.Cite(content, citations)
+        j = k + 1
+      end
+    end
+    out:insert(cite)
+    i = j
+  end
+  return out
+end
+
+-- Three passes, in this order, and not one filter with all of them in it: a
 -- single filter walks inlines before it reaches the metadata, so every link
 -- would be tested against a bibliography that had not been read yet.
 return {
   { Meta = load },
   { Link = link },
+  { Inlines = group },
 }
