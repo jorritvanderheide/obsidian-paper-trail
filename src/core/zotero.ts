@@ -228,6 +228,8 @@ export interface CitedSource {
 	label?: string;
 	prefix?: string;
 	suffix?: string;
+	/** The author is named in the sentence, so the citation leaves them out. */
+	suppressAuthor?: boolean;
 	uri?: string;
 }
 
@@ -312,7 +314,9 @@ function isLocator(text: string): boolean {
  *
  * Everything else goes in the label, around the name, the way pandoc writes it
  * around the key: `[[a|see a, p. 4, emphasis added]]` is
- * `[see @a, p. 4, emphasis added]`. That is the form the filter reads. Not a
+ * `[see @a, p. 4, emphasis added]`, and a `-` against the name leaves the
+ * author out, as it does before `@a`: `[[a|-a, p. 4]]` is `[-@a, p. 4]`.
+ * That is the form the filter reads. Not a
  * page after `#`: Obsidian takes `[[a#p. 4]]` for a heading, and hovering it
  * says the section is not in the note instead of showing the paper.
  *
@@ -326,21 +330,22 @@ export function citation(sources: CitedSource[], noteOf: (source: CitedSource) =
 			const locator = source.locator?.trim();
 			const label = source.label ? (LOCATOR_LABELS[source.label] ?? source.label) : '';
 			const at = locator ? [label, locator].filter(Boolean).join(' ') : '';
-			return [citationLink(noteOf(source) ?? key, at, source.prefix, source.suffix)];
+			return [citationLink(noteOf(source) ?? key, at, source.prefix, source.suffix, source.suppressAuthor === true)];
 		})
 		.join('; ');
 }
 
 /**
  * One link: `[[a]]` when there is nothing to say around the name, and
- * otherwise `[[a|prefix a, locator suffix]]`. A suffix that starts with
- * punctuation, ", emphasis added", closes up to what comes before it.
+ * otherwise `[[a|prefix a, locator suffix]]`, with `-a` when the author is
+ * left out. A suffix that starts with punctuation, ", emphasis added", closes
+ * up to what comes before it.
  */
-function citationLink(target: string, at: string, prefix = '', suffix = ''): string {
+function citationLink(target: string, at: string, prefix = '', suffix = '', withoutAuthor = false): string {
 	const before = prefix.trim();
 	const after = suffix.trim();
-	if (!at && !before && !after) return `[[${target}]]`;
-	let label = [before, target].filter(Boolean).join(' ');
+	if (!at && !before && !after && !withoutAuthor) return `[[${target}]]`;
+	let label = [before, withoutAuthor ? `-${target}` : target].filter(Boolean).join(' ');
 	if (at) label += `, ${at}`;
 	if (after) label += /^[,.;:)]/.test(after) ? after : ` ${after}`;
 	return `[[${target}|${label}]]`;

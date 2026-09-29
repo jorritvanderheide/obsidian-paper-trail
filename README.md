@@ -247,6 +247,7 @@ everything around the key in the label, the way pandoc writes it:
 | a paper | `[[a]]` |
 | page 4 | `[[a\|a, p. 4]]` |
 | "see", page 4 | `[[a\|see a, p. 4]]` |
+| without the author, page 4 | `[[a\|-a, p. 4]]` |
 | two papers | `[[a\|a, p. 4]]; [[b]]` |
 
 The page is in the label after `|`, so the link still points at the paper: it

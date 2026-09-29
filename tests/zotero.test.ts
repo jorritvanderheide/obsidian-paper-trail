@@ -195,6 +195,20 @@ describe('citation', () => {
 		expect(citation([{ citationKey: 'a', prefix: 'see' }])).toBe('[[a|see a]]');
 	});
 
+	it('leaves the author out with a - against the name, as pandoc does before the key', () => {
+		expect(citation([{ citationKey: 'a', locator: '4', label: 'page', suppressAuthor: true }])).toBe('[[a|-a, p. 4]]');
+		expect(citation([{ citationKey: 'a', prefix: 'see', suppressAuthor: true }])).toBe('[[a|see -a]]');
+	});
+
+	it('writes a label for leaving the author out alone', () => {
+		expect(citation([{ citationKey: 'a', suppressAuthor: true }])).toBe('[[a|-a]]');
+	});
+
+	it("leaves the author out of a citation to the paper's note by its name", () => {
+		const cited = citation([{ citationKey: 'newKey2025', locator: '4', label: 'page', suppressAuthor: true }], () => 'oldKey2025');
+		expect(cited).toBe('[[oldKey2025|-oldKey2025, p. 4]]');
+	});
+
 	it("links to the paper's note by its name, which Better BibTeX may have left behind", () => {
 		const cited = citation([{ citationKey: 'newKey2025', locator: '4', label: 'page' }], () => 'oldKey2025');
 		expect(cited).toBe('[[oldKey2025|oldKey2025, p. 4]]');
