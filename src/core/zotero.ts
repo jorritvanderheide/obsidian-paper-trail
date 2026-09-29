@@ -316,9 +316,9 @@ function isLocator(text: string): boolean {
  * around the key: `[[a|see a, p. 4, emphasis added]]` is
  * `[see @a, p. 4, emphasis added]`, and a `-` against the name leaves the
  * author out, as it does before `@a`: `[[a|-a, p. 4]]` is `[-@a, p. 4]`.
- * That is the form the filter reads. Not a
- * page after `#`: Obsidian takes `[[a#p. 4]]` for a heading, and hovering it
- * says the section is not in the note instead of showing the paper.
+ * That is the form the filter reads. Not a page after `#`: Obsidian takes
+ * `[[a#p. 4]]` for a heading, and hovering it says the section is not in the
+ * note instead of showing the paper.
  *
  * `noteOf` names a source's note, or says it has none.
  */
@@ -392,14 +392,22 @@ export function linkAt(line: string, ch: number): LinkSpan | null {
 	return null;
 }
 
+/** The name a link cites by: its target without a folder or a heading. */
+export function linkName(link: LinkSpan): string {
+	const target = link.target.replace(/#.*$/, '').trim();
+	return target.split('/').pop() ?? target;
+}
+
 /**
  * Where a label repeats the name as a word, the way the filter's `spelled`
- * finds it: the index just past it, or -1.
+ * finds it: the index just past it, or -1. A `-` against the name, which
+ * leaves the author out, still counts as the name standing alone.
  */
 function pastName(label: string, name: string): number {
 	for (let at = label.indexOf(name); at !== -1; at = label.indexOf(name, at + 1)) {
 		const end = at + name.length;
-		const before = at === 0 || /\s/.test(label[at - 1] ?? '');
+		const start = label[at - 1] === '-' ? at - 1 : at;
+		const before = start === 0 || /\s/.test(label[start - 1] ?? '');
 		const after = end === label.length || /[\s,;]/.test(label[end] ?? '');
 		if (before && after) return end;
 	}
@@ -418,7 +426,7 @@ function pastName(label: string, name: string): number {
  */
 export function withPage(link: LinkSpan, typed: string): string {
 	const target = link.target.replace(/#.*$/, '').trim();
-	const name = target.split('/').pop() ?? target;
+	const name = linkName(link);
 	const label = link.label ?? name;
 	const at = typedLocator(typed);
 

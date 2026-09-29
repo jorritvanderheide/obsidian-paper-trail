@@ -11,7 +11,8 @@
 // because the key comes back with the search results.
 //
 // A page is one key more: Tab instead of Enter asks for it. What that picker
-// cannot write is a prefix, or several sources in one citation. Those are
+// cannot write is a prefix, a citation that leaves the author out, or several
+// sources in one citation. Those are
 // still Better BibTeX's to do, so it is still there, one chord away in the
 // footer, for the citations that need it. The common case stops raising
 // Zotero; the rare one still can. Either way the link is written in
@@ -24,7 +25,7 @@ import { MarkdownView, Notice } from 'obsidian';
 import { pickItem } from '../ui/item-picker';
 import { prompt } from '../ui/prompt';
 import { pickCitation } from '../source';
-import { citation, itemRefOfUri, linkAt, pageCitation, withPage, type CitedSource } from '../core/zotero';
+import { citation, itemRefOfUri, linkAt, linkName, pageCitation, withPage, type CitedSource } from '../core/zotero';
 import { paperNoteName } from '../outstanding';
 import { notify } from '../ui/notify';
 import type { Context } from '../context';
@@ -87,12 +88,13 @@ export async function insertCitation(context: Context): Promise<void> {
 			return;
 		}
 
-		// Dismissing the page question cancels the citation, as Escape does
-		// anywhere else: a citation without the page you meant to give is a
-		// quiet mistake, and inserting nothing is not.
 		// The picker lists the personal library, so the item is in it.
 		const target = paperNoteName(context, { key: item.key, groupID: null }) ?? key;
 		let cited = citation([{ citationKey: key }], () => target);
+
+		// Dismissing the page question cancels the citation, as Escape does
+		// anywhere else: a citation without the page you meant to give is a
+		// quiet mistake, and inserting nothing is not.
 		if (asked) {
 			const page = await askPage(context, target);
 			if (!page) return;
@@ -111,7 +113,6 @@ export async function insertCitation(context: Context): Promise<void> {
 		notify(error);
 	}
 }
-
 
 function askPage(context: Context, name: string): Promise<string | null> {
 	return prompt(context.app, `Page in ${name}`, { cta: 'Cite', placeholder: '4, or ch. 3' });
@@ -139,7 +140,7 @@ export async function addPage(context: Context): Promise<void> {
 	}
 
 	const before = editor.getLine(cursor.line).slice(link.from, link.to);
-	const page = await askPage(context, link.target.replace(/#.*$/, ''));
+	const page = await askPage(context, linkName(link));
 	if (!page) return;
 
 	// Checked before replacing, because a sync can change the note while the

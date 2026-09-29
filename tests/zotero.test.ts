@@ -312,6 +312,11 @@ describe('withPage', () => {
 		expect(withPage(at('[[a|a emphasis added]]'), '4')).toBe('[[a|a, p. 4 emphasis added]]');
 	});
 
+	it('keeps a citation that leaves the author out as it is, around its new page', () => {
+		expect(withPage(at('[[a|-a]]'), '4')).toBe('[[a|-a, p. 4]]');
+		expect(withPage(at('[[a|see -a, p. 3, emphasis added]]'), '4')).toBe('[[a|see -a, p. 4, emphasis added]]');
+	});
+
 	it('does not take a word that only starts with the name for it', () => {
 		expect(withPage(at('[[a|about]]'), '4')).toBe('[[a|about, p. 4]]');
 	});

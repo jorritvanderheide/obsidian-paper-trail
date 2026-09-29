@@ -238,9 +238,10 @@ and rewrites the link, so you never type the key twice. A label you wrote stays,
 with the page after a comma: `[[a|Jacobs]]` becomes `[[a|Jacobs, p. 4]]`. It
 has no hotkey until you give it one.
 
-Better BibTeX's own dialog is a chord away in the picker, for a prefix or
-several sources at once. What you pick there is written as links too, with
-everything around the key in the label, the way pandoc writes it:
+Better BibTeX's own dialog is a chord away in the picker, for a prefix, a
+citation without the author, or several sources at once. What you pick there is
+written as links too, with everything around the key in the label, the way
+pandoc writes it:
 
 | Picked | Written |
 | --- | --- |
