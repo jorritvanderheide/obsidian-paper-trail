@@ -6,6 +6,10 @@ import {
 	attachmentKeys,
 	citation,
 	LOCATOR_LABELS,
+	linkAt,
+	pageCitation,
+	typedLocator,
+	withPage,
 	libraryPath,
 	authorNames,
 	annotations,
@@ -203,6 +207,74 @@ describe('citation', () => {
 	it('leaves out a Zotero note, which has no key to link', () => {
 		expect(citation([{ citationKey: '' }, { citationKey: 'b' }])).toBe('[[b]]');
 		expect(citation([{ citationKey: '' }])).toBe('');
+	});
+});
+
+describe('typedLocator', () => {
+	it('reads a bare number as a page', () => {
+		expect(typedLocator('4')).toBe('p. 4');
+		expect(typedLocator(' 12-14 ')).toBe('p. 12-14');
+	});
+
+	it('keeps anything else as typed', () => {
+		expect(typedLocator('ch. 3')).toBe('ch. 3');
+		expect(typedLocator('§ 2')).toBe('§ 2');
+		expect(typedLocator('pp. 4, 6')).toBe('pp. 4, 6');
+	});
+});
+
+describe('pageCitation', () => {
+	it('writes the page into the label', () => {
+		expect(pageCitation('jacobsAuthenticity2025', '4')).toBe('[[jacobsAuthenticity2025|jacobsAuthenticity2025, p. 4]]');
+	});
+});
+
+describe('linkAt', () => {
+	const line = 'as argued in [[jacobs]] and [[baker|Baker]].';
+
+	it('finds the link the cursor is inside', () => {
+		expect(linkAt(line, 17)).toEqual({ from: 13, to: 23, target: 'jacobs', label: null });
+	});
+
+	it('finds the link the cursor has just passed, where [[ leaves it', () => {
+		expect(linkAt(line, 23)?.target).toBe('jacobs');
+	});
+
+	it('reads the label', () => {
+		expect(linkAt(line, 35)).toMatchObject({ target: 'baker', label: 'Baker' });
+	});
+
+	it('finds nothing away from a link', () => {
+		expect(linkAt(line, 5)).toBeNull();
+	});
+
+	it('leaves an embed alone', () => {
+		expect(linkAt('![[figure.png]]', 5)).toBeNull();
+	});
+});
+
+describe('withPage', () => {
+	const at = (text: string) => linkAt(text, 2)!;
+
+	it('names the link by its key', () => {
+		expect(withPage(at('[[a]]'), '4')).toBe('[[a|a, p. 4]]');
+	});
+
+	it('replaces a page rather than adding a second', () => {
+		expect(withPage(at('[[a|a, p. 3]]'), '4')).toBe('[[a|a, p. 4]]');
+	});
+
+	it('keeps a label of your own', () => {
+		expect(withPage(at('[[a|Jacobs]]'), 'ch. 3')).toBe('[[a|Jacobs, ch. 3]]');
+		expect(withPage(at('[[a|Jacobs, p. 3]]'), '4')).toBe('[[a|Jacobs, p. 4]]');
+	});
+
+	it('drops a heading, because a page is not a section', () => {
+		expect(withPage(at('[[a#Claim]]'), '4')).toBe('[[a|a, p. 4]]');
+	});
+
+	it('keeps a folder in the target but not in the label', () => {
+		expect(withPage(at('[[Literature/a]]'), '4')).toBe('[[Literature/a|a, p. 4]]');
 	});
 });
 

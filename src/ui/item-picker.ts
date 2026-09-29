@@ -28,24 +28,41 @@ export interface Escape {
 	run(): void;
 }
 
+/** What was picked, and whether Tab asked to add a page to it. */
+export interface Picked {
+	item: ApiItem;
+	withPage: boolean;
+}
+
 class ItemPicker extends SuggestModal<ApiItem> {
 	private result: ApiItem | null = null;
+	private withPage = false;
 	private recent: ApiItem[] | null = null;
 
 	constructor(
 		app: App,
-		private readonly done: (item: ApiItem | null) => void,
+		private readonly done: (picked: Picked | null) => void,
 		escape?: Escape,
 	) {
 		super(app);
 		this.setPlaceholder('Search your Zotero library, or pick one you added recently');
 		this.emptyStateText = 'Nothing in your Zotero library yet.';
 
+		// Tab rather than a second list or a field under this one: picking the
+		// paper is the same move either way, and a page is one key more.
+		this.scope.register([], 'Tab', (event) => {
+			this.withPage = true;
+			this.selectActiveSuggestion(event);
+			return false;
+		});
+
+		this.setInstructions([
+			{ command: '↵', purpose: 'insert' },
+			{ command: 'tab', purpose: 'insert with a page' },
+			...(escape ? [{ command: '⇧↵', purpose: escape.purpose }] : []),
+		]);
+
 		if (escape) {
-			this.setInstructions([
-				{ command: '↵', purpose: 'insert' },
-				{ command: '⇧↵', purpose: escape.purpose },
-			]);
 			// Closing first, then handing over: the escape opens something of its
 			// own, and two dialogs fighting over focus is how you lose a click.
 			this.scope.register(['Shift'], 'Enter', () => {
@@ -97,8 +114,10 @@ class ItemPicker extends SuggestModal<ApiItem> {
 		this.result = item;
 	}
 
+	// Read inside the timeout, not before it: onChooseSuggestion can run after
+	// close(), and reading here would report a choice as nothing picked.
 	onClose(): void {
-		window.setTimeout(() => this.done(this.result), 0);
+		window.setTimeout(() => this.done(this.result ? { item: this.result, withPage: this.withPage } : null), 0);
 	}
 }
 
@@ -110,6 +129,6 @@ class ItemPicker extends SuggestModal<ApiItem> {
  * simply to stop. Making this a three-way answer would put a union type through
  * every call site to describe a branch only one of them has.
  */
-export function pickItem(app: App, escape?: Escape): Promise<ApiItem | null> {
+export function pickItem(app: App, escape?: Escape): Promise<Picked | null> {
 	return new Promise((resolve) => new ItemPicker(app, resolve, escape).open());
 }

@@ -227,8 +227,16 @@ rather than by title, and **Insert citation** is what closes that gap.
 
 **Insert citation** picks an item from your Zotero library and writes
 `[[citekey]]`. It needs Better BibTeX, which is what gives an item a citation
-key. Better BibTeX's own dialog is a chord away in the picker, for a page, a
-prefix or several sources at once. What you pick there is written as links too:
+key. Press Tab instead of Enter to give a page: `4` is page 4, and anything
+else, `ch. 3` or `§ 2`, goes in as typed.
+
+A link you wrote with Obsidian's own `[[` gets a page from **Add page to
+citation**: with the cursor on the link, or just after it, it asks for the page
+and rewrites the link, so you never type the key twice. It has no hotkey until
+you give it one.
+
+Better BibTeX's own dialog is a chord away in the picker, for a prefix or
+several sources at once. What you pick there is written as links too:
 
 | Picked | Written |
 | --- | --- |
@@ -366,7 +374,8 @@ None has a hotkey, so pick your own.
 | **Next** | Open the most perishable thing you owe. |
 | **Set reading status** | Queue, promote, defer or drop the open paper, or send it back to be read again. |
 | **Refresh paper from Zotero** | Refresh the open paper now, and say so. Opening a paper already does this quietly. |
-| **Insert citation** | Insert `[[citekey]]` for an item from your Zotero library. |
+| **Insert citation** | Insert `[[citekey]]` for an item from your Zotero library. Tab adds a page. |
+| **Add page to citation** | Add a page to the `[[citekey]]` at the cursor. |
 | **Insert queue block** | Put the stages on the note you are editing. |
 | **Export excluded papers** | Write `Excluded papers.md`: every dropped and deferred paper, and why. |
 

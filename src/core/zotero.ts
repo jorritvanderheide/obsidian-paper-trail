@@ -308,6 +308,59 @@ function citationLink(target: string, at: string, name = target): string {
 }
 
 /**
+ * What someone typed for a page, as a locator. A bare number is a page, "4"
+ * or "12-14", because that is nearly always what it is; anything else, "ch. 3"
+ * or "§ 2", is already a locator and stays as typed.
+ */
+export function typedLocator(typed: string): string {
+	const text = typed.trim();
+	return /^\d/.test(text) ? `p. ${text}` : text;
+}
+
+/** A citation to one key, with the page someone typed, or none. */
+export function pageCitation(key: string, typed: string): string {
+	return citationLink(key, typedLocator(typed));
+}
+
+/** A wikilink in a line of text, and where it sits. */
+export interface LinkSpan {
+	from: number;
+	to: number;
+	target: string;
+	label: string | null;
+}
+
+/**
+ * The wikilink the cursor is on, or has just finished typing.
+ *
+ * Just after `]]` counts, because that is where the cursor is when Obsidian's
+ * own `[[` suggester has written the link, and moving back into it first is
+ * the step this is here to save. An embed is not a citation, so `![[` is left.
+ */
+export function linkAt(line: string, ch: number): LinkSpan | null {
+	for (const match of line.matchAll(/(!?)\[\[([^[\]|]+)(?:\|([^[\]]*))?\]\]/g)) {
+		const from = match.index;
+		const to = from + match[0].length;
+		if (ch < from || ch > to) continue;
+		if (match[1] || match[2] === undefined) return null;
+		return { from, to, target: match[2], label: match[3] ?? null };
+	}
+	return null;
+}
+
+/**
+ * The link rewritten to cite a page. A page already there is replaced rather
+ * than added to, and a heading after `#` goes, because a citation with a page
+ * is not a link to a section. What the label said before its page stays, so
+ * `[[a|Jacobs, p. 3]]` becomes `[[a|Jacobs, p. 4]]`.
+ */
+export function withPage(link: LinkSpan, typed: string): string {
+	const target = link.target.replace(/#.*$/, '').trim();
+	const name = link.label?.split(',')[0]?.trim() || (target.split('/').pop() ?? target);
+	return citationLink(target, typedLocator(typed), name);
+}
+
+/**
  * One Zotero annotation, flattened to what a note needs.
  *
  * Highlights, underlines and notes alike, which is why it is not called a

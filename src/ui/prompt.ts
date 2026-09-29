@@ -95,6 +95,8 @@ export function suggest<T>(
 export interface PromptOptions {
 	/** The confirm button's text. It names the outcome, so it differs per caller. */
 	cta?: string;
+	/** An example answer in the empty field, for a question with a shape to it. */
+	placeholder?: string;
 }
 
 class Prompt extends Modal {
@@ -106,6 +108,7 @@ class Prompt extends Modal {
 		app: App,
 		private readonly label: string,
 		private readonly cta: string,
+		private readonly placeholder: string,
 		private readonly done: (value: string | null) => void,
 	) {
 		super(app);
@@ -114,7 +117,10 @@ class Prompt extends Modal {
 	onOpen(): void {
 		this.setTitle(this.label);
 
-		const input = this.contentEl.createEl('input', { cls: 'paper-trail-prompt-input', attr: { type: 'text' } });
+		const input = this.contentEl.createEl('input', {
+			cls: 'paper-trail-prompt-input',
+			attr: { type: 'text', placeholder: this.placeholder },
+		});
 		input.addEventListener('input', () => {
 			this.value = input.value;
 			this.check();
@@ -143,8 +149,9 @@ class Prompt extends Modal {
 
 	/**
 	 * Whether there is anything to submit. An empty answer is not an answer: the
-	 * two questions this asks are why a paper was dropped and what a deferral is
-	 * waiting on, and a blank is the one reply neither can take.
+	 * questions this asks are why a paper was dropped, what a deferral is waiting
+	 * on and which page a citation is to, and a blank is the one reply none of
+	 * them can take.
 	 */
 	private check(): boolean {
 		const ready = this.value.trim().length > 0;
@@ -165,5 +172,5 @@ class Prompt extends Modal {
 }
 
 export function prompt(app: App, label: string, options: PromptOptions = {}): Promise<string | null> {
-	return new Promise((resolve) => new Prompt(app, label, options.cta ?? 'OK', resolve).open());
+	return new Promise((resolve) => new Prompt(app, label, options.cta ?? 'OK', options.placeholder ?? '', resolve).open());
 }
