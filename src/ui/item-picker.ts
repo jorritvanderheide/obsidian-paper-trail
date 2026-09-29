@@ -38,6 +38,8 @@ class ItemPicker extends SuggestModal<ApiItem> {
 	private result: ApiItem | null = null;
 	private withPage = false;
 	private recent: ApiItem[] | null = null;
+	/** How many suggestions the last search gave, so Tab with none chooses nothing. */
+	private shown = 0;
 
 	constructor(
 		app: App,
@@ -50,7 +52,10 @@ class ItemPicker extends SuggestModal<ApiItem> {
 
 		// Tab rather than a second list or a field under this one: picking the
 		// paper is the same move either way, and a page is one key more.
+		// Nothing listed yet, a search still out, is nothing to choose: marking
+		// the picker would make the next Enter ask for a page too.
 		this.scope.register([], 'Tab', (event) => {
+			if (this.shown === 0) return false;
 			this.withPage = true;
 			this.selectActiveSuggestion(event);
 			return false;
@@ -80,10 +85,13 @@ class ItemPicker extends SuggestModal<ApiItem> {
 		try {
 			const items = searching ? await searchItems(text) : await this.recentlyAdded();
 			this.emptyStateText = searching ? 'No matching items.' : 'Nothing in your Zotero library yet.';
-			return items.filter(isPaperItem);
+			const papers = items.filter(isPaperItem);
+			this.shown = papers.length;
+			return papers;
 		} catch (error) {
 			// The modal is the only surface here, so the reason belongs in it.
 			this.emptyStateText = messageOf(error);
+			this.shown = 0;
 			return [];
 		}
 	}
