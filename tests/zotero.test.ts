@@ -6,6 +6,7 @@ import {
 	attachmentKeys,
 	citation,
 	LOCATOR_LABELS,
+	LOCATOR_TERMS,
 	linkAt,
 	pageCitation,
 	typedLocator,
@@ -180,23 +181,30 @@ describe('citation', () => {
 		expect(citation([{ citationKey: 'a', locator: '', label: 'page' }])).toBe('[[a]]');
 	});
 
-	it('keeps a prefix and a suffix as words outside the link, so an export keeps them', () => {
+	it('puts a prefix and a suffix in the label around the name, as pandoc puts them around the key', () => {
 		const cited = citation([{ citationKey: 'a', locator: '4', label: 'page', prefix: 'see', suffix: 'emphasis added' }]);
-		expect(cited).toBe('see [[a|a, p. 4]] emphasis added');
+		expect(cited).toBe('[[a|see a, p. 4 emphasis added]]');
 	});
 
 	it('closes up to a suffix that starts with punctuation', () => {
 		const cited = citation([{ citationKey: 'a', locator: '4', label: 'page', suffix: ', emphasis added' }]);
-		expect(cited).toBe('[[a|a, p. 4]], emphasis added');
+		expect(cited).toBe('[[a|a, p. 4, emphasis added]]');
 	});
 
-	it('writes only locators the pandoc filter reads, so an export keeps them', () => {
-		// The filter is Lua and cannot import this list, so this is what keeps
-		// the two from drifting: a term missing there drops the page silently.
+	it('writes a label for a prefix alone', () => {
+		expect(citation([{ citationKey: 'a', prefix: 'see' }])).toBe('[[a|see a]]');
+	});
+
+	it('writes only abbreviations the pandoc filter reads as locators', () => {
+		for (const label of Object.values(LOCATOR_LABELS)) expect(LOCATOR_TERMS).toContain(label);
+	});
+
+	it('reads locators by the same terms as the pandoc filter', () => {
+		// The filter is Lua and cannot import the list, so this is what keeps the
+		// two from drifting: a term missing there drops the page silently.
 		const lua = readFileSync(new URL('../pandoc/wikilink-citations.lua', import.meta.url), 'utf8');
 		const terms = /local LOCATOR_TERMS = \{\}\nfor term in \(\[\[([^\]]*)\]\]/.exec(lua)?.[1]?.trim().split(/\s+/) ?? [];
-		expect(terms.length).toBeGreaterThan(0);
-		for (const label of Object.values(LOCATOR_LABELS)) expect(terms).toContain(label);
+		expect(new Set(terms)).toEqual(LOCATOR_TERMS);
 	});
 
 	it('separates several sources with a semicolon', () => {
@@ -267,6 +275,18 @@ describe('withPage', () => {
 	it('keeps a label of your own', () => {
 		expect(withPage(at('[[a|Jacobs]]'), 'ch. 3')).toBe('[[a|Jacobs, ch. 3]]');
 		expect(withPage(at('[[a|Jacobs, p. 3]]'), '4')).toBe('[[a|Jacobs, p. 4]]');
+		expect(withPage(at('[[a|Jacobs, pp. 3, 6]]'), '4')).toBe('[[a|Jacobs, p. 4]]');
+	});
+
+	it('keeps what surrounds the name in a label that repeats it', () => {
+		expect(withPage(at('[[a|see a]]'), '4')).toBe('[[a|see a, p. 4]]');
+		expect(withPage(at('[[a|see a, p. 3, emphasis added]]'), '4')).toBe('[[a|see a, p. 4, emphasis added]]');
+		expect(withPage(at('[[a|a, pp. 3, 6, emphasis added]]'), '4')).toBe('[[a|a, p. 4, emphasis added]]');
+		expect(withPage(at('[[a|a emphasis added]]'), '4')).toBe('[[a|a, p. 4 emphasis added]]');
+	});
+
+	it('does not take a word that only starts with the name for it', () => {
+		expect(withPage(at('[[a|about]]'), '4')).toBe('[[a|about, p. 4]]');
 	});
 
 	it('drops a heading, because a page is not a section', () => {

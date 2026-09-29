@@ -229,11 +229,7 @@ export interface CitedSource {
 	suffix?: string;
 }
 
-/**
- * Better BibTeX's abbreviations, so a locator reads as its pandoc citation did.
- * The pandoc filter only reads a locator it knows the term of, so every one of
- * these is in its list too, and a test holds them together.
- */
+/** Better BibTeX's abbreviations, so a locator reads as its pandoc citation did. */
 export const LOCATOR_LABELS: Record<string, string> = {
 	article: 'art.',
 	chapter: 'ch.',
@@ -259,6 +255,32 @@ export const LOCATOR_LABELS: Record<string, string> = {
 };
 
 /**
+ * Every term that starts a locator, as the pandoc filter reads them: all of
+ * Better BibTeX's abbreviations, the plurals, and the full words someone might
+ * type. The filter is Lua and cannot import this, so a test holds the two
+ * lists to each other.
+ */
+export const LOCATOR_TERMS = new Set(
+	`p. pp. page pages
+	ch. chap. chapter subch. subchapter
+	sec. section subsec. subsection
+	para. paragraph subpara. subparagraph
+	fig. figure col. column l. ll. line
+	n. note vol. volume no. issue
+	art. article op. opus pt. part r. rule
+	vrs. verse sv. sch. schedule tit. title
+	book folio`.split(/\s+/),
+);
+
+/** Whether the text reads as a locator: a number, `§`, or a locator term first. */
+function isLocator(text: string): boolean {
+	const ref = text.trim();
+	if (/^\d/.test(ref) || ref.startsWith('§')) return true;
+	const term = /^\p{L}+\.?/u.exec(ref)?.[0];
+	return term !== undefined && LOCATOR_TERMS.has(term.toLowerCase());
+}
+
+/**
  * A citation as a link to the paper, rather than as pandoc syntax.
  *
  * `[@key]` is inert in Obsidian: the right thing to hand a bibliography
@@ -272,13 +294,11 @@ export const LOCATOR_LABELS: Record<string, string> = {
  * whose target is a citation key is something a pandoc filter can turn into a
  * real citation without knowing anything about this vault.
  *
- * A locator goes in the label, `[[key|key, p. 4]]`, after the first comma,
- * which is where the pandoc filter reads it. Not after `#`: Obsidian takes
- * `[[key#p. 4]]` for a heading, and hovering it says the section is not in the
- * note instead of showing the paper.
- *
- * A prefix and a suffix go outside the link, as words, so an export keeps them.
- * A suffix that starts with punctuation, ", emphasis added", closes up to it.
+ * Everything else goes in the label, around the name, the way pandoc writes it
+ * around the key: `[[a|see a, p. 4, emphasis added]]` is
+ * `[see @a, p. 4, emphasis added]`. That is the form the filter reads. Not a
+ * page after `#`: Obsidian takes `[[a#p. 4]]` for a heading, and hovering it
+ * says the section is not in the note instead of showing the paper.
  */
 export function citation(sources: CitedSource[]): string {
 	return sources
@@ -288,23 +308,24 @@ export function citation(sources: CitedSource[]): string {
 			const locator = source.locator?.trim();
 			const label = source.label ? (LOCATOR_LABELS[source.label] ?? source.label) : '';
 			const at = locator ? [label, locator].filter(Boolean).join(' ') : '';
-			const link = citationLink(key, at);
-			const prefix = source.prefix?.trim();
-			const suffix = source.suffix?.trim() ?? '';
-			const cited = prefix ? `${prefix} ${link}` : link;
-			if (!suffix) return [cited];
-			return [/^[,.;:)]/.test(suffix) ? `${cited}${suffix}` : `${cited} ${suffix}`];
+			return [citationLink(key, at, source.prefix, source.suffix)];
 		})
 		.join('; ');
 }
 
 /**
- * One link, with a locator in the label when there is one: `[[key]]`, or
- * `[[key|key, p. 4]]`. `name` is what the label says before the page, which
- * is the key unless the link already said something else.
+ * One link: `[[a]]` when there is nothing to say around the name, and
+ * otherwise `[[a|prefix a, locator suffix]]`. A suffix that starts with
+ * punctuation, ", emphasis added", closes up to what comes before it.
  */
-function citationLink(target: string, at: string, name = target): string {
-	return at ? `[[${target}|${name}, ${at}]]` : `[[${target}]]`;
+function citationLink(target: string, at: string, prefix = '', suffix = ''): string {
+	const before = prefix.trim();
+	const after = suffix.trim();
+	if (!at && !before && !after) return `[[${target}]]`;
+	let label = [before, target].filter(Boolean).join(' ');
+	if (at) label += `, ${at}`;
+	if (after) label += /^[,.;:)]/.test(after) ? after : ` ${after}`;
+	return `[[${target}|${label}]]`;
 }
 
 /**
@@ -349,15 +370,46 @@ export function linkAt(line: string, ch: number): LinkSpan | null {
 }
 
 /**
- * The link rewritten to cite a page. A page already there is replaced rather
- * than added to, and a heading after `#` goes, because a citation with a page
- * is not a link to a section. What the label said before its page stays, so
- * `[[a|Jacobs, p. 3]]` becomes `[[a|Jacobs, p. 4]]`.
+ * Where a label repeats the name as a word, the way the filter's `spelled`
+ * finds it: the index just past it, or -1.
+ */
+function pastName(label: string, name: string): number {
+	for (let at = label.indexOf(name); at !== -1; at = label.indexOf(name, at + 1)) {
+		const end = at + name.length;
+		const before = at === 0 || /\s/.test(label[at - 1] ?? '');
+		const after = end === label.length || /[\s,;]/.test(label[end] ?? '');
+		if (before && after) return end;
+	}
+	return -1;
+}
+
+/**
+ * The link rewritten to cite a page, read the way the filter reads it.
+ *
+ * A label that repeats the name keeps everything around it and has its page
+ * replaced: `[[a|see a, p. 3, emphasis added]]` becomes `see a, p. 4, emphasis
+ * added`. Any other label is yours, so it stays and the page goes after a
+ * comma, which the filter reads too: `[[a|Jacobs]]` becomes `Jacobs, p. 4`, and
+ * a page it had is replaced. Without a label the name is it. A heading after
+ * `#` goes, because a citation with a page is not a link to a section.
  */
 export function withPage(link: LinkSpan, typed: string): string {
 	const target = link.target.replace(/#.*$/, '').trim();
-	const name = link.label?.split(',')[0]?.trim() || (target.split('/').pop() ?? target);
-	return citationLink(target, typedLocator(typed), name);
+	const name = target.split('/').pop() ?? target;
+	const label = link.label ?? name;
+	const at = typedLocator(typed);
+
+	const end = pastName(label, name);
+	if (end !== -1) {
+		// A page already after the name goes, with any bare numbers that continue
+		// it, "pp. 4, 6"; what follows that is the suffix, and stays.
+		const rest = label.slice(end).replace(/^,\s*([^,]*)((?:,\s*\d[^,]*)*)/, (whole: string, first: string) => (isLocator(first) ? '' : whole));
+		return `[[${target}|${label.slice(0, end)}, ${at}${rest}]]`;
+	}
+
+	const comma = label.indexOf(',');
+	const own = comma !== -1 && isLocator(label.slice(comma + 1)) ? label.slice(0, comma) : label;
+	return `[[${target}|${own.trim()}, ${at}]]`;
 }
 
 /**

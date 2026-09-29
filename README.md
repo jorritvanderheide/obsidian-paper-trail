@@ -232,17 +232,19 @@ else, `ch. 3` or `§ 2`, goes in as typed.
 
 A link you wrote with Obsidian's own `[[` gets a page from **Add page to
 citation**: with the cursor on the link, or just after it, it asks for the page
-and rewrites the link, so you never type the key twice. It has no hotkey until
-you give it one.
+and rewrites the link, so you never type the key twice. A label you wrote stays,
+with the page after a comma: `[[a|Jacobs]]` becomes `[[a|Jacobs, p. 4]]`. It
+has no hotkey until you give it one.
 
 Better BibTeX's own dialog is a chord away in the picker, for a prefix or
-several sources at once. What you pick there is written as links too:
+several sources at once. What you pick there is written as links too, with
+everything around the key in the label, the way pandoc writes it:
 
 | Picked | Written |
 | --- | --- |
 | a paper | `[[a]]` |
 | page 4 | `[[a\|a, p. 4]]` |
-| "see", page 4 | `see [[a\|a, p. 4]]` |
+| "see", page 4 | `[[a\|see a, p. 4]]` |
 | two papers | `[[a\|a, p. 4]]; [[b]]` |
 
 The page is in the label after `|`, so the link still points at the paper: it
@@ -250,7 +252,8 @@ opens it, previews it on hover, and counts in its backlinks.
 
 Pandoc turns those links into real citations with
 [`pandoc/wikilink-citations.lua`](pandoc/wikilink-citations.lua), which is in
-this repository:
+this repository. It is a copy of the filter in Due Credit, a companion plugin
+that runs the export from inside Obsidian; by hand:
 
 ```sh
 pandoc chapter.md \
@@ -261,30 +264,30 @@ pandoc chapter.md \
 ```
 
 The filter turns a wikilink into a citation only when the bibliography has an
-entry by that name, so a link to a note of your own stays a link. A page in the
-label, after its first comma, becomes the citation's locator, and citations
-next to each other, with nothing but spaces or one `;` between them, share one
-pair of parentheses:
+entry by that name, so a link to a note of your own stays a link. A label that
+repeats the key says what goes around it; any other label can carry a page after
+its first comma. Citations next to each other, with nothing but spaces or one
+`;` between them, share one pair of parentheses:
 
 | Written | Exported |
 | --- | --- |
 | `[[a]]` | (A 2024) |
 | `[[a\|a, p. 12]]` | (A 2024, 12) |
+| `[[a\|see a, p. 12]]` | (see A 2024, 12) |
 | `[[a\|Jacobs, ch. 3]]` | (A 2024, ch. 3) |
 | `[[a#Claim]]` | (A 2024) |
 | `[[a\|a, p. 12]]; [[b]]` | (A 2024, 12; B 2025) |
 | `[[a]] and [[b]]` | (A 2024) and (B 2025) |
 
-What follows the comma only counts as a page when it starts with a number, `§`
-or a locator term such as `p.` or `ch.`, so a label of your own is still a
-plain citation. A link to a heading, `[[a#Claim]]`, cites the paper. Don't put
-your own parentheses around a citation: the filter adds them, and `([[a]])`
-exports as "((A 2024))".
+A page only counts when it starts with a number, `§` or a locator term such as
+`p.` or `ch.`, so a label of your own is still a plain citation. A link to a
+heading, `[[a#Claim]]`, cites the paper. Don't put your own parentheses around a
+citation: the filter adds them, and `([[a]])` exports as "((A 2024))".
 
 Order matters in that command: pandoc cannot read `[[...]]` at all without the
 `--from` extension, and runs filters in the order given, so citeproc has to come
 after the filter that creates the citations. Paper Trail does not run pandoc, or
-anything else; exporting is your build's job.
+anything else; exporting is Due Credit's job, or your build's.
 
 ## The record
 
