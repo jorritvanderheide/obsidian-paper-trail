@@ -5,6 +5,7 @@ import {
 	venueOf,
 	attachmentKeys,
 	citation,
+	itemRefOfUri,
 	LOCATOR_LABELS,
 	LOCATOR_TERMS,
 	linkAt,
@@ -195,6 +196,11 @@ describe('citation', () => {
 		expect(citation([{ citationKey: 'a', prefix: 'see' }])).toBe('[[a|see a]]');
 	});
 
+	it("links to the paper's note by its name, which Better BibTeX may have left behind", () => {
+		const cited = citation([{ citationKey: 'newKey2025', locator: '4', label: 'page' }], () => 'oldKey2025');
+		expect(cited).toBe('[[oldKey2025|oldKey2025, p. 4]]');
+	});
+
 	it('writes only abbreviations the pandoc filter reads as locators', () => {
 		for (const label of Object.values(LOCATOR_LABELS)) expect(LOCATOR_TERMS).toContain(label);
 	});
@@ -215,6 +221,22 @@ describe('citation', () => {
 	it('leaves out a Zotero note, which has no key to link', () => {
 		expect(citation([{ citationKey: '' }, { citationKey: 'b' }])).toBe('[[b]]');
 		expect(citation([{ citationKey: '' }])).toBe('');
+	});
+});
+
+describe('itemRefOfUri', () => {
+	it('reads an item in the personal library', () => {
+		expect(itemRefOfUri('http://zotero.org/users/local/abcdEFGH/items/ABCD2345')).toEqual({ key: 'ABCD2345', groupID: null });
+		expect(itemRefOfUri('http://zotero.org/users/123456/items/ABCD2345')).toEqual({ key: 'ABCD2345', groupID: null });
+	});
+
+	it('reads an item in a group', () => {
+		expect(itemRefOfUri('http://zotero.org/groups/5/items/ABCD2345')).toEqual({ key: 'ABCD2345', groupID: 5 });
+	});
+
+	it('reads nothing else', () => {
+		expect(itemRefOfUri('http://zotero.org/users/local/x/collections/ABCD2345')).toBeNull();
+		expect(itemRefOfUri('')).toBeNull();
 	});
 });
 

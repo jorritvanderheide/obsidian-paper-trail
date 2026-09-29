@@ -24,7 +24,8 @@ import { MarkdownView, Notice } from 'obsidian';
 import { pickItem } from '../ui/item-picker';
 import { prompt } from '../ui/prompt';
 import { pickCitation } from '../source';
-import { citation, linkAt, pageCitation, withPage } from '../core/zotero';
+import { citation, itemRefOfUri, linkAt, pageCitation, withPage, type CitedSource } from '../core/zotero';
+import { paperNoteName } from '../outstanding';
 import { notify } from '../ui/notify';
 import type { Context } from '../context';
 
@@ -34,7 +35,11 @@ async function advanced(context: Context): Promise<void> {
 	try {
 		const sources = await pickCitation();
 		if (!sources) return;
-		const cited = citation(sources);
+		const noteOf = (source: CitedSource) => {
+			const ref = source.uri ? itemRefOfUri(source.uri) : null;
+			return ref ? paperNoteName(context, ref) : null;
+		};
+		const cited = citation(sources, noteOf);
 		// Nothing picked had a citation key: a Zotero note has none.
 		if (!cited) {
 			new Notice('Nothing to cite: Better BibTeX gave no citation key for what was picked.');
@@ -85,11 +90,13 @@ export async function insertCitation(context: Context): Promise<void> {
 		// Dismissing the page question cancels the citation, as Escape does
 		// anywhere else: a citation without the page you meant to give is a
 		// quiet mistake, and inserting nothing is not.
-		let cited = citation([{ citationKey: key }]);
+		// The picker lists the personal library, so the item is in it.
+		const target = paperNoteName(context, { key: item.key, groupID: null }) ?? key;
+		let cited = citation([{ citationKey: key }], () => target);
 		if (asked) {
-			const page = await askPage(context, key);
+			const page = await askPage(context, target);
 			if (!page) return;
-			cited = pageCitation(key, page);
+			cited = pageCitation(target, page);
 		}
 
 		// Fetch the editor after the picker closes, not before: it was open long

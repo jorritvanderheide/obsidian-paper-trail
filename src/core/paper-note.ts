@@ -96,11 +96,13 @@ export function paperFrontmatter(item: ApiItem, ref: ItemRef, basename: string):
 		// title. The title is still on the note, in `title` and in its heading,
 		// and still found by search.
 		aliases:
-			// The exception, and the only one: a note made before Better BibTeX was
-			// installed keeps the author-title-year name it was born with and learns
-			// its key later from a sync. Without this, a citation to one of those
-			// would quietly not resolve. Aliasing a file to its own name would list
-			// it twice in the suggester, so this asks first.
+			// The exception, and the only one: a note whose name is not its key,
+			// because it was made before Better BibTeX was installed or Better
+			// BibTeX changed the key since. This lets `[[` find it by the key. It
+			// does not make `[[key]]` resolve, since Obsidian resolves a link by
+			// name and path only; Insert citation links to the name instead.
+			// Aliasing a file to its own name would list it twice in the
+			// suggester, so this asks first.
 			key && key !== basename ? [key] : [],
 		authors: authorNames(item).join(', '),
 		year: itemYear(item),

@@ -228,7 +228,9 @@ rather than by title, and **Insert citation** is what closes that gap.
 **Insert citation** picks an item from your Zotero library and writes
 `[[citekey]]`. It needs Better BibTeX, which is what gives an item a citation
 key. Press Tab instead of Enter to give a page: `4` is page 4, and anything
-else, `ch. 3` or `§ 2`, goes in as typed.
+else, `ch. 3` or `§ 2`, goes in as typed. When the paper has a note, the link
+goes to the note by its name, so it resolves even if Better BibTeX has changed
+the key since the note was made.
 
 A link you wrote with Obsidian's own `[[` gets a page from **Add page to
 citation**: with the cursor on the link, or just after it, it asks for the page
@@ -288,6 +290,10 @@ Order matters in that command: pandoc cannot read `[[...]]` at all without the
 `--from` extension, and runs filters in the order given, so citeproc has to come
 after the filter that creates the citations. Paper Trail does not run pandoc, or
 anything else; exporting is Due Credit's job, or your build's.
+
+By hand the filter knows a link only by its name, so a note whose name is not
+its key exports as its name. Due Credit reads the note's `citekey` and cites
+that.
 
 ## The record
 

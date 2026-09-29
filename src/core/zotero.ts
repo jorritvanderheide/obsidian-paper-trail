@@ -219,7 +219,8 @@ export function noteName(item: ApiItem): string {
  *
  * `label` is a CSL locator type, `page` or `chapter`, and Better BibTeX fills
  * in `page` when a locator was typed without one. A Zotero note picked in the
- * dialog comes back too, with no citation key.
+ * dialog comes back too, with no citation key. `uri` is Zotero's for the
+ * item, which is how its note is found.
  */
 export interface CitedSource {
 	citationKey?: string;
@@ -227,6 +228,18 @@ export interface CitedSource {
 	label?: string;
 	prefix?: string;
 	suffix?: string;
+	uri?: string;
+}
+
+/**
+ * The item a Zotero URI names, as `zotero-key` stores it:
+ * `http://zotero.org/users/local/abc/items/ABCD1234` is ABCD1234, and
+ * `http://zotero.org/groups/5/items/ABCD1234` is ABCD1234 in group 5.
+ */
+export function itemRefOfUri(uri: string): ItemRef | null {
+	const match = /\/(?:groups\/(\d+)|users\/(?:local\/)?[^/]+)\/items\/([A-Z0-9]{8})$/.exec(uri.trim());
+	if (!match?.[2] || !KEY.test(match[2])) return null;
+	return { key: match[2], groupID: match[1] ? Number(match[1]) : null };
 }
 
 /** Better BibTeX's abbreviations, so a locator reads as its pandoc citation did. */
@@ -290,17 +303,21 @@ function isLocator(text: string): boolean {
  * turns up in that paper's backlinks, which is the question a thesis actually
  * asks of its own corpus.
  *
- * It stays exportable, and that is why the target is the bare key: a link
- * whose target is a citation key is something a pandoc filter can turn into a
- * real citation without knowing anything about this vault.
+ * The target is the paper's note when there is one, by its name, which is the
+ * citation key unless Better BibTeX changed the key after the note was named.
+ * Linking to the name is what makes it resolve either way; Due Credit, which
+ * exports, points a link to a paper note at its key. Without a note the target
+ * is the key, which exports but does not resolve until the paper has a note.
  *
  * Everything else goes in the label, around the name, the way pandoc writes it
  * around the key: `[[a|see a, p. 4, emphasis added]]` is
  * `[see @a, p. 4, emphasis added]`. That is the form the filter reads. Not a
  * page after `#`: Obsidian takes `[[a#p. 4]]` for a heading, and hovering it
  * says the section is not in the note instead of showing the paper.
+ *
+ * `noteOf` names a source's note, or says it has none.
  */
-export function citation(sources: CitedSource[]): string {
+export function citation(sources: CitedSource[], noteOf: (source: CitedSource) => string | null = () => null): string {
 	return sources
 		.flatMap((source) => {
 			const key = source.citationKey?.trim();
@@ -308,7 +325,7 @@ export function citation(sources: CitedSource[]): string {
 			const locator = source.locator?.trim();
 			const label = source.label ? (LOCATOR_LABELS[source.label] ?? source.label) : '';
 			const at = locator ? [label, locator].filter(Boolean).join(' ') : '';
-			return [citationLink(key, at, source.prefix, source.suffix)];
+			return [citationLink(noteOf(source) ?? key, at, source.prefix, source.suffix)];
 		})
 		.join('; ');
 }
@@ -338,9 +355,9 @@ export function typedLocator(typed: string): string {
 	return /^\d/.test(text) ? `p. ${text}` : text;
 }
 
-/** A citation to one key, with the page someone typed, or none. */
-export function pageCitation(key: string, typed: string): string {
-	return citationLink(key, typedLocator(typed));
+/** A citation to one paper, by its note's name or its key, with the page someone typed. */
+export function pageCitation(target: string, typed: string): string {
+	return citationLink(target, typedLocator(typed));
 }
 
 /** A wikilink in a line of text, and where it sits. */
