@@ -252,48 +252,16 @@ everything around the key in the label, the way pandoc writes it:
 The page is in the label after `|`, so the link still points at the paper: it
 opens it, previews it on hover, and counts in its backlinks.
 
-Pandoc turns those links into real citations with
-[`pandoc/wikilink-citations.lua`](pandoc/wikilink-citations.lua), which is in
-this repository. It is a copy of the filter in Due Credit, a companion plugin
-that runs the export from inside Obsidian; by hand:
+Paper Trail runs no pandoc. Exporting is
+[Due Credit](https://github.com/jorritvanderheide/obsidian-due-credit)'s job: a
+companion plugin that runs pandoc on a note and turns these links into real
+citations in Word, PDF, Markdown or LaTeX. It reads every form Insert citation
+writes, and cites a link to a paper note by the note's `citekey`, so a note
+whose key Better BibTeX has since changed still cites the paper. Its README
+lists what exports as what, and its filter works with pandoc on its own.
 
-```sh
-pandoc chapter.md \
-  --from=markdown+wikilinks_title_after_pipe \
-  --lua-filter=pandoc/wikilink-citations.lua \
-  --bibliography=Literature/library.bib \
-  --citeproc --output=chapter.docx
-```
-
-The filter turns a wikilink into a citation only when the bibliography has an
-entry by that name, so a link to a note of your own stays a link. A label that
-repeats the key says what goes around it; any other label can carry a page after
-its first comma. Citations next to each other, with nothing but spaces or one
-`;` between them, share one pair of parentheses:
-
-| Written | Exported |
-| --- | --- |
-| `[[a]]` | (A 2024) |
-| `[[a\|a, p. 12]]` | (A 2024, 12) |
-| `[[a\|see a, p. 12]]` | (see A 2024, 12) |
-| `[[a\|Jacobs, ch. 3]]` | (A 2024, ch. 3) |
-| `[[a#Claim]]` | (A 2024) |
-| `[[a\|a, p. 12]]; [[b]]` | (A 2024, 12; B 2025) |
-| `[[a]] and [[b]]` | (A 2024) and (B 2025) |
-
-A page only counts when it starts with a number, `§` or a locator term such as
-`p.` or `ch.`, so a label of your own is still a plain citation. A link to a
-heading, `[[a#Claim]]`, cites the paper. Don't put your own parentheses around a
-citation: the filter adds them, and `([[a]])` exports as "((A 2024))".
-
-Order matters in that command: pandoc cannot read `[[...]]` at all without the
-`--from` extension, and runs filters in the order given, so citeproc has to come
-after the filter that creates the citations. Paper Trail does not run pandoc, or
-anything else; exporting is Due Credit's job, or your build's.
-
-By hand the filter knows a link only by its name, so a note whose name is not
-its key exports as its name. Due Credit reads the note's `citekey` and cites
-that.
+Don't put your own parentheses around a citation: the export adds them, and
+`([[a]])` comes out as "((A 2024))".
 
 ## The record
 

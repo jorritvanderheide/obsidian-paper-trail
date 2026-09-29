@@ -268,10 +268,11 @@ export const LOCATOR_LABELS: Record<string, string> = {
 };
 
 /**
- * Every term that starts a locator, as the pandoc filter reads them: all of
- * Better BibTeX's abbreviations, the plurals, and the full words someone might
- * type. The filter is Lua and cannot import this, so a test holds the two
- * lists to each other.
+ * Every term that starts a locator: all of Better BibTeX's abbreviations, the
+ * plurals, and the full words someone might type. Due Credit's pandoc filter
+ * reads a locator by the same words and keeps its own copy of this list, since
+ * it is Lua and cannot import this one. A change to either is a change to both:
+ * a term only this side knows is a page the export drops.
  */
 export const LOCATOR_TERMS = new Set(
 	`p. pp. page pages

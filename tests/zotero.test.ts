@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	abstractOf,
@@ -201,16 +200,8 @@ describe('citation', () => {
 		expect(cited).toBe('[[oldKey2025|oldKey2025, p. 4]]');
 	});
 
-	it('writes only abbreviations the pandoc filter reads as locators', () => {
+	it('writes only abbreviations it reads back as locators', () => {
 		for (const label of Object.values(LOCATOR_LABELS)) expect(LOCATOR_TERMS).toContain(label);
-	});
-
-	it('reads locators by the same terms as the pandoc filter', () => {
-		// The filter is Lua and cannot import the list, so this is what keeps the
-		// two from drifting: a term missing there drops the page silently.
-		const lua = readFileSync(new URL('../pandoc/wikilink-citations.lua', import.meta.url), 'utf8');
-		const terms = /local LOCATOR_TERMS = \{\}\nfor term in \(\[\[([^\]]*)\]\]/.exec(lua)?.[1]?.trim().split(/\s+/) ?? [];
-		expect(new Set(terms)).toEqual(LOCATOR_TERMS);
 	});
 
 	it('separates several sources with a semicolon', () => {
