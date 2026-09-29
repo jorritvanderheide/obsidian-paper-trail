@@ -40,7 +40,7 @@ const wf = (triage: boolean): Workflow => ({ triage, passes: 'both' });
 
 /** A literature note as it is created, before any decision. */
 const untriaged = () => ({
-	citekey: 'vanderhaerReframingHeatPump2026',
+	citekey: 'vanderlindMendingQuietArchive2026',
 	reading: 'untriaged',
 	tags: ['topic/heat-pumps'],
 });
@@ -64,7 +64,7 @@ describe('applyTriage', () => {
 	it('keeps the fields it does not own', () => {
 		const frontmatter: Record<string, unknown> = untriaged();
 		applyTriage(frontmatter, { reading: 'queued', reason: null }, '2026-09-20');
-		expect(frontmatter.citekey).toBe('vanderhaerReframingHeatPump2026');
+		expect(frontmatter.citekey).toBe('vanderlindMendingQuietArchive2026');
 	});
 
 	it('dates the first assessment', () => {

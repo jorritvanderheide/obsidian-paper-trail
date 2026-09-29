@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { decidedOf, excluded, isReport, renderReport, type Decided } from '../src/core/record';
 
 const paper = (over: Partial<Decided> = {}): Decided => ({
-	title: 'Reframing heat pump transitions',
-	authors: 'Jeltje Van Der Haer',
+	title: 'Mending quiet archive practices',
+	authors: 'Ida Van Der Lind',
 	year: 2026,
 	reading: 'dropped',
 	triaged: '2026-03-14',
 	reason: 'a review, not empirical',
-	path: 'Literature/vanderhaer2026.md',
+	path: 'Literature/vanderlind2026.md',
 	...over,
 });
 
@@ -67,7 +67,7 @@ describe('renderReport', () => {
 	});
 
 	it('links each row back into the vault rather than only naming it', () => {
-		expect(of([paper()])).toContain('[[Literature/vanderhaer2026\\|Reframing heat pump transitions]]');
+		expect(of([paper()])).toContain('[[Literature/vanderlind2026\\|Mending quiet archive practices]]');
 	});
 
 	it('escapes a pipe in a title, which would otherwise shift every later column', () => {
@@ -139,28 +139,28 @@ describe('isReport', () => {
  * table of papers the queue never showed you.
  */
 describe('decidedOf', () => {
-	const file = { path: 'Literature/vanderhaer2026.md', basename: 'vanderhaer2026' };
+	const file = { path: 'Literature/vanderlind2026.md', basename: 'vanderlind2026' };
 	const of = (frontmatter: Record<string, unknown> | undefined) => decidedOf(frontmatter, file, 'zotero-key');
 
 	it('reads a paper off its frontmatter', () => {
 		expect(
 			of({
 				'zotero-key': 'ABCD2345',
-				title: 'Reframing heat pump transitions',
-				authors: 'Jeltje Van Der Haer',
+				title: 'Mending quiet archive practices',
+				authors: 'Ida Van Der Lind',
 				year: 2026,
 							reading: 'dropped',
 				'triaged-date': '2026-03-14',
 				'reading-reason': 'a review, not empirical',
 			}),
 		).toEqual({
-			title: 'Reframing heat pump transitions',
-			authors: 'Jeltje Van Der Haer',
+			title: 'Mending quiet archive practices',
+			authors: 'Ida Van Der Lind',
 			year: 2026,
 					reading: 'dropped',
 			triaged: '2026-03-14',
 			reason: 'a review, not empirical',
-			path: 'Literature/vanderhaer2026.md',
+			path: 'Literature/vanderlind2026.md',
 		});
 	});
 
@@ -181,7 +181,7 @@ describe('decidedOf', () => {
 
 
 	it('falls back to the filename when a paper has no title', () => {
-		expect(of({ 'zotero-key': 'ABCD2345' })?.title).toBe('vanderhaer2026');
+		expect(of({ 'zotero-key': 'ABCD2345' })?.title).toBe('vanderlind2026');
 	});
 
 	// A cell the table can print. An empty authors field is an empty cell; a

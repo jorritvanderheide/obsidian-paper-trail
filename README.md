@@ -26,12 +26,12 @@ cost, each ending in a decision about whether to make the next one.
 →  ⟳  ⌃⌄
 ───────────────────────────────────────────
 ▾ Reading                                2
-    So Much to Read, So Little Time
-    Energy Cultures
+    A Year of Reading Slowly
+    Small Hours
 ▾ Claim                                  1
-    Scholars Before Researchers
+    The Quiet Archive
 ▾ Assessment                             1
-    How to Read a Paper
+    Notes Toward a Method
 ───────────────────────────────────────────
 ▸ Deferred                               3
 ▸ Filed                                 41
@@ -135,7 +135,7 @@ what Zotero knows about the paper and what you decided about it, the note
 starts as a title, links to the item and the PDF, and your annotations:
 
 ```markdown
-# How to Read a Paper
+# Notes Toward a Method
 
 [Zotero](zotero://select/library/items/ABCD2345) · [PDF](zotero://open-pdf/library/items/EFGH6789)
 
@@ -213,9 +213,9 @@ is cheap: having just said what a paper claims is exactly when you know whether
 it contradicts something you read in March.
 
 **Insert citation** writes the link, and it is one thing doing three jobs. The
-link is a wikilink to the citation key, so `against [[jones2021sampling]]` in a
+link is a wikilink to the citation key, so `against [[okafor2019sampling]]` in a
 claim reads as a citation, exports as one through pandoc, and puts this paper
-in Jones's backlinks. Which papers spoke to which is the question a thesis asks
+in Okafor's backlinks. Which papers spoke to which is the question a thesis asks
 of its own corpus, and the backlinks pane is where it gets answered.
 
 Without Better BibTeX there is no citation key and none is wanted: notes are
@@ -235,7 +235,7 @@ the key since the note was made.
 A link you wrote with Obsidian's own `[[` gets a page from **Add page to
 citation**: with the cursor on the link, or just after it, it asks for the page
 and rewrites the link, so you never type the key twice. A label you wrote stays,
-with the page after a comma: `[[a|Jacobs]]` becomes `[[a|Jacobs, p. 4]]`. It
+with the page after a comma: `[[a|Marsh]]` becomes `[[a|Marsh, p. 4]]`. It
 has no hotkey until you give it one.
 
 Better BibTeX's own dialog is a chord away in the picker, for a prefix, a

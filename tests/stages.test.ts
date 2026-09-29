@@ -436,18 +436,18 @@ describe('matchesQuery', () => {
 	});
 
 	it('needs every word, in any order and any case', () => {
-		const row = noted({ title: 'Attention Is All You Need' });
-		expect(matchesQuery(row, 'need ATTENTION')).toBe(true);
-		expect(matchesQuery(row, 'attention convolution')).toBe(false);
+		const row = noted({ title: 'Small Hours of the Archive' });
+		expect(matchesQuery(row, 'archive SMALL')).toBe(true);
+		expect(matchesQuery(row, 'small convolution')).toBe(false);
 	});
 
 	it('does not care about accents on either side', () => {
-		expect(matchesQuery(noted({ title: 'On Gödel numbering' }), 'godel')).toBe(true);
-		expect(matchesQuery(noted({ title: 'On Godel numbering' }), 'gödel')).toBe(true);
+		expect(matchesQuery(noted({ title: 'On Hélène Brisk' }), 'helene')).toBe(true);
+		expect(matchesQuery(noted({ title: 'On Helene Brisk' }), 'hélène')).toBe(true);
 	});
 
 	it('finds a note by its file name, which is the citation key when Better BibTeX named it', () => {
-		expect(matchesQuery(noted({ path: 'Literature/vaswani2017attention.md', title: 'Attention' }), 'vaswani2017')).toBe(true);
+		expect(matchesQuery(noted({ path: 'Literature/lindqvist2025hours.md', title: 'Small Hours' }), 'lindqvist2025')).toBe(true);
 		expect(matchesQuery(noted({ path: 'Literature/a.md' }), 'literature')).toBe(false);
 	});
 

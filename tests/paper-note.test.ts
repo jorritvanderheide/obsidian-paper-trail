@@ -23,13 +23,13 @@ const item: ApiItem = {
 	key: '5UPN73EU',
 	data: {
 		itemType: 'journalArticle',
-		title: 'Reframing heat pump transitions: a care perspective',
-		shortTitle: 'Reframing heat pump transitions',
+		title: 'Mending quiet archive practices: a care perspective',
+		shortTitle: 'Mending quiet archive practices',
 		date: '2026-08-11',
-		citationKey: 'vanderhaerReframingHeatPump2026',
+		citationKey: 'vanderlindMendingQuietArchive2026',
 		creators: [
-			{ creatorType: 'author', firstName: 'Jeltje', lastName: 'Van Der Haer' },
-			{ creatorType: 'author', firstName: 'Freek', lastName: 'De Haan' },
+			{ creatorType: 'author', firstName: 'Ida', lastName: 'Van Der Lind' },
+			{ creatorType: 'author', firstName: 'Bram', lastName: 'De Veld' },
 		],
 	},
 	meta: { parsedDate: '2026-08-11' },
@@ -46,7 +46,7 @@ const annotation = (over: Partial<Annotation> = {}): Annotation => ({
 
 describe('paperFrontmatter', () => {
 	it('prefers the short title', () => {
-		expect(paperFrontmatter(item, ref, 'some-old-name').title).toBe('Reframing heat pump transitions');
+		expect(paperFrontmatter(item, ref, 'some-old-name').title).toBe('Mending quiet archive practices');
 	});
 
 	// It used to be, and only when Zotero's short title differed from its long
@@ -54,7 +54,7 @@ describe('paperFrontmatter', () => {
 	// the ones whose link came out a hundred characters long, and the rest could
 	// not be found that way at all. One way to reach a paper is worth more.
 	it('does not alias the full title, whether or not a short one exists', () => {
-		const long = 'Reframing heat pump transitions: a care perspective';
+		const long = 'Mending quiet archive practices: a care perspective';
 		expect(paperFrontmatter(item, ref, 'some-old-name').aliases).not.toContain(long);
 
 		const same = { ...item, data: { ...item.data, shortTitle: undefined } };
@@ -66,13 +66,13 @@ describe('paperFrontmatter', () => {
 	// note made before Better BibTeX was installed is not, and learns its key
 	// later from a sync: the alias is what covers those.
 	it('aliases the citation key when the file is called something else', () => {
-		expect(paperFrontmatter(item, ref, 'some-old-name').aliases).toContain('vanderhaerReframingHeatPump2026');
+		expect(paperFrontmatter(item, ref, 'some-old-name').aliases).toContain('vanderlindMendingQuietArchive2026');
 	});
 
 	// Aliasing a note to its own name lists it twice in the link suggester: once
 	// as a file, once as an alias pointing at that file.
 	it('does not alias the citation key when the file is already called that', () => {
-		expect(paperFrontmatter(item, ref, 'vanderhaerReframingHeatPump2026').aliases).toEqual([]);
+		expect(paperFrontmatter(item, ref, 'vanderlindMendingQuietArchive2026').aliases).toEqual([]);
 	});
 
 	// Without Better BibTeX there is no key, so there is nothing to alias and
@@ -83,7 +83,7 @@ describe('paperFrontmatter', () => {
 	});
 
 	it('keeps compound surnames whole', () => {
-		expect(paperFrontmatter(item, ref, 'some-old-name').authors).toBe('Jeltje Van Der Haer, Freek De Haan');
+		expect(paperFrontmatter(item, ref, 'some-old-name').authors).toBe('Ida Van Der Lind, Bram De Veld');
 	});
 
 	it('is null rather than empty when Better BibTeX is absent', () => {
@@ -123,8 +123,8 @@ describe('renderAnnotation', () => {
 	});
 
 	it('puts a comment under its quote', () => {
-		expect(renderAnnotation(annotation({ comment: 'cf. Tronto' }))).toBe(
-			'> Care is not inherently good. (p. 842) ^zt-2SQ873XZ\n\ncf. Tronto',
+		expect(renderAnnotation(annotation({ comment: 'cf. Okafor' }))).toBe(
+			'> Care is not inherently good. (p. 842) ^zt-2SQ873XZ\n\ncf. Okafor',
 		);
 	});
 
@@ -272,8 +272,8 @@ describe('applyPaperFrontmatter', () => {
 	it('refreshes the managed keys', () => {
 		const fm = lived();
 		applyPaperFrontmatter(fm, managed(), null, 'zotero-key');
-		expect(fm.title).toBe('Reframing heat pump transitions');
-		expect(fm.citekey).toBe('vanderhaerReframingHeatPump2026');
+		expect(fm.title).toBe('Mending quiet archive practices');
+		expect(fm.citekey).toBe('vanderlindMendingQuietArchive2026');
 		expect(fm['zotero-key']).toBe('5UPN73EU');
 	});
 
@@ -380,10 +380,10 @@ describe('the frontmatter a paper ends up with', () => {
 	});
 
 	it('sorts a user own keys in with the managed ones', () => {
-		const fm: Record<string, unknown> = { supervisor: 'Hanna', 'my-own-field': 'x' };
+		const fm: Record<string, unknown> = { supervisor: 'Sam', 'my-own-field': 'x' };
 		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'some-old-name'), null, 'zotero-key');
 		expect(Object.keys(fm)).toEqual([...Object.keys(fm)].sort());
-		expect(fm.supervisor).toBe('Hanna');
+		expect(fm.supervisor).toBe('Sam');
 	});
 });
 

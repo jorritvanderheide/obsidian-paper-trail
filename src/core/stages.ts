@@ -724,7 +724,7 @@ export function rowTitle(row: Row): string {
  * Whether a row answers what was typed in the pane's search box.
  *
  * Every word has to turn up somewhere, in any order and any case, and an
- * accent is not a difference: someone typing "Godel" is looking for Gödel.
+ * accent is not a difference: someone typing "Helene" is looking for Hélène.
  * Where it looks is the title, and on a paper with a note also the note's file
  * name, which is the citation key when Better BibTeX named it, and the reason
  * you gave for parking or dropping it, which is often all you remember of a

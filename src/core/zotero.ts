@@ -119,8 +119,8 @@ export function authorNames(item: ApiItem): string[] {
 
 /**
  * A creator's family name. Zotero puts the whole surname in `lastName`,
- * tussenvoegsels and all, so "van der Haer" arrives intact and must not be
- * split: taking the last word of a joined name turns it into "Haer" and does
+ * tussenvoegsels and all, so "van der Lind" arrives intact and must not be
+ * split: taking the last word of a joined name turns it into "Lind" and does
  * the same to every compound Dutch, German, Spanish and Portuguese surname.
  */
 function familyName(creator: Creator): string {
@@ -420,7 +420,7 @@ function pastName(label: string, name: string): number {
  * A label that repeats the name keeps everything around it and has its page
  * replaced: `[[a|see a, p. 3, emphasis added]]` becomes `see a, p. 4, emphasis
  * added`. Any other label is yours, so it stays and the page goes after a
- * comma, which the filter reads too: `[[a|Jacobs]]` becomes `Jacobs, p. 4`, and
+ * comma, which the filter reads too: `[[a|Marsh]]` becomes `Marsh, p. 4`, and
  * a page it had is replaced. Without a label the name is it. A heading after
  * `#` goes, because a citation with a page is not a link to a section.
  */

@@ -49,15 +49,15 @@ describe('pendingOf', () => {
 	it('carries what the cheap depth of triage shows, so opening one costs no request', () => {
 		const items = [
 			item('AAAA1111', {
-				shortTitle: 'Reframing heat pumps',
-				title: 'Reframing heat pump transitions: a care perspective',
+				shortTitle: 'Mending quiet archives',
+				title: 'Mending quiet archive practices: a care perspective',
 				abstractNote: '  What home means for energy use.  ',
 				publicationTitle: 'Buildings and Cities',
 				date: '2026-08-11',
 			}),
 		];
 		expect(pendingOf(items, [])[0]).toMatchObject({
-			title: 'Reframing heat pumps',
+			title: 'Mending quiet archives',
 			abstract: 'What home means for energy use.',
 			venue: 'Buildings and Cities',
 			year: 2026,

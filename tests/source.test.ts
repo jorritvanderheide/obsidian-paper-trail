@@ -95,10 +95,10 @@ describe('browsing the library', () => {
 describe('pickCitation', () => {
 	it('returns what the dialog gave back', async () => {
 		// Trimmed from a real answer: each source also carries the whole item.
-		const body = '[{"id":12,"locator":"45","suppressAuthor":false,"prefix":"","suffix":"","label":"page","citationKey":"vanderhaerReframingHeatPump2026"}]\n';
+		const body = '[{"id":12,"locator":"45","suppressAuthor":false,"prefix":"","suffix":"","label":"page","citationKey":"vanderlindMendingQuietArchive2026"}]\n';
 		getText.mockResolvedValue({ status: 200, body });
 		expect(await pickCitation()).toEqual([
-			expect.objectContaining({ citationKey: 'vanderhaerReframingHeatPump2026', locator: '45', label: 'page' }),
+			expect.objectContaining({ citationKey: 'vanderlindMendingQuietArchive2026', locator: '45', label: 'page' }),
 		]);
 	});
 

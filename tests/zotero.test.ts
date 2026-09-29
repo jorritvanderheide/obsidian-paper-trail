@@ -73,12 +73,12 @@ const paper = (over: Partial<ApiItem['data']> = {}, meta: ApiItem['meta'] = {}):
 	key: '5UPN73EU',
 	data: {
 		itemType: 'journalArticle',
-		title: 'Reframing heat pump transitions: a care perspective',
+		title: 'Mending quiet archive practices: a care perspective',
 		date: '2026-08-11',
-		citationKey: 'vanderhaerReframingHeatPump2026',
+		citationKey: 'vanderlindMendingQuietArchive2026',
 		creators: [
-			{ creatorType: 'author', firstName: 'Jeltje', lastName: 'Van Der Haer' },
-			{ creatorType: 'author', firstName: 'Renate', lastName: 'Schelwald' },
+			{ creatorType: 'author', firstName: 'Ida', lastName: 'Van Der Lind' },
+			{ creatorType: 'author', firstName: 'Tove', lastName: 'Kalmberg' },
 		],
 		...over,
 	},
@@ -87,7 +87,7 @@ const paper = (over: Partial<ApiItem['data']> = {}, meta: ApiItem['meta'] = {}):
 
 describe('authorNames', () => {
 	it('joins the split names in order', () => {
-		expect(authorNames(paper())).toEqual(['Jeltje Van Der Haer', 'Renate Schelwald']);
+		expect(authorNames(paper())).toEqual(['Ida Van Der Lind', 'Tove Kalmberg']);
 	});
 
 	it('takes an institution as one name', () => {
@@ -125,17 +125,17 @@ describe('itemYear', () => {
 
 describe('noteName', () => {
 	it('uses the Better BibTeX key when there is one', () => {
-		expect(noteName(paper())).toBe('vanderhaerReframingHeatPump2026');
+		expect(noteName(paper())).toBe('vanderlindMendingQuietArchive2026');
 	});
 
 	it('falls back to something stable without Better BibTeX', () => {
-		expect(noteName(paper({ citationKey: undefined }))).toBe('vanderhaer-reframing-heat-pump-transitions-2026');
+		expect(noteName(paper({ citationKey: undefined }))).toBe('vanderlind-mending-quiet-archive-practices-2026');
 	});
 
 	it('keeps a compound surname whole, as Better BibTeX does', () => {
 		// Zotero stores the tussenvoegsel in lastName, so splitting a joined
-		// name would turn "Van Der Haer" into "Haer".
-		expect(noteName(paper({ citationKey: undefined }))).toMatch(/^vanderhaer-/);
+		// name would turn "Van Der Lind" into "Lind".
+		expect(noteName(paper({ citationKey: undefined }))).toMatch(/^vanderlind-/);
 	});
 
 	it('uses an institution name when there is no person', () => {
@@ -155,12 +155,12 @@ describe('noteName', () => {
 
 describe('citation', () => {
 	it('links a bare key', () => {
-		expect(citation([{ citationKey: 'jacobsAuthenticity2025' }])).toBe('[[jacobsAuthenticity2025]]');
+		expect(citation([{ citationKey: 'okaforAuthenticity2025' }])).toBe('[[okaforAuthenticity2025]]');
 	});
 
 	it('puts a page in the label, where you read it and the filter reads it', () => {
-		expect(citation([{ citationKey: 'jacobsAuthenticity2025', locator: '4', label: 'page' }])).toBe(
-			'[[jacobsAuthenticity2025|jacobsAuthenticity2025, p. 4]]',
+		expect(citation([{ citationKey: 'okaforAuthenticity2025', locator: '4', label: 'page' }])).toBe(
+			'[[okaforAuthenticity2025|okaforAuthenticity2025, p. 4]]',
 		);
 	});
 
@@ -260,23 +260,23 @@ describe('typedLocator', () => {
 
 describe('pageCitation', () => {
 	it('writes the page into the label', () => {
-		expect(pageCitation('jacobsAuthenticity2025', '4')).toBe('[[jacobsAuthenticity2025|jacobsAuthenticity2025, p. 4]]');
+		expect(pageCitation('okaforAuthenticity2025', '4')).toBe('[[okaforAuthenticity2025|okaforAuthenticity2025, p. 4]]');
 	});
 });
 
 describe('linkAt', () => {
-	const line = 'as argued in [[jacobs]] and [[baker|Baker]].';
+	const line = 'as argued in [[okafor]] and [[marsh|Marsh]].';
 
 	it('finds the link the cursor is inside', () => {
-		expect(linkAt(line, 17)).toEqual({ from: 13, to: 23, target: 'jacobs', label: null });
+		expect(linkAt(line, 17)).toEqual({ from: 13, to: 23, target: 'okafor', label: null });
 	});
 
 	it('finds the link the cursor has just passed, where [[ leaves it', () => {
-		expect(linkAt(line, 23)?.target).toBe('jacobs');
+		expect(linkAt(line, 23)?.target).toBe('okafor');
 	});
 
 	it('reads the label', () => {
-		expect(linkAt(line, 35)).toMatchObject({ target: 'baker', label: 'Baker' });
+		expect(linkAt(line, 35)).toMatchObject({ target: 'marsh', label: 'Marsh' });
 	});
 
 	it('finds nothing away from a link', () => {
@@ -300,9 +300,9 @@ describe('withPage', () => {
 	});
 
 	it('keeps a label of your own', () => {
-		expect(withPage(at('[[a|Jacobs]]'), 'ch. 3')).toBe('[[a|Jacobs, ch. 3]]');
-		expect(withPage(at('[[a|Jacobs, p. 3]]'), '4')).toBe('[[a|Jacobs, p. 4]]');
-		expect(withPage(at('[[a|Jacobs, pp. 3, 6]]'), '4')).toBe('[[a|Jacobs, p. 4]]');
+		expect(withPage(at('[[a|Marsh]]'), 'ch. 3')).toBe('[[a|Marsh, ch. 3]]');
+		expect(withPage(at('[[a|Marsh, p. 3]]'), '4')).toBe('[[a|Marsh, p. 4]]');
+		expect(withPage(at('[[a|Marsh, pp. 3, 6]]'), '4')).toBe('[[a|Marsh, p. 4]]');
 	});
 
 	it('keeps what surrounds the name in a label that repeats it', () => {
@@ -338,13 +338,13 @@ describe('annotations', () => {
 
 	it('flattens an annotation to what a note needs', () => {
 		const result = annotations([
-			annotation({ annotationText: 'Care is not inherently good.', annotationComment: 'cf. Tronto', annotationPageLabel: '842' }),
+			annotation({ annotationText: 'Care is not inherently good.', annotationComment: 'cf. Okafor', annotationPageLabel: '842' }),
 		]);
 		expect(result).toEqual([
 			{
 				key: 'ANNOT001',
 				text: 'Care is not inherently good.',
-				comment: 'cf. Tronto',
+				comment: 'cf. Okafor',
 				page: '842',
 				sortIndex: '00001|000000|00000',
 			},
@@ -387,7 +387,7 @@ describe('annotations, against a real one', () => {
 		key: '2SQ873XZ',
 		data: {
 			itemType: 'annotation',
-			annotationText: 'The decarbonisation of domestic heating is central to climate policy, with the heat pump positioned as a key technology',
+			annotationText: 'The keeping of household records is central to archival policy, with the index card positioned as a key technology',
 			annotationComment: '',
 			annotationPageLabel: '840',
 			annotationSortIndex: '00000|000566|00410',
@@ -398,7 +398,7 @@ describe('annotations, against a real one', () => {
 		expect(annotations([real])).toEqual([
 			{
 				key: '2SQ873XZ',
-				text: 'The decarbonisation of domestic heating is central to climate policy, with the heat pump positioned as a key technology',
+				text: 'The keeping of household records is central to archival policy, with the index card positioned as a key technology',
 				comment: '',
 				page: '840',
 				sortIndex: '00000|000566|00410',
@@ -441,7 +441,7 @@ describe('venueOf', () => {
 	});
 
 	it('reads a thesis and a preprint', () => {
-		expect(venueOf(of({ university: 'TU Eindhoven' }))).toBe('TU Eindhoven');
+		expect(venueOf(of({ university: 'Northfield University' }))).toBe('Northfield University');
 		expect(venueOf(of({ repository: 'arXiv' }))).toBe('arXiv');
 	});
 
@@ -478,7 +478,7 @@ describe('abstractOf', () => {
 	// indexing site describes its own page. Left alone this shows in the triage
 	// pane as the abstract, where it is the title handed back and settles nothing.
 	it('refuses Semantic Scholar\'s page description, which is not an abstract', () => {
-		expect(abstractOf(of('Semantic Scholar extracted view of "Reframing heat pump transitions: a care perspective" by Jeltje van der Haer et al.'))).toBeNull();
+		expect(abstractOf(of('Semantic Scholar extracted view of "Mending quiet archive practices: a care perspective" by Ida van der Lind et al.'))).toBeNull();
 	});
 
 	it('refuses it whatever case the page used', () => {
