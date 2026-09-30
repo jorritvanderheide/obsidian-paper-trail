@@ -200,20 +200,26 @@ describe('replaceRegion', () => {
 
 describe('fill', () => {
 	it('replaces what it is given', () => {
-		expect(fill('# {{TITLE}}\n{{LINKS}}', { TITLE: 'A paper', LINKS: '[Zotero](x)' })).toBe('# A paper\n[Zotero](x)');
+		expect(fill('# {{title}}\n{{links}}', { title: 'A paper', links: '[Zotero](x)' })).toBe('# A paper\n[Zotero](x)');
 	});
 
 	it('replaces every occurrence', () => {
-		expect(fill('{{A}} and {{A}}', { A: 'x' })).toBe('x and x');
+		expect(fill('{{a}} and {{a}}', { a: 'x' })).toBe('x and x');
+	});
+
+	// Loose Ends reads its placeholders this way, and a Paper.md seeded by an
+	// earlier version still says {{TITLE}}.
+	it('ignores case and the spaces inside the braces', () => {
+		expect(fill('{{title}} {{ Title }} {{TITLE}}', { title: 'A' })).toBe('A A A');
 	});
 
 	it('leaves an unknown placeholder standing rather than blanking a line', () => {
 		// A typo in a user-edited template should show itself, not delete text.
-		expect(fill('{{TITLE}} {{TYPOO}}', { TITLE: 'A' })).toBe('A {{TYPOO}}');
+		expect(fill('{{title}} {{typoo}}', { title: 'A' })).toBe('A {{typoo}}');
 	});
 
 	it('leaves a template with no placeholders alone', () => {
-		expect(fill('plain text', { TITLE: 'A' })).toBe('plain text');
+		expect(fill('plain text', { title: 'A' })).toBe('plain text');
 	});
 });
 
@@ -245,8 +251,8 @@ describe('the shipped paper template', () => {
 	});
 
 	it('uses only placeholders the command supplies', () => {
-		const used = [...PAPER.matchAll(/\{\{([A-Z_]+)\}\}/g)].map((m) => m[1]);
-		expect(used.sort()).toEqual(['LINKS', 'TITLE']);
+		const used = [...PAPER.matchAll(/\{\{([a-z_]+)\}\}/g)].map((m) => m[1]);
+		expect(used.sort()).toEqual(['links', 'title']);
 	});
 });
 

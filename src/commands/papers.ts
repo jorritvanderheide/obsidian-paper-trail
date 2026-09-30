@@ -94,8 +94,8 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	await ensureFolder(app, context.settings.papersFolder);
 
 	const body = fill(await templateBody(app, PAPER_TEMPLATE, context.settings.templateFolder), {
-		TITLE: item.data.shortTitle?.trim() || item.data.title || item.key,
-		LINKS: paperLinks(ref, attachment),
+		title: item.data.shortTitle?.trim() || item.data.title || item.key,
+		links: paperLinks(ref, attachment),
 	});
 
 	// Created with an empty frontmatter block rather than none.

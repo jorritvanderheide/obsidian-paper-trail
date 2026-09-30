@@ -35,9 +35,9 @@ import { REGION_END, REGION_START } from './paper-note';
  * title, which would otherwise sit pressed against the frontmatter.
  */
 export const PAPER = `
-# {{TITLE}}
+# {{title}}
 
-{{LINKS}}
+{{links}}
 
 ${REGION_START}
 ${REGION_END}

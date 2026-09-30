@@ -234,7 +234,7 @@ export class SettingsTab extends PluginSettingTab {
 				items: [
 					{
 						name: 'Template folder',
-						desc: 'Where Paper.md lives. It is written here the first time a paper note is made, and your edits to it are kept from then on.',
+						desc: 'Where Paper.md lives. It is written here the first time a paper note is made, and your edits to it are kept from then on. {{title}} becomes the title of the paper and {{links}} its links to Zotero and the PDF.',
 						control: { type: 'text', key: 'templateFolder' },
 					},
 					{

@@ -159,12 +159,15 @@ export function replaceRegion(body: string, contents: string): string {
 }
 
 /**
- * Fill a template's `{{PLACEHOLDER}}` slots. Anything the caller does not
- * supply is left standing rather than blanked, so a typo in a user-edited
- * template shows itself instead of quietly deleting a line.
+ * Fill a template's `{{placeholder}}` slots. Case and the spaces inside the
+ * braces are ignored, the way Loose Ends ignores them, so `{{title}}`,
+ * `{{ Title }}` and `{{TITLE}}` are one slot and a template reads the same in
+ * both. Anything the caller does not supply is left standing rather than
+ * blanked, so a typo in a user-edited template shows itself instead of quietly
+ * deleting a line.
  */
 export function fill(template: string, values: Record<string, string>): string {
-	return template.replace(/\{\{([A-Z_]+)\}\}/g, (whole, name: string) => values[name] ?? whole);
+	return template.replace(/\{\{\s*([A-Za-z_]+)\s*\}\}/g, (whole, name: string) => values[name.toLowerCase()] ?? whole);
 }
 
 /** The links line: the item in Zotero, and the PDF when there is one. */

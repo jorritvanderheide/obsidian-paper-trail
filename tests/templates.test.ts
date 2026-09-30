@@ -25,7 +25,7 @@ describe('the paper template', () => {
 	});
 
 	it('has the only placeholders the writer supplies', () => {
-		for (const slot of ['TITLE', 'LINKS']) {
+		for (const slot of ['title', 'links']) {
 			expect(PAPER, slot).toContain(`{{${slot}}}`);
 		}
 	});
@@ -35,7 +35,7 @@ describe('the paper template', () => {
 	// was never going to happen. They arrive when you go to write under one.
 	it('carries no heading of its own but the title', () => {
 		const headings = PAPER.split('\n').filter((line) => line.startsWith('#'));
-		expect(headings).toEqual(['# {{TITLE}}']);
+		expect(headings).toEqual(['# {{title}}']);
 	});
 
 	it('is short enough that a dropped paper is not an outline of what it is not', () => {
@@ -66,13 +66,13 @@ describe('the paper template', () => {
 	// were still Dutch. A test is harder to lie to.
 	it('is in English', () => {
 		const DUTCH = /\b(wat|waarom|deze|notities|zodra|bestand|hoort|volgorde|het|een|niet|voor|zelf)\b/i;
-		expect(PAPER.replace(/\{\{[A-Z_]+\}\}/g, '')).not.toMatch(DUTCH);
+		expect(PAPER.replace(/\{\{[a-z_]+\}\}/g, '')).not.toMatch(DUTCH);
 	});
 
 	// A note is the template written under its frontmatter, so the first line
 	// is the one between the closing `---` and the title. One, not two.
 	it('leaves one blank line between the frontmatter and the title', () => {
-		expect(PAPER.split('\n').slice(0, 2)).toEqual(['', '# {{TITLE}}']);
+		expect(PAPER.split('\n').slice(0, 2)).toEqual(['', '# {{title}}']);
 	});
 
 	it('ends with a newline', () => {
