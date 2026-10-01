@@ -90,16 +90,9 @@ exactly what it reads and writes.
 It only talks to Zotero, on your own computer. It doesn't read files outside
 your vault and doesn't run any programs.
 
-Every push is built, linted with [ESLint](https://eslint.org/) and the official
-[Obsidian ESLint plugin](https://github.com/obsidianmd/eslint-plugin), and
-tested with [Vitest](https://vitest.dev/) on Node 20, 22 and 24. Releases are
-built by GitHub Actions from the tagged source, with every action pinned to an
-exact version, and come with a signed build provenance attestation, so you can
-check that the file you installed is the one that was built:
-
-```sh
-gh attestation verify main.js --repo jorritvanderheide/obsidian-paper-trail
-```
+Every push is tested, and every release is built in the open with a signed
+attestation, so you can check that the file you installed is the one that was
+built. [Section 13.5](#135-how-releases-are-built) says how.
 
 <br/>
 
@@ -689,6 +682,19 @@ and doesn't send anything anywhere.
   **Export excluded papers**, and only over a file it made itself.
 - **Your notes:** A queue block or a citation, only where you insert one.
 - **Settings:** Its own `data.json` in the plugin folder.
+
+### 13.5 How releases are built
+
+Every push is built, linted with [ESLint](https://eslint.org/) and the official
+[Obsidian ESLint plugin](https://github.com/obsidianmd/eslint-plugin), and
+tested with [Vitest](https://vitest.dev/) on Node 20, 22 and 24. Releases are
+built by GitHub Actions from the tagged source, with every action pinned to an
+exact version, and come with a signed build provenance attestation, so you can
+check that the file you installed is the one that was built:
+
+```sh
+gh attestation verify main.js --repo jorritvanderheide/obsidian-paper-trail
+```
 
 <br/>
 
