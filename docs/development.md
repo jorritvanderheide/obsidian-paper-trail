@@ -35,11 +35,28 @@ Anything that could lose a user's text wants a test before it wants a feature.
 
 1. Bump the version: `npm version <x.y.z>` updates `manifest.json` and
    `versions.json`.
-2. Push the commit and a tag named for the version, without a `v`.
-3. `.github/workflows/release.yml` builds the tag, attests `main.js` and
-   `styles.css`, and creates a **draft** GitHub release with them attached.
+2. Push the commit and a tag named for the version, without a `v`, to Codeberg.
+   That is the only remote: GitHub mirrors it.
+3. When the tag reaches GitHub, `.github/workflows/release.yml` builds it,
+   attests `main.js` and `styles.css`, and creates a **draft** GitHub release
+   with them attached.
 4. Publish the draft. Obsidian's community directory installs from GitHub
    releases, and a tag alone is not one.
 
 Before releasing anything that renames or removes a stored key, value or marker,
 see [Compatibility](data-model.md#compatibility).
+
+## Updating an action
+
+The workflows pin every action to a commit, with the version in a comment, so a
+tag that is moved later can't change what builds a release. Nothing updates
+them automatically, so look at them before a release. To move one to a newer
+version, look up the commit the tag points to and replace both the hash and the
+comment:
+
+```sh
+gh api repos/actions/checkout/commits/v6.1.0 --jq .sha
+```
+
+Both workflows also default to read-only. Only the release job asks for more:
+writing the release, and signing the attestation.
