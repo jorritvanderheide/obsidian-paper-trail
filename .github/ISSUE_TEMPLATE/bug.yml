@@ -1,0 +1,111 @@
+name: Bug report
+description: Something in Paper Trail doesn't work the way the README says it should.
+labels: ['bug']
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for taking the time to report this. Before you start, have a quick look at the [FAQ](https://github.com/jorritvanderheide/obsidian-paper-trail/blob/main/FAQ.md): the most common surprises, like Zotero not answering or empty annotations, are explained there.
+
+              Found a security problem? Please don't report it here. Use [private reporting](https://github.com/jorritvanderheide/obsidian-paper-trail/security/advisories/new) instead.
+
+    - type: textarea
+      id: what
+      attributes:
+          label: What happened?
+          description: And what did you expect to happen instead?
+      validations:
+          required: true
+
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to reproduce
+          description: The smallest set of steps that shows the problem. A screenshot helps too.
+          placeholder: |
+              1. Save a paper to Zotero
+              2. Click its row in Reading
+              3. ...
+      validations:
+          required: true
+
+    - type: input
+      id: version
+      attributes:
+          label: Paper Trail version
+          description: Settings → Community plugins, next to Paper Trail.
+      validations:
+          required: true
+
+    - type: input
+      id: obsidian
+      attributes:
+          label: Obsidian version
+          description: Settings → General.
+      validations:
+          required: true
+
+    - type: input
+      id: os
+      attributes:
+          label: Operating system
+          placeholder: macOS 15, Windows 11, Ubuntu 24.04, ...
+      validations:
+          required: true
+
+    - type: input
+      id: zotero
+      attributes:
+          label: Zotero version
+          description: In Zotero, Help → About Zotero.
+      validations:
+          required: true
+
+    - type: dropdown
+      id: bbt
+      attributes:
+          label: Is Better BibTeX installed?
+          options:
+              - 'Yes'
+              - 'No'
+              - "I don't know"
+      validations:
+          required: true
+
+    - type: dropdown
+      id: scope
+      attributes:
+          label: Papers from
+          description: The first setting under Zotero in Paper Trail's settings.
+          options:
+              - Whole library
+              - One collection
+      validations:
+          required: true
+
+    - type: dropdown
+      id: triage
+      attributes:
+          label: Triage before reading
+          options:
+              - 'Off'
+              - 'On'
+      validations:
+          required: true
+
+    - type: dropdown
+      id: passes
+      attributes:
+          label: Written passes
+          options:
+              - Claim and assessment
+              - Claim only
+              - None
+      validations:
+          required: true
+
+    - type: textarea
+      id: extra
+      attributes:
+          label: Anything else?
+          description: Other plugins that might be involved, an error from the developer console (Ctrl+Shift+I, or Cmd+Option+I on a Mac), or anything else that seems related.
