@@ -5,12 +5,12 @@
 ```sh
 nix develop     # or any Node.js 20+
 npm install
-npm run dev     # build in watch mode
+npm run dev     # rebuild on change
 ```
 
-To try it in a vault, link or copy `main.js`, `manifest.json` and `styles.css`
-into `.obsidian/plugins/paper-trail/` and reload Obsidian. Zotero 7 has to be
-running with its local API on.
+To try it in a vault, copy or link `main.js`, `manifest.json` and `styles.css`
+into `<vault>/.obsidian/plugins/paper-trail/` and reload Obsidian, or turn the
+plugin off and on again. Zotero 7 has to be running with its local API on.
 
 ## Checks
 
