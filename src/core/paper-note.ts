@@ -266,5 +266,5 @@ export function applyPaperFrontmatter(
  * sentence explaining a failed check is part of the check.
  */
 export function notAPaper(name: string, keyField: string): string {
-	return `${name} is not a paper: it has no ${keyField} property.`;
+	return `${name} isn't a paper's note: it has no ${keyField} property.`;
 }

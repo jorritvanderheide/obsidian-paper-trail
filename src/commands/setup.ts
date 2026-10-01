@@ -73,7 +73,7 @@ class Welcome extends Modal {
 		el.createEl('p', { cls: 'paper-trail-welcome-lead', text: 'Decide what to read before you read it.' });
 		el.createEl('p', {
 			cls: 'paper-trail-welcome-body',
-			text: 'Your library stays in Zotero. Everything it holds that this vault has no note for turns up in the queue, and nothing is written until you decide on one.',
+			text: "Your library stays in Zotero. Every paper in it that doesn't have a note yet shows up in the queue, and nothing is written until you decide what to do with it.",
 		});
 
 		this.status = el.createDiv({ cls: 'paper-trail-welcome-status' });
@@ -122,7 +122,7 @@ class Welcome extends Modal {
 		const count = library().length;
 		this.say(
 			count === 0
-				? 'Zotero is answering, and its library is empty. Add papers to it and they turn up in the queue.'
+				? "Zotero is answering, but your library is empty. Add papers to it, and they'll show up in the queue."
 				: `Zotero is answering: ${count.toLocaleString('en')} ${count === 1 ? 'item' : 'items'} in your library, ready for the queue.`,
 			false,
 		);

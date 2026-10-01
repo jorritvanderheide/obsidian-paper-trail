@@ -179,7 +179,7 @@ describe('the prompts', () => {
 	});
 
 	it('keeps the relation question, which is what the claim prompt is for', () => {
-		expect(DEFAULT_SETTINGS.claimPrompt).toContain('sit with or against');
+		expect(DEFAULT_SETTINGS.claimPrompt).toContain('agree or disagree with');
 	});
 
 	// Unlike the headings, where a blank falls back to the default: a blank
@@ -190,12 +190,29 @@ describe('the prompts', () => {
 		expect(loaded.assessmentPrompt).toBe('');
 	});
 
-	it('falls back to the default only when nothing was ever saved', () => {
+	it('falls back to the default when nothing was saved', () => {
 		expect(loadSettings({}).claimPrompt).toBe(DEFAULT_SETTINGS.claimPrompt);
 	});
 
 	it('trims what was typed', () => {
 		expect(loadSettings({ claimPrompt: '  What is it for?  ' }).claimPrompt).toBe('What is it for?');
+	});
+
+	// Settings are saved whole, so every vault from before the rewording holds
+	// the old defaults without anyone having chosen them.
+	it('reads the defaults saved by 1.0.0 to 1.4.1 as the current ones', () => {
+		const loaded = loadSettings({
+			claimPrompt:
+				'What does this paper argue, and what does it sit with or against? One or two sentences of your own; Insert citation makes the link.',
+			assessmentPrompt: 'Where does it strain? What is it assuming? What is the evidence actually doing?',
+		});
+		expect(loaded.claimPrompt).toBe(DEFAULT_SETTINGS.claimPrompt);
+		expect(loaded.assessmentPrompt).toBe(DEFAULT_SETTINGS.assessmentPrompt);
+	});
+
+	it('keeps a prompt somebody wrote, even one close to an old default', () => {
+		const own = 'What does this paper argue, and what does it sit with or against?';
+		expect(loadSettings({ claimPrompt: own }).claimPrompt).toBe(own);
 	});
 });
 

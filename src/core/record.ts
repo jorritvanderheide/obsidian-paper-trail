@@ -142,7 +142,7 @@ export function renderReport(report: Report, date: string): string {
 		'',
 		'# Excluded papers',
 		'',
-		`${rows.length} of ${considered} ${considered === 1 ? 'paper decided on has' : 'papers decided on have'} been ruled out. Generated ${date}.`,
+		`${rows.length} of the ${considered} ${considered === 1 ? 'paper' : 'papers'} decided on ${rows.length === 1 ? 'was' : 'were'} ruled out. Generated on ${date}.`,
 		'',
 	];
 

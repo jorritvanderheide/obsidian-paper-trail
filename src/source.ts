@@ -85,8 +85,8 @@ async function answered<T>(path: string): Promise<{ body: T; headers: Headers }>
 	// says only that one item is unknown to it.
 	contact = { reachable: true };
 
-	if (response.status === 404) throw new SourceError('Zotero does not know this item.');
-	if (response.status >= 400) throw new SourceError(`Zotero answered with HTTP ${response.status}.`);
+	if (response.status === 404) throw new SourceError("Zotero doesn't have this item anymore.");
+	if (response.status >= 400) throw new SourceError(`Zotero answered with an error (HTTP ${response.status}).`);
 	return { body: response.json as T, headers: response.headers };
 }
 
@@ -131,7 +131,7 @@ export function itemChildren(ref: ItemRef): Promise<ApiItem[]> {
 	return api<ApiItem[]>(`${libraryPath(ref)}/items/${ref.key}/children`);
 }
 
-const BBT_MISSING = 'Could not reach Better BibTeX. Is it installed in Zotero?';
+const BBT_MISSING = "Couldn't reach Better BibTeX. Is it installed in Zotero?";
 
 /**
  * Better BibTeX's cite-as-you-write picker. One GET opens Zotero's own citation
@@ -156,7 +156,7 @@ export async function pickCitation(): Promise<CitedSource[] | null> {
 		throw new SourceError(BBT_MISSING);
 	}
 	if (response.status === 404) throw new SourceError(BBT_MISSING);
-	if (response.status >= 400) throw new SourceError(`Better BibTeX answered with HTTP ${response.status}.`);
+	if (response.status >= 400) throw new SourceError(`Better BibTeX answered with an error (HTTP ${response.status}).`);
 
 	// Cancelling the dialog is an empty body, not an error.
 	const body = response.body.trim();

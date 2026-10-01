@@ -206,9 +206,33 @@ export const DEFAULT_SETTINGS: Settings = {
 	// your way to. With Better BibTeX a note is named for its citation key, so
 	// typing `[[` finds papers by key and not by the title you remember.
 	claimPrompt:
-		'What does this paper argue, and what does it sit with or against? One or two sentences of your own; Insert citation makes the link.',
-	assessmentPrompt: 'Where does it strain? What is it assuming? What is the evidence actually doing?',
+		'What does this paper argue, and which other work does it agree or disagree with? One or two sentences, in your own words. Insert citation makes the link.',
+	assessmentPrompt: "Where doesn't it hold up? What does it take for granted? What does the evidence actually show?",
 };
+
+/**
+ * Default prompts a released version shipped and this one no longer does.
+ *
+ * Settings are saved whole, defaults included, so a vault that never touched a
+ * prompt still holds the wording it was installed with, and a new default
+ * would only ever reach new vaults. A saved prompt that is exactly one of
+ * these is read as the current default instead. One somebody wrote is kept as
+ * written, and so is an empty one.
+ */
+const RETIRED_PROMPTS: Record<'claimPrompt' | 'assessmentPrompt', readonly string[]> = {
+	// 1.0.0 to 1.4.1.
+	claimPrompt: [
+		'What does this paper argue, and what does it sit with or against? One or two sentences of your own; Insert citation makes the link.',
+	],
+	assessmentPrompt: ['Where does it strain? What is it assuming? What is the evidence actually doing?'],
+};
+
+/** A saved prompt, trimmed, with a retired default read as the current one. Empty is kept. */
+function prompt(value: unknown, key: 'claimPrompt' | 'assessmentPrompt'): string {
+	if (typeof value !== 'string') return DEFAULT_SETTINGS[key];
+	const saved = value.trim();
+	return RETIRED_PROMPTS[key].includes(saved) ? DEFAULT_SETTINGS[key] : saved;
+}
 
 /** A saved string, trimmed, or the default when it is missing or blank. */
 function text(value: unknown, fallback: string): string {
@@ -236,9 +260,8 @@ export function loadSettings(raw: unknown): Settings {
 		assessmentHeading: text(data.assessmentHeading, DEFAULT_SETTINGS.assessmentHeading),
 		// Empty is meaningful here as well: it is how you say you know what goes
 		// under the heading by now and would rather not be asked.
-		claimPrompt: typeof data.claimPrompt === 'string' ? data.claimPrompt.trim() : DEFAULT_SETTINGS.claimPrompt,
-		assessmentPrompt:
-			typeof data.assessmentPrompt === 'string' ? data.assessmentPrompt.trim() : DEFAULT_SETTINGS.assessmentPrompt,
+		claimPrompt: prompt(data.claimPrompt, 'claimPrompt'),
+		assessmentPrompt: prompt(data.assessmentPrompt, 'assessmentPrompt'),
 	};
 }
 

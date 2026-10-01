@@ -125,8 +125,8 @@ export function renderQueue(root: HTMLElement, context: Context): void {
 				searching && !found
 					? 'No papers match.'
 					: started
-						? 'Nothing outstanding.'
-						: 'No papers yet. Add them to Zotero and they turn up here.',
+						? 'Nothing left to do.'
+						: "No papers yet. Add some to Zotero, and they'll show up here.",
 		});
 		if (sidebar) foot(tree, context, waiting, done, searching);
 		root.style.setProperty('--paper-trail-clearance', `${clearance(root, files)}px`);
@@ -193,7 +193,7 @@ function toolbar(
 	// which pile to work first. Counted before any search, because that is what
 	// `next` will offer from.
 	const outstanding = [...all.values()].reduce((sum, list) => sum + list.length, 0);
-	iconButton(buttons, 'arrow-right', `Next · ${outstanding} outstanding`, () => void next(context), 'nav-action-button');
+	iconButton(buttons, 'arrow-right', `Next · ${outstanding} to do`, () => void next(context), 'nav-action-button');
 
 	// Zotero is asked whenever you come back to Obsidian, which covers almost
 	// everything: you went to Zotero to add the paper. It does not cover Zotero
@@ -834,7 +834,7 @@ function foot(root: HTMLElement, context: Context, waiting: Settled[], done: Set
 		// A box things go into when they are done with, which is what this is.
 		// Not a tick: that is one outcome of the three in here.
 		icon: 'archive',
-		hint: 'Papers nothing is outstanding for. Dropped, read, or assessed.',
+		hint: 'Papers with nothing left to do: dropped, read, summarised or assessed.',
 		open: openDecided,
 		toggle: searching
 			? undefined

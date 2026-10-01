@@ -59,7 +59,7 @@ describe('renderReport', () => {
 
 	it('says how many of how many, so the number has a denominator', () => {
 		const out = of([paper(), paper({ reading: 'queued' })]);
-		expect(out).toContain('1 of 2 papers decided on have been ruled out');
+		expect(out).toContain('1 of the 2 papers decided on was ruled out');
 	});
 
 	it('writes one row per paper, with the reason in it', () => {

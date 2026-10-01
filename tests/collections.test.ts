@@ -69,7 +69,7 @@ describe('missingScope', () => {
 	});
 
 	it('complains about one it does not', () => {
-		expect(missingScope('GONE0000', known)).toMatch(/gone/i);
+		expect(missingScope('GONE0000', known)).toMatch(/anymore/i);
 	});
 
 	it('says what to do about it, since the answer is in settings', () => {

@@ -208,7 +208,7 @@ describe('scope', () => {
 	it('says why, so the queue can explain itself', async () => {
 		allCollections.mockResolvedValue([collection('AAAA1111', 'Thesis')]);
 		await refreshLibrary('GONE0000');
-		expect(scopeProblem()).toMatch(/gone/i);
+		expect(scopeProblem()).toMatch(/anymore/i);
 
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));

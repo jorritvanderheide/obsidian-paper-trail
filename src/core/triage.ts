@@ -189,7 +189,7 @@ export const PASS_PROGRESS: Record<'claim' | 'assessment', Progress> = {
  * no condition attached is how the queue quietly becomes a graveyard.
  */
 export function asks(reading: Reading): { question: string; cta: string } | null {
-	if (reading === 'dropped') return { question: 'Why is this not worth reading?', cta: 'Drop' };
+	if (reading === 'dropped') return { question: "Why isn't this worth reading?", cta: 'Drop' };
 	if (reading === 'deferred') return { question: 'What has to happen before this is worth another hour?', cta: 'Defer' };
 	return null;
 }
@@ -269,12 +269,12 @@ export function judgementIcon(reading: Reading): string {
 const LANDINGS: Record<string, string> = {
 	Untriaged: 'Untriaged, and back in Triage.',
 	Queued: 'Queued, and waiting to be read.',
-	Read: 'Read, and waiting on a claim.',
-	Summarised: 'Summarised, and done with.',
-	Promoted: 'Promoted, and owing a claim first.',
-	Assessing: 'Summarised, and owing an assessment.',
-	Assessed: 'Assessed, and done with.',
-	Deferred: 'Deferred, with the condition on the note.',
+	Read: 'Read, and waiting for a claim.',
+	Summarised: 'Summarised. Nothing left to do.',
+	Promoted: 'Promoted. It needs a claim, then an assessment.',
+	Assessing: 'Summarised. It needs an assessment next.',
+	Assessed: 'Assessed. Nothing left to do.',
+	Deferred: 'Deferred, with your condition saved on the note.',
 	Dropped: 'Dropped, and off the list.',
 };
 
@@ -326,7 +326,7 @@ export function landing(state: State, workflow: Workflow): string {
 	const word = label(state);
 	// Read is the one word whose landing depends on the vault: it owes a claim
 	// wherever claims are written, and is the end of the paper where none are.
-	if (word === 'Read' && workflow.passes === 'none') return 'Read, and done with.';
+	if (word === 'Read' && workflow.passes === 'none') return 'Read. Nothing left to do.';
 	return LANDINGS[word] ?? '';
 }
 
@@ -392,12 +392,12 @@ export function firstPass(workflow: Workflow): FirstPassChoice[] {
 		{
 			reading: 'dropped',
 			label: 'Drop',
-			hint: 'Assessed and not going further. Asks why, so the exclusion is on the record.',
+			hint: "Not going further. You'll be asked why, so the reason is on record.",
 		},
 		{
 			reading: 'queued',
 			label: 'Queue',
-			hint: 'Worth a real read. Goes on the reading list.',
+			hint: 'Worth a proper read. It goes on the reading list.',
 		},
 		{
 			reading: 'queued',
@@ -408,8 +408,8 @@ export function firstPass(workflow: Workflow): FirstPassChoice[] {
 			// a summary. Where no claim is written it is done, and says so.
 			hint:
 				workflow.passes === 'none'
-					? 'Read already, so it skips the reading list and is filed as read.'
-					: 'Read already, so it skips the reading list. Goes to Claim, to be summarised.',
+					? "You've read it already, so it skips the reading list and is filed as read."
+					: "You've read it already, so it skips the reading list and goes straight to Claim.",
 		},
 	];
 }
@@ -515,7 +515,7 @@ export function lookAgainLine(preset: LookAgain, today: string): string {
 export const READ_AGAIN = {
 	reading: 'queued',
 	progress: null,
-	label: 'Queued, read it again',
+	label: 'Queued: read it again',
 	icon: 'rotate-ccw',
 } as const;
 

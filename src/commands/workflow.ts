@@ -196,7 +196,7 @@ async function writeUnder(context: Context, file: TFile, task: 'claim' | 'assess
 		// The pass can still be ended from the tick beside this button, so this is
 		// not a paper that can never leave. It is still worth saying, because the
 		// press did nothing and nothing else would account for that.
-		new Notice(`${file.basename} would not open, so the cursor went nowhere.`);
+		new Notice(`${file.basename} didn't open, so there's nowhere to put the cursor.`);
 		return;
 	}
 
@@ -296,7 +296,7 @@ async function confirmed(context: Context, file: TFile, pass: 'claim' | 'assessm
 			{ write: false, label: 'Tick it off anyway', icon: 'check' },
 		],
 		(entry) => entry.label,
-		`Nothing is written under ${heading}`,
+		`There's nothing under ${heading} yet`,
 		undefined,
 		(entry) => entry.icon,
 	);
@@ -334,7 +334,7 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 		app,
 		passTwo(workflow),
 		(entry) => entry.label,
-		`Finished with ${title}`,
+		`What came of ${title}?`,
 		(entry) => landing({ reading: entry.reading, progress: entry.progress ?? null }, workflow),
 		(entry) => iconOf({ reading: entry.reading, progress: entry.progress ?? null }),
 	);
@@ -385,11 +385,11 @@ export async function next(context: Context): Promise<void> {
 		// so announcing the paper a beat before either of those was the first of
 		// two notices for one keypress.
 		if (!TASKS[task].announces) {
-			say(context, `${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} outstanding` : ''}`);
+			say(context, `${label}: ${rowTitle(first)}${outstanding > 1 ? ` · ${outstanding} to do` : ''}`);
 		}
 		await act(context, task, first);
 		return;
 	}
 
-	say(context, 'Nothing outstanding.');
+	say(context, 'Nothing left to do.');
 }

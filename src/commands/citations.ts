@@ -43,7 +43,7 @@ async function advanced(context: Context): Promise<void> {
 		const cited = citation(sources, noteOf);
 		// Nothing picked had a citation key: a Zotero note has none.
 		if (!cited) {
-			new Notice('Nothing to cite: Better BibTeX gave no citation key for what was picked.');
+			new Notice("Nothing to cite: Better BibTeX didn't return a citation key for what you picked.");
 			return;
 		}
 
@@ -51,7 +51,7 @@ async function advanced(context: Context): Promise<void> {
 		// open long enough for the cursor to have moved.
 		const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 		if (!editor) {
-			new Notice(`Nowhere to put it. The citation was: ${cited}`);
+			new Notice(`There's no open note to put it in. The citation was: ${cited}`);
 			return;
 		}
 		editor.replaceSelection(cited);
@@ -69,7 +69,7 @@ export async function insertCitation(context: Context): Promise<void> {
 
 	try {
 		const chosen = await pickItem(app, {
-			purpose: 'prefixes, several at once',
+			purpose: "Better BibTeX's dialog: prefixes, several papers",
 			run: () => void advanced(context),
 		});
 		// An empty answer is a cancelled picker, or the escape having taken over.
@@ -83,7 +83,7 @@ export async function insertCitation(context: Context): Promise<void> {
 		const key = item.data.citationKey?.trim();
 		if (!key) {
 			new Notice(
-				`${item.data.title ?? item.key} has no citation key.\nInstall Better BibTeX in Zotero: it gives every item one.`,
+				`${item.data.title ?? item.key} has no citation key.\nInstall Better BibTeX in Zotero, which gives every item one.`,
 			);
 			return;
 		}
@@ -105,7 +105,7 @@ export async function insertCitation(context: Context): Promise<void> {
 		// enough for the cursor to have moved, or the pane to have changed.
 		const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 		if (!editor) {
-			new Notice(`Nowhere to put it. The citation was: ${cited}`);
+			new Notice(`There's no open note to put it in. The citation was: ${cited}`);
 			return;
 		}
 		editor.replaceSelection(cited);
@@ -147,7 +147,7 @@ export async function addPage(context: Context): Promise<void> {
 	// prompt is open, and replacing a range that now holds other words would
 	// overwrite them.
 	if (editor.getLine(cursor.line).slice(link.from, link.to) !== before) {
-		new Notice('The note changed while the page was asked for, so nothing was replaced.');
+		new Notice('The note changed while you were typing the page, so nothing was changed. Try again.');
 		return;
 	}
 	editor.replaceRange(

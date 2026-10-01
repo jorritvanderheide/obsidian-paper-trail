@@ -127,7 +127,7 @@ export async function askDeferral(
 		written = picked.reason;
 
 		if (picked.preset.after) {
-			const paper = await suggest(app, waitable, (entry) => entry.title, 'Which paper does this wait for?');
+			const paper = await suggest(app, waitable, (entry) => entry.title, 'Which paper should you read first?');
 			// "After I have read" that paper is the condition when you have not
 			// written your own: asking for it again in words would be asking twice.
 			if (paper) return { reason: written || `After I have read ${paper.title}`, lookAgain: picked.preset, after: paper };

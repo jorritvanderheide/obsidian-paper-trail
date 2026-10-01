@@ -84,7 +84,7 @@ class ItemPicker extends SuggestModal<ApiItem> {
 
 		try {
 			const items = searching ? await searchItems(text) : await this.recentlyAdded();
-			this.emptyStateText = searching ? 'No matching items.' : 'Nothing in your Zotero library yet.';
+			this.emptyStateText = searching ? 'Nothing matches.' : 'Nothing in your Zotero library yet.';
 			const papers = items.filter(isPaperItem);
 			this.shown = papers.length;
 			return papers;

@@ -154,7 +154,7 @@ describe('lastContact', () => {
 
 	it('counts a 404 as reachable, because only the item is unknown', async () => {
 		getJson.mockResolvedValue({ status: 404, json: null });
-		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow(/does not know/);
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow(/doesn't have this item/);
 		expect(lastContact()).toEqual({ reachable: true });
 	});
 

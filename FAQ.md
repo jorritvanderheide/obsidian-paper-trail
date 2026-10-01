@@ -59,12 +59,12 @@ A few things to check:
   personal library only, so a paper that only lives in a group library doesn't
   show up.
 
-### "The Zotero collection this vault is scoped to is gone"
+### "The Zotero collection chosen under Papers from isn't there anymore"
 
 The collection chosen under **Papers from** was deleted or moved in Zotero.
 Pick another one in Paper Trail's settings, or choose **Whole library**.
 
-### "… is not a paper: it has no zotero-key property"
+### "… isn't a paper's note: it has no zotero-key property"
 
 Paper Trail recognises a paper by one frontmatter property, which holds the
 Zotero item key. A note without it isn't a paper, wherever it is in your
@@ -122,7 +122,7 @@ to the annotation in Zotero, which does come through.
 [Better BibTeX](https://retorque.re/zotero-better-bibtex/) is installed.
 Without it, you can still link to a paper note with Obsidian's own `[[`.
 
-### "Could not reach Better BibTeX. Is it installed in Zotero?"
+### "Couldn't reach Better BibTeX. Is it installed in Zotero?"
 
 Shift+Enter in the citation picker opens Better BibTeX's own dialog, which only
 exists when Better BibTeX is installed in Zotero.

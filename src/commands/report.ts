@@ -52,8 +52,8 @@ export async function writeReport(context: Context): Promise<void> {
 	const existing = app.vault.getFileByPath(path);
 	if (existing && !isReport(app.metadataCache.getFileCache(existing)?.frontmatter)) {
 		throw new Error(
-			`${path} already exists and was not written by Paper Trail.\n` +
-				'Delete it, or rename it out of the way, and try again.',
+			`There's already a note at ${path} that Paper Trail didn't write.\n` +
+				'Rename or delete it, and try again.',
 		);
 	}
 
@@ -62,5 +62,5 @@ export async function writeReport(context: Context): Promise<void> {
 	if (existing) await app.vault.process(existing, () => markdown);
 
 	await reveal(app, file);
-	say(context, `Ruled out ${report.rows.length} of the ${report.considered} papers decided on.`);
+	say(context, `${report.rows.length} of the ${report.considered} papers you decided on were ruled out.`);
 }

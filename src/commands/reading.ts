@@ -147,11 +147,11 @@ async function fitNote(context: Context, file: TFile, before: State, state: Stat
  * than making a decision about reading, so the state is what leads.
  */
 const CHOICE_LABELS: Record<Reading, string> = {
-	untriaged: 'Untriaged, assess it again',
-	queued: 'Queued, worth an hour',
-	promoted: 'Promoted, worth a third pass',
-	deferred: 'Deferred, come back to it later',
-	dropped: 'Dropped, not worth reading',
+	untriaged: 'Untriaged: triage it again',
+	queued: 'Queued: worth an hour',
+	promoted: 'Promoted: worth a third pass',
+	deferred: 'Deferred: come back to it later',
+	dropped: 'Dropped: not worth reading',
 };
 
 /** One line of the chooser. `progress` and `icon` are set only by `READ_AGAIN`. */
@@ -181,7 +181,7 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 	const app = context.app;
 	const file = target ?? app.workspace.getActiveFile();
 	if (!file) {
-		new Notice('Open a paper first.');
+		new Notice("Open a paper's note first.");
 		return;
 	}
 

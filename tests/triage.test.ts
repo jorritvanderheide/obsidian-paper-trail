@@ -282,7 +282,7 @@ describe('landing', () => {
 	// where none is. Every other word lands the same in every vault.
 	it('says a read paper is done with where no claim is written', () => {
 		const none: Workflow = { triage: false, passes: 'none' };
-		expect(landing({ reading: 'queued', progress: 'read' }, none)).toBe('Read, and done with.');
+		expect(landing({ reading: 'queued', progress: 'read' }, none)).toBe('Read. Nothing left to do.');
 		for (const state of EVERY_STATE.filter((entry) => label(entry) !== 'Read')) {
 			expect(landing(state, none), label(state)).toBe(landing(state, FULL));
 		}

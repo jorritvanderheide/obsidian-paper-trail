@@ -143,7 +143,7 @@ export class SettingsTab extends PluginSettingTab {
 		if (chosen === '') return '';
 		if (collections().some((entry) => entry.key === chosen)) return '';
 		// Said here as well as in the queue, because this is where it is fixed.
-		return ' ⚠ Zotero has no collection with this key, so no papers are reaching the queue. Pick another, or clear it for the whole library.';
+		return " ⚠ Zotero doesn't have this collection anymore, so no papers reach the queue. Pick another one, or choose Whole library.";
 	}
 
 	/**
@@ -166,7 +166,7 @@ export class SettingsTab extends PluginSettingTab {
 		const { found, total } = headingCoverage(papers, setting);
 		if (total === 0 || found === 0) return '';
 
-		return ` ${found} of your ${total} papers already use it: renaming it leaves those behind, and gives each a second heading when it next needs one.`;
+		return ` ${found} of your ${total} papers already use it. If you rename it, those notes keep the old heading, and get a second one when they need the section again.`;
 	}
 
 	/**
@@ -192,7 +192,7 @@ export class SettingsTab extends PluginSettingTab {
 		if (left === 0) return '';
 
 		const names = retiredStatusTags.map((namespace) => `${namespace}/`).join(', ');
-		return ` ⚠ ${left} ${left === 1 ? 'paper' : 'papers'} still ${left === 1 ? 'carries' : 'carry'} ${names}. Each one sheds it the next time you decide anything about that paper.`;
+		return ` ⚠ ${left} ${left === 1 ? 'paper' : 'papers'} still ${left === 1 ? 'has' : 'have'} a ${names} tag. Each one loses it the next time you make a decision about that paper.`;
 	}
 
 	/**
@@ -216,14 +216,14 @@ export class SettingsTab extends PluginSettingTab {
 					{
 						name: 'Papers from',
 						desc:
-							'Which part of your Zotero library reaches the queue. A collection is right when your Zotero holds more than this thesis: nothing is copied either way, and papers outside it that already have a note keep working.' +
+							'Which part of your Zotero library shows up in the queue. Pick one collection if your library holds more than the papers for this thesis. Nothing is copied either way, and papers outside it that already have a note keep working.' +
 							this.scopeStatus(),
 						control: { type: 'dropdown', key: 'collection', options: this.scopeOptions() },
 					},
 					{
 						name: 'Triage before reading',
 						desc:
-							'Off, so a paper you save to Zotero arrives already queued to read. Turn it on if Zotero is where you put things you have not decided about, and each one comes up first with its abstract: drop it and say why, queue it, or mark it already read.',
+							"Off: a paper you save to Zotero goes straight into Reading. Turn it on if you also save papers you haven't decided about yet. Each one then shows up first with its abstract, and you drop it (and say why), queue it, or mark it as already read.",
 						control: { type: 'toggle', key: 'triage' },
 					},
 				],
@@ -234,18 +234,18 @@ export class SettingsTab extends PluginSettingTab {
 				items: [
 					{
 						name: 'Template folder',
-						desc: 'Where Paper.md lives. It is written here the first time a paper note is made, and your edits to it are kept from then on. {{title}} becomes the title of the paper and {{links}} its links to Zotero and the PDF.',
+						desc: "Where Paper.md lives. Paper Trail puts it here when it makes its first paper note, and after that it's yours to edit. {{title}} becomes the paper's title, and {{links}} its links to Zotero and the PDF.",
 						control: { type: 'text', key: 'templateFolder' },
 					},
 					{
 						name: 'Papers folder',
-						desc: 'One note per paper, named for its citation key. Flat: the record is in the frontmatter, not in the filing.',
+						desc: "Where the paper notes go, one note per paper, all in this one folder. What you decided about a paper is in its properties, so there's no need for subfolders.",
 						control: { type: 'text', key: 'papersFolder' },
 					},
 					{
 						name: 'Status tag',
 						desc:
-							'Mirror each paper’s reading status into a tag, for browsing by tag rather than by folder. "status" gives status/queued and status/dropped, empty writes none, and the frontmatter stays the real value either way.' +
+							'Also write each paper’s reading status as a tag, to browse your papers by tag instead of by folder. "status" gives status/queued, status/dropped and so on. Leave it empty for no tag. The properties stay the real record either way.' +
 							this.statusTagStatus(),
 						control: { type: 'text', key: 'statusTag' },
 					},
@@ -257,48 +257,48 @@ export class SettingsTab extends PluginSettingTab {
 				items: [
 					{
 						name: 'Item key property',
-						desc: 'The frontmatter property naming the Zotero item, and what makes a note a paper. Set it once before you start, pointed at whatever your existing literature notes use: changing it later leaves every note made under the old name unrecognised.',
+						desc: "The property that holds the Zotero item key, which is what makes a note a paper. If you already have literature notes, set this to the property they use before you start. If you change it later, notes with the old property aren't recognised anymore.",
 						control: { type: 'text', key: 'keyField' },
 					},
 					{
 						name: 'Show reading status on papers',
 						desc:
-							'Shows a paper’s state in the title bar while you edit and at the top of the note in reading view, and opens the chooser when you click it. Turn it off if you keep the properties panel open, where it is the same word twice.',
+							'Show a paper’s status in the title bar while you edit, and at the top of the note in reading view. Click it to change the status. Turn it off if you keep the properties panel open, where you’d see the same word twice.',
 						control: { type: 'toggle', key: 'statusPill' },
 					},
 					{
 						name: 'Quieter notifications',
 						desc:
-							'Shows only failures and warnings. Nothing is said about where a decision put a paper, that a pass is finished, what a refresh found, or that nothing is left to do.',
+							"Only show failures and warnings. You won't be told where a decision put a paper, that a pass is finished, what a refresh found, or that there's nothing left to do.",
 						control: { type: 'toggle', key: 'quietNotices' },
 					},
 					{
 						name: 'Written passes',
-						desc: 'What you write after reading a paper. Claim and assessment asks every paper you read for a claim, and the ones you promote for an assessment as well. Claim only never offers the third pass. None files a paper as read once you have read it, for writing by theme rather than by paper. Nothing in your notes changes: a paper you already promoted still owes its assessment, and read papers wait on a claim again when claims come back.',
+						desc: "What you write after reading a paper. Claim and assessment: every paper you read gets a claim, and the ones you promote an assessment too. Claim only: there's no third pass. None: a paper is filed as read as soon as you've read it, for when you write by theme rather than by paper. Changing this doesn't change your notes: a paper you already promoted still needs its assessment, and read papers need a claim again if you switch claims back on.",
 						control: { type: 'dropdown', key: 'passes', options: PASS_OPTIONS },
 					},
 					{
 						name: 'Claim heading',
-						desc: `What the second pass is written under. The heading is written in when a paper comes to owe a claim, so one you drop never carries an empty section.${this.headingStatus(this.plugin.settings.claimHeading)}`,
+						desc: `The heading your claim goes under. It's only added to a note once the paper needs a claim, so a paper you drop never has an empty section.${this.headingStatus(this.plugin.settings.claimHeading)}`,
 						control: { type: 'text', key: 'claimHeading' },
 						visible: () => this.writes('claim'),
 					},
 					{
 						name: 'Assessment heading',
-						desc: `What the third pass is written under, and only papers you promote are asked for one. It arrives the same way, below the claim, when the claim is ticked off.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
+						desc: `The heading your assessment goes under. Only papers you promote get one, and it's added below the claim when you tick the claim off.${this.headingStatus(this.plugin.settings.assessmentHeading)}`,
 						control: { type: 'text', key: 'assessmentHeading' },
 						visible: () => this.writes('assessment'),
 					},
 					{
 						name: 'Claim prompt',
-						desc: 'Shown faintly on the empty line under the Claim heading, and gone as soon as you start writing. Leave it empty once you no longer need asking.',
-						control: { type: 'textarea', key: 'claimPrompt', rows: 3, placeholder: 'Empty: nothing is shown.' },
+						desc: "The question shown faintly under an empty Claim heading. It disappears as soon as you start writing. Leave it empty once you don't need the reminder.",
+						control: { type: 'textarea', key: 'claimPrompt', rows: 3, placeholder: 'Empty: no question is shown.' },
 						visible: () => this.writes('claim'),
 					},
 					{
 						name: 'Assessment prompt',
-						desc: 'The same, under the Assessment heading. Nothing is written into the note either way.',
-						control: { type: 'textarea', key: 'assessmentPrompt', rows: 3, placeholder: 'Empty: nothing is shown.' },
+						desc: 'The same, under the Assessment heading. The question is never written into the note.',
+						control: { type: 'textarea', key: 'assessmentPrompt', rows: 3, placeholder: 'Empty: no question is shown.' },
 						visible: () => this.writes('assessment'),
 					},
 				],

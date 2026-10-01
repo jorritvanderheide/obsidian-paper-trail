@@ -79,8 +79,8 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 		// plainly here, because the alternative is `vault.create` refusing with
 		// a message about a file existing and nothing about which paper or why.
 		throw new Error(
-			`${path} already exists and is not this paper.\n` +
-				'Delete it, or rename it out of the way, and try again.',
+			`There's already a note at ${path}, and it isn't this paper's.\n` +
+				'Rename or delete it, and try again.',
 		);
 	}
 
@@ -191,7 +191,7 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 export async function refreshPaper(context: Context, target?: TFile): Promise<void> {
 	const file = target ?? context.app.workspace.getActiveFile();
 	if (!file) {
-		new Notice('Open a paper first.');
+		new Notice("Open a paper's note first.");
 		return;
 	}
 

@@ -91,5 +91,5 @@ export function collectionPaths(collections: ApiCollection[]): CollectionChoice[
  */
 export function missingScope(collection: string, known: ApiCollection[]): string | null {
 	if (collection === '' || known.some((entry) => entry.key === collection)) return null;
-	return 'The Zotero collection this vault is scoped to is gone. Pick another in settings, or clear it for the whole library.';
+	return "The Zotero collection chosen under Papers from isn't there anymore. Pick another one in the settings, or choose Whole library.";
 }
