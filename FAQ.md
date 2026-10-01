@@ -28,10 +28,10 @@ Zotero, open Settings → Advanced and turn on *Allow other applications on this
 computer to communicate with Zotero*. This is off by default, and it needs
 Zotero 7 or later.
 
-### Why isn't there a mobile version?
+### Does it work on mobile?
 
-Paper Trail talks to the Zotero desktop app running on the same computer, and
-on a phone or tablet there isn't one to talk to. Your paper notes do sync to
+No. Paper Trail talks to the Zotero desktop app running on the same computer,
+and on a phone or tablet there isn't one to talk to. Your paper notes do sync to
 mobile and are plain markdown there, but the queue and the commands need
 Obsidian on your desktop.
 
