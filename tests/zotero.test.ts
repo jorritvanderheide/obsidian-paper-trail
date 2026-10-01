@@ -15,6 +15,7 @@ import {
 	authorNames,
 	annotations,
 	passage,
+	pdfBox,
 	itemYear,
 	noteName,
 	parseItemRef,
@@ -440,6 +441,81 @@ describe('annotations, against a real one', () => {
 
 	it('keeps the printed page, which is what a citation needs', () => {
 		expect(annotations([real], true)[0]?.page).toBe('840');
+	});
+});
+
+/**
+ * Zotero writes "page|000000|00000" for an annotation made on a page whose text
+ * it had not loaded, which Reading Mode does. The rectangles are still right.
+ */
+describe('annotations Zotero gave no offset', () => {
+	const at = (key: string, sortIndex: string, ...rects: number[][]): ApiItem => ({
+		key,
+		data: {
+			itemType: 'annotation',
+			annotationText: key,
+			annotationSortIndex: sortIndex,
+			annotationPosition: JSON.stringify({ pageIndex: Number(sortIndex.slice(0, 5)), rects }),
+		},
+	});
+	const order = (items: ApiItem[]) => annotations(items, true).map((kept) => kept.key);
+
+	it('puts them where they are on the page, not at its top', () => {
+		// Page 7 of a real paper, one column. The two last highlights were made
+		// in Reading Mode and came through with no offset.
+		expect(
+			order([
+				at('earlier page', '00000|000166|00317', [132.5, 507, 224.2, 525]),
+				at('foot, second', '00002|000000|00000', [248.5, 96, 508.8, 104], [77, 83.7, 515.3, 92]),
+				at('foot, first', '00002|000000|00000', [223.6, 132.7, 506.8, 141], [77, 120.4, 355.8, 128.6]),
+				at('top', '00002|000088|00121', [177, 713, 272.6, 721]),
+				at('middle', '00002|003025|00539', [436.2, 294.7, 518.9, 303]),
+				at('later page', '00003|000010|00050', [77, 700, 300, 710]),
+			]),
+		).toEqual(['earlier page', 'top', 'middle', 'foot, first', 'foot, second', 'later page']);
+	});
+
+	it('reads two columns down the left before the right', () => {
+		const left = [60, 0, 290, 0];
+		const right = [310, 0, 540, 0];
+		const box = (column: number[], top: number) => [column[0] as number, top - 8, column[2] as number, top];
+		expect(
+			order([
+				at('left top', '00004|000010|00100', box(left, 700)),
+				at('right top', '00004|000900|00100', box(right, 700)),
+				at('right bottom', '00004|001500|00600', box(right, 200)),
+				at('left foot', '00004|000000|00000', box(left, 150)),
+				at('right head', '00004|000000|00000', box(right, 760)),
+			]),
+		).toEqual(['left top', 'left foot', 'right head', 'right top', 'right bottom']);
+	});
+
+	it('goes by height on a page where nothing shares its column', () => {
+		expect(
+			order([
+				at('high', '00001|000010|00100', [60, 690, 200, 700]),
+				at('low', '00001|000500|00600', [60, 190, 200, 200]),
+				at('wide figure note', '00001|000000|00000', [300, 400, 540, 410]),
+			]),
+		).toEqual(['high', 'wide figure note', 'low']);
+	});
+
+	it('leaves an annotation without rectangles where its sort index puts it', () => {
+		const ink: ApiItem = { key: 'ink', data: { itemType: 'annotation', annotationComment: 'drawn', annotationSortIndex: '00002|000000|00000', annotationPosition: '{"pageIndex":2,"paths":[[1,2,3,4]]}' } };
+		expect(order([at('placed', '00002|000100|00100', [60, 690, 200, 700]), ink])).toEqual(['ink', 'placed']);
+	});
+});
+
+describe('pdfBox', () => {
+	it('is the rectangle around every rect', () => {
+		expect(pdfBox('{"pageIndex":0,"rects":[[77,83.7,515.3,92],[248.5,96,508.8,104]]}')).toEqual([77, 83.7, 515.3, 104]);
+	});
+
+	it('is null for anything that is not PDF rectangles', () => {
+		expect(pdfBox(undefined)).toBeNull();
+		expect(pdfBox('not json')).toBeNull();
+		expect(pdfBox('{"type":"FragmentSelector","value":"epubcfi(/6/4)"}')).toBeNull();
+		expect(pdfBox('{"pageIndex":0,"rects":[]}')).toBeNull();
 	});
 });
 

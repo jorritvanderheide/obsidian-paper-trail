@@ -38,6 +38,13 @@ API, `/children` alone omits them: `?itemType=annotation` is required. The web
 API behaves differently, so code written from its documentation returns an
 empty list and reports no error.
 
+**A sort index can name only the page.** `annotationSortIndex` is page,
+character offset and distance from the top, zero-padded so it sorts as text.
+An annotation made on a page whose text the reader had not loaded gets offset
+and top both zero, `00002|000000|00000`, and sorts to the top of its page.
+Reading Mode in Zotero 10 does this. `annotations()` places those by the
+rectangles in `annotationPosition` instead.
+
 **`Total-Results` counts the query, not the library.** On a `?since=` request it
 is how much changed, and nothing like the number of items Zotero holds.
 

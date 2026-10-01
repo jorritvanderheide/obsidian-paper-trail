@@ -72,6 +72,7 @@ export interface ApiItem {
 		annotationComment?: string;
 		annotationPageLabel?: string;
 		annotationSortIndex?: string;
+		annotationPosition?: string;
 	};
 	meta?: {
 		parsedDate?: string;
@@ -486,7 +487,8 @@ export function passage(text: string): string {
  *
  * Zotero sorts by `annotationSortIndex`, a string of pipe-separated numbers
  * like "00003|001234|00567". Comparing it as text gives document order because
- * every field is zero-padded, which is the whole point of the format.
+ * every field is zero-padded, which is the whole point of the format. Except
+ * where Zotero could not work it out: see `inReadingOrder`.
  *
  * `underlines` off leaves out underlines with no comment, for whoever
  * underlines terms to find their way back and highlights the passages worth
@@ -494,18 +496,106 @@ export function passage(text: string): string {
  * about it.
  */
 export function annotations(items: ApiItem[], underlines: boolean): Annotation[] {
-	return items
+	const kept = items
 		.filter((item) => item.data.itemType === 'annotation')
 		.filter((item) => underlines || item.data.annotationType !== 'underline' || (item.data.annotationComment ?? '').trim().length > 0)
 		.map((item) => ({
-			key: item.key,
-			text: passage(item.data.annotationText ?? ''),
-			comment: (item.data.annotationComment ?? '').trim(),
-			page: item.data.annotationPageLabel?.trim() || null,
-			sortIndex: item.data.annotationSortIndex ?? '',
+			annotation: {
+				key: item.key,
+				text: passage(item.data.annotationText ?? ''),
+				comment: (item.data.annotationComment ?? '').trim(),
+				page: item.data.annotationPageLabel?.trim() || null,
+				sortIndex: item.data.annotationSortIndex ?? '',
+			},
+			box: pdfBox(item.data.annotationPosition),
 		}))
-		.filter((annotation) => annotation.text.length > 0 || annotation.comment.length > 0)
-		.sort((a, b) => a.sortIndex.localeCompare(b.sortIndex));
+		.filter(({ annotation }) => annotation.text.length > 0 || annotation.comment.length > 0);
+	return inReadingOrder(kept).map(({ annotation }) => annotation);
+}
+
+/** Left, bottom, right, top, in PDF points with y counting up from the bottom of the page. */
+type Box = [number, number, number, number];
+
+interface Placed {
+	annotation: Annotation;
+	box: Box | null;
+}
+
+/**
+ * The rectangle around a PDF annotation, from the position Zotero stores as a
+ * JSON string. Null for anything else: an EPUB or snapshot position has no
+ * rectangles, and neither does a drawing.
+ */
+export function pdfBox(position: string | undefined): Box | null {
+	let rects: unknown;
+	try {
+		rects = (JSON.parse(position ?? '') as { rects?: unknown }).rects;
+	} catch {
+		return null;
+	}
+	if (!Array.isArray(rects)) return null;
+	const valid = rects.filter((rect): rect is Box => Array.isArray(rect) && rect.length === 4 && rect.every(Number.isFinite));
+	if (valid.length === 0) return null;
+	return [
+		Math.min(...valid.map((rect) => rect[0])),
+		Math.min(...valid.map((rect) => rect[1])),
+		Math.max(...valid.map((rect) => rect[2])),
+		Math.max(...valid.map((rect) => rect[3])),
+	];
+}
+
+/**
+ * A sort index with the page and nothing else: offset and top both zero.
+ *
+ * Zotero writes one when it makes an annotation on a page whose text it has not
+ * loaded, which Reading Mode in Zotero 10 does: two highlights at the foot of a
+ * page came through as "00002|000000|00000" and sorted above everything else on
+ * it, in Zotero's sidebar as much as here.
+ */
+function unplaced(sortIndex: string): boolean {
+	return /^\d{5}\|0{6}\|0{5}$/.test(sortIndex);
+}
+
+/**
+ * Sort by `sortIndex`, then put each annotation whose index says only the page
+ * where its rectangle is on that page.
+ *
+ * It goes after the last annotation on the page that starts above it in the
+ * same column, which is what overlapping horizontally stands in for, or before
+ * the first one below it in that column when none is above. Comparing heights
+ * alone would get a two-column page wrong: the top of the right column is
+ * higher than the foot of the left, and comes after it.
+ */
+function inReadingOrder(list: Placed[]): Placed[] {
+	const bySortIndex = (a: Placed, b: Placed) => a.annotation.sortIndex.localeCompare(b.annotation.sortIndex);
+	const order = list.filter((entry) => !(entry.box && unplaced(entry.annotation.sortIndex))).sort(bySortIndex);
+	const late = list
+		.filter((entry) => entry.box && unplaced(entry.annotation.sortIndex))
+		.sort((a, b) => bySortIndex(a, b) || (b.box?.[3] ?? 0) - (a.box?.[3] ?? 0));
+
+	for (const entry of late) {
+		const box = entry.box as Box;
+		const page = entry.annotation.sortIndex.slice(0, 5);
+		const onPage = order.flatMap((other, index) => (other.annotation.sortIndex.startsWith(page) ? [index] : []));
+		const column = onPage.filter((index) => {
+			const other = order[index]?.box;
+			return other !== null && other !== undefined && other[0] < box[2] && box[0] < other[2];
+		});
+		const above = column.filter((index) => (order[index]?.box?.[3] ?? 0) >= box[3]);
+
+		// With nothing in its column, height on the page is all there is to go on.
+		const lower = onPage.find((index) => (order[index]?.box?.[3] ?? 0) < box[3]);
+		const next = order.findIndex((other) => bySortIndex(other, entry) > 0);
+
+		let at: number;
+		if (above.length > 0) at = (above.at(-1) ?? 0) + 1;
+		else if (column.length > 0) at = column[0] ?? 0;
+		else if (lower !== undefined) at = lower;
+		else if (onPage.length > 0) at = (onPage.at(-1) ?? 0) + 1;
+		else at = next === -1 ? order.length : next;
+		order.splice(at, 0, entry);
+	}
+	return order;
 }
 
 const CONTENT_PRIORITY = ['application/pdf', 'application/epub+zip', 'text/html'];
