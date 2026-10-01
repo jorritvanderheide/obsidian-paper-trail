@@ -15,8 +15,7 @@ browse your papers by reading status. See [Works well with](#12-works-well-with)
 [![Checks](https://github.com/jorritvanderheide/obsidian-paper-trail/actions/workflows/lint.yml/badge.svg)](https://github.com/jorritvanderheide/obsidian-paper-trail/actions/workflows/lint.yml)
 [![License: EUPL-1.2](https://img.shields.io/badge/license-EUPL--1.2-blue?style=flat-square)](LICENSE)
 
-<!-- SCREENSHOT images/hero.png: the queue in the sidebar next to an open paper note, with rows in Reading, Claim and Assessment, the cursor under a Claim heading and annotations below it. -->
-![Paper Trail](https://placehold.co/1200x675/png?text=Queue+next+to+a+paper+note)
+![A paper note in Obsidian, with the Paper Trail queue in the sidebar next to it](https://raw.githubusercontent.com/jorritvanderheide/obsidian-paper-trail/main/images/hero.png)
 
 You run a search, skim a page of abstracts, and save thirty papers to Zotero.
 You read four of them properly. The other twenty-six you judged in a few seconds
@@ -77,7 +76,6 @@ showing an empty list. Then:
 Not sure where to start? **Next** opens the task that will go stale first.
 
 <!-- SCREENSHOT images/getting-started.gif: a short loop. Click a Reading row, Zotero opens; back in Obsidian, tick it, pick "Worth summarising", the note opens with the cursor under Claim. -->
-![Getting started](https://placehold.co/1200x675/png?text=Reading+to+claim%2C+one+paper)
 
 <br/>
 
@@ -212,8 +210,7 @@ The reading model comes from S. Keshav's
 paper in passes that each cost more time than the last, and after each pass you
 decide whether the next one is worth it.
 
-<!-- SCREENSHOT images/queue.png: the sidebar queue with Reading (2), Claim (1), Assessment (1) open, Deferred (3) and Filed (41) closed, toolbar visible. Fictional papers. -->
-![The queue](https://placehold.co/800x900/png?text=The+queue)
+![The queue as a block in a note: Triage, Reading, Claim and Assessment, with the right-click menu of a row open](https://raw.githubusercontent.com/jorritvanderheide/obsidian-paper-trail/main/images/queue.png)
 
 **Reading** holds the papers that are worth an hour and that you haven't read
 yet. With triage off, which is the default, every paper in Zotero that doesn't
@@ -252,8 +249,7 @@ you haven't made up your mind about. Each paper then first shows up with its
 title, venue, year and abstract, and you choose one of three answers: drop it
 (and say why), queue it, or mark it as already read.
 
-<!-- SCREENSHOT images/triage.png: the triage dialog for one paper, showing title, venue, year, abstract and the three answers. -->
-![Triage](https://placehold.co/900x600/png?text=Triage+dialog)
+![The triage dialog for How to Read a Paper, with its venue, year and abstract, and the answers Drop, Queue and Already read](https://raw.githubusercontent.com/jorritvanderheide/obsidian-paper-trail/main/images/triage.png)
 
 You can also switch off **Claim** and **Assessment**, under **Written passes**.
 With only the claim, there's no third pass to promote a paper to. With neither,
@@ -284,8 +280,7 @@ Claim, with a clock before its title and your condition in its tooltip, and
 **Next** can offer it to you. Its note keeps saying it's deferred until you
 decide something new: read it, defer it again, or drop it.
 
-<!-- SCREENSHOT images/defer.png: the defer dialog, with a condition typed and "After reading another paper" picked. -->
-![Deferring a paper](https://placehold.co/900x500/png?text=Defer+dialog)
+![The defer dialog, asking what has to happen first and when to look at the paper again](https://raw.githubusercontent.com/jorritvanderheide/obsidian-paper-trail/main/images/defer.png)
 
 ### 6.4 Working the list
 
@@ -360,8 +355,7 @@ carrying an outline of work that never happened. Under each empty heading, a
 question is shown faintly, and it disappears as soon as you start typing. It's
 never written to the file.
 
-<!-- SCREENSHOT images/note.png: a paper note in the editor with the status pill in the title bar, an empty Claim heading showing the faint prompt, and synced annotations below. -->
-![A paper note](https://placehold.co/1200x700/png?text=A+paper+note)
+![A paper note with the Promoted status in the title bar, the faint question under the empty Claim heading, and annotations from Zotero below](https://raw.githubusercontent.com/jorritvanderheide/obsidian-paper-trail/main/images/note.png)
 
 A paper that doesn't need anything from you opens in reading view instead of
 the editor. It switches the moment you tick off its last pass, defer it or drop
@@ -457,8 +451,7 @@ you'd naturally type. With Better BibTeX, notes are named after their key, so
 `[[` finds papers by key rather than by title, and **Insert citation** fills
 that gap.
 
-<!-- SCREENSHOT images/insert-citation.png: the Insert citation picker with a few results, one highlighted, and the page field open after Tab. -->
-![Insert citation](https://placehold.co/900x500/png?text=Insert+citation)
+![Typing /cit in a note offers Insert citation and Add page to citation, next to the export commands of Due Credit](https://raw.githubusercontent.com/jorritvanderheide/obsidian-paper-trail/main/images/insert-citation.png)
 
 For a link you typed yourself with `[[`, use **Add page to citation**. Put the
 cursor on the link or right after it, and it asks for the page and rewrites the
