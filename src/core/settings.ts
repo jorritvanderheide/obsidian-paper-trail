@@ -119,6 +119,19 @@ export interface Settings {
 	 * something out of a collection in Zotero cannot strand its note here.
 	 */
 	collection: string;
+	/**
+	 * Whether underlines are synced along with highlights.
+	 *
+	 * On, so every annotation comes through. Another opinion rather than an
+	 * address, and it earns the exception the way triage does: what an underline
+	 * means is yours to know. For some people it is a passage like any other, and
+	 * for others it marks a term to find their way back to, and a note quoting
+	 * "trust" and "verified" between the passages buries them.
+	 *
+	 * Off leaves out an underline with no comment, and nothing else. It changes
+	 * no stored value, only what the next sync draws in the annotations region.
+	 */
+	underlines: boolean;
 
 	/** Flat folder holding one note per paper, named for its citation key. */
 	papersFolder: string;
@@ -190,6 +203,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	triage: false,
 	passes: 'both',
 	collection: '',
+	underlines: true,
 	papersFolder: 'Literature',
 	statusTag: '',
 	retiredStatusTags: [],
@@ -252,6 +266,7 @@ export function loadSettings(raw: unknown): Settings {
 		// go through `text`: an empty collection means the whole library, and an
 		// empty status tag means write no tags.
 		collection: typeof data.collection === 'string' ? data.collection.trim() : DEFAULT_SETTINGS.collection,
+		underlines: typeof data.underlines === 'boolean' ? data.underlines : DEFAULT_SETTINGS.underlines,
 		papersFolder: text(data.papersFolder, DEFAULT_SETTINGS.papersFolder),
 		statusTag: typeof data.statusTag === 'string' ? data.statusTag.trim() : DEFAULT_SETTINGS.statusTag,
 		retiredStatusTags: namespaces(data.retiredStatusTags),

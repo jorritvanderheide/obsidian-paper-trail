@@ -34,6 +34,12 @@ describe('loadSettings, the address fields', () => {
 		// Anything that is not a boolean is not an answer.
 		expect(loadSettings({ triage: 'yes' }).triage).toBe(false);
 	});
+
+	it('includes underlines by default, so every annotation comes through', () => {
+		expect(loadSettings(null).underlines).toBe(true);
+		expect(loadSettings({ underlines: false }).underlines).toBe(false);
+		expect(loadSettings({ underlines: 'no' }).underlines).toBe(true);
+	});
 });
 
 describe('versioning', () => {

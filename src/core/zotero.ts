@@ -67,6 +67,7 @@ export interface ApiItem {
 		contentType?: string;
 		linkMode?: string;
 		dateAdded?: string;
+		annotationType?: string;
 		annotationText?: string;
 		annotationComment?: string;
 		annotationPageLabel?: string;
@@ -486,10 +487,16 @@ export function passage(text: string): string {
  * Zotero sorts by `annotationSortIndex`, a string of pipe-separated numbers
  * like "00003|001234|00567". Comparing it as text gives document order because
  * every field is zero-padded, which is the whole point of the format.
+ *
+ * `underlines` off leaves out underlines with no comment, for whoever
+ * underlines terms to find their way back and highlights the passages worth
+ * keeping. One with a comment still comes through, because you wrote something
+ * about it.
  */
-export function annotations(items: ApiItem[]): Annotation[] {
+export function annotations(items: ApiItem[], underlines: boolean): Annotation[] {
 	return items
 		.filter((item) => item.data.itemType === 'annotation')
+		.filter((item) => underlines || item.data.annotationType !== 'underline' || (item.data.annotationComment ?? '').trim().length > 0)
 		.map((item) => ({
 			key: item.key,
 			text: passage(item.data.annotationText ?? ''),

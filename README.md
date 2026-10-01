@@ -364,7 +364,8 @@ highlights, underlines, and notes on a page. They're refreshed whenever you open
 the note while Zotero is running, and only written when something changed. Each
 one is anchored by its Zotero key, so a link to a single passage keeps working
 after a refresh. A passage that runs across a column or a page arrives as one
-line.
+line. If you underline terms and keep highlights for passages, turn off
+**Include underlines** and only the underlines you commented on come through.
 
 ### 7.3 The template
 
@@ -590,6 +591,7 @@ Hotkeys.
 | --- | --- | --- |
 | **Papers from** | Whole library | Use one Zotero collection, if your library holds more than the papers for this thesis. Papers outside it that already have a note keep working. |
 | **Triage before reading** | Off | Decide about each paper before it reaches Reading. |
+| **Include underlines** | On | Show underlines in a paper's annotations. Turn it off if you underline terms and highlight passages. An underline you've commented on still shows up. |
 
 **Vault**
 

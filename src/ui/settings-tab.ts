@@ -226,6 +226,11 @@ export class SettingsTab extends PluginSettingTab {
 							"Off: a paper you save to Zotero goes straight into Reading. Turn it on if you also save papers you haven't decided about yet. Each one then shows up first with its abstract, and you drop it (and say why), queue it, or mark it as already read.",
 						control: { type: 'toggle', key: 'triage' },
 					},
+					{
+						name: 'Include underlines',
+						desc: "Show underlines in a paper's annotations, along with highlights and notes. Turn it off if you underline terms to find your way back to and highlight the passages worth keeping. An underline you've commented on still shows up.",
+						control: { type: 'toggle', key: 'underlines' },
+					},
 				],
 			},
 			{

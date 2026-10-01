@@ -36,7 +36,7 @@ beforeEach(() => {
 describe('attachmentAnnotations', () => {
 	it('asks for annotations explicitly, because a bare /children omits them', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await attachmentAnnotations(parent, 'ATTACH23');
+		await attachmentAnnotations(parent, 'ATTACH23', true);
 
 		// Verified against a real highlight: /children returned 0 and this
 		// returned 1. Dropping the query drops every annotation, silently.
@@ -45,7 +45,7 @@ describe('attachmentAnnotations', () => {
 
 	it('uses the group library path for a group item', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await attachmentAnnotations({ key: 'PARENT23', groupID: 9 }, 'ATTACH23');
+		await attachmentAnnotations({ key: 'PARENT23', groupID: 9 }, 'ATTACH23', true);
 		expect(getJson).toHaveBeenCalledWith('/api/groups/9/items/ATTACH23/children?itemType=annotation');
 	});
 });

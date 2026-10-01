@@ -106,6 +106,8 @@ Check these in order:
 - **Do they have text?** Only annotations with text or a comment come through:
   highlights, underlines and notes. A drawing or an image selection without a
   comment has nothing to show.
+- **Are they underlines?** With **Include underlines** off, an underline only
+  comes through if you commented on it.
 
 ### Can I edit the annotations in the note?
 

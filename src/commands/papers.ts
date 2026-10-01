@@ -89,7 +89,7 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	// A brand new paper usually has no annotations, but one imported with a
 	// PDF you had already marked up has all of them, and a note that opens
 	// with an empty Annotations section under an annotated paper looks broken.
-	const annotations = attachment ? await attachmentAnnotations(ref, attachment) : [];
+	const annotations = attachment ? await attachmentAnnotations(ref, attachment, context.settings.underlines) : [];
 
 	await ensureFolder(app, context.settings.papersFolder);
 
@@ -142,7 +142,7 @@ async function syncPaper(context: Context, file: TFile): Promise<void> {
 	// on reading annotations off an attachment that has gone.
 	const attachment = attachmentKeys(await itemChildren(ref))[0] ?? null;
 
-	const annotations = attachment ? await attachmentAnnotations(ref, attachment) : [];
+	const annotations = attachment ? await attachmentAnnotations(ref, attachment, context.settings.underlines) : [];
 
 	// Everything above asks Zotero and writes nothing; everything below writes.
 	// So the flush belongs here rather than at the top, where it used to be: up

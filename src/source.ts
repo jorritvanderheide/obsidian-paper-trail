@@ -121,9 +121,9 @@ export function itemMetadata(ref: ItemRef): Promise<ApiItem> {
  * returns an empty list for an attachment that has annotations, which the web
  * API does not do, so code written from its documentation fails silently.
  */
-export async function attachmentAnnotations(ref: ItemRef, attachmentKey: string): Promise<Annotation[]> {
+export async function attachmentAnnotations(ref: ItemRef, attachmentKey: string, underlines: boolean): Promise<Annotation[]> {
 	const children = await api<ApiItem[]>(`${libraryPath(ref)}/items/${attachmentKey}/children?itemType=annotation`);
-	return annotations(children);
+	return annotations(children, underlines);
 }
 
 /** An item's children: its attachments, and its notes. */

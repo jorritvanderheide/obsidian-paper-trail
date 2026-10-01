@@ -339,7 +339,7 @@ describe('annotations', () => {
 	it('flattens an annotation to what a note needs', () => {
 		const result = annotations([
 			annotation({ annotationText: 'Care is not inherently good.', annotationComment: 'cf. Okafor', annotationPageLabel: '842' }),
-		]);
+		], true);
 		expect(result).toEqual([
 			{
 				key: 'ANNOT001',
@@ -356,20 +356,53 @@ describe('annotations', () => {
 			annotation({ key: 'C', annotationSortIndex: '00010|000000|00000' }),
 			annotation({ key: 'A', annotationSortIndex: '00002|000000|00000' }),
 			annotation({ key: 'B', annotationSortIndex: '00002|000500|00000' }),
-		]);
+		], true);
 		expect(result.map((h) => h.key)).toEqual(['A', 'B', 'C']);
 	});
 
 	it('keeps a comment-only annotation, which has no selected text', () => {
-		expect(annotations([annotation({ annotationText: '', annotationComment: 'a thought' })])).toHaveLength(1);
+		expect(annotations([annotation({ annotationText: '', annotationComment: 'a thought' })], true)).toHaveLength(1);
 	});
 
 	it('drops an annotation that is neither text nor comment', () => {
-		expect(annotations([annotation({ annotationText: '  ', annotationComment: '' })])).toHaveLength(0);
+		expect(annotations([annotation({ annotationText: '  ', annotationComment: '' })], true)).toHaveLength(0);
 	});
 
 	it('ignores anything that is not an annotation', () => {
-		expect(annotations([paper()])).toEqual([]);
+		expect(annotations([paper()], true)).toEqual([]);
+	});
+
+	describe('with underlines off', () => {
+		const underline = (over: Partial<ApiItem['data']> & { key?: string } = {}) =>
+			annotation({ annotationType: 'underline', annotationText: 'trust', ...over });
+
+		it('leaves out an underline with no comment', () => {
+			expect(annotations([underline()], false)).toEqual([]);
+		});
+
+		it('keeps an underline you commented on', () => {
+			expect(annotations([underline({ annotationComment: 'the paper never defines it' })], false)).toHaveLength(1);
+		});
+
+		it('counts a comment of only whitespace as none', () => {
+			expect(annotations([underline({ annotationComment: '  \n' })], false)).toEqual([]);
+		});
+
+		it('keeps highlights and notes', () => {
+			const result = annotations(
+				[
+					annotation({ key: 'H', annotationType: 'highlight' }),
+					annotation({ key: 'N', annotationType: 'note', annotationText: '', annotationComment: 'a thought' }),
+					underline({ key: 'U' }),
+				],
+				false,
+			);
+			expect(result.map((kept) => kept.key)).toEqual(['H', 'N']);
+		});
+
+		it('keeps every underline when they are on', () => {
+			expect(annotations([underline()], true)).toHaveLength(1);
+		});
 	});
 });
 
@@ -377,16 +410,15 @@ describe('annotations', () => {
  * Taken from the local API, so the shape is checked against Zotero rather than
  * against its documentation. The two disagree about `/children`.
  *
- * The real response also carries `annotationType: "highlight"` and
- * `annotationColor: "#ffd400"`. Neither is declared on `ApiItem` and neither is
- * read: nothing renders a colour, and the only annotations that reach here are
- * the ones `?itemType=annotation` returned.
+ * The real response also carries `annotationColor: "#ffd400"`, which is not
+ * declared on `ApiItem` and not read: nothing renders a colour.
  */
 describe('annotations, against a real one', () => {
 	const real: ApiItem = {
 		key: '2SQ873XZ',
 		data: {
 			itemType: 'annotation',
+			annotationType: 'highlight',
 			annotationText: 'The keeping of household records is central to archival policy, with the index card positioned as a key technology',
 			annotationComment: '',
 			annotationPageLabel: '840',
@@ -395,7 +427,7 @@ describe('annotations, against a real one', () => {
 	};
 
 	it('reads what Zotero actually sends', () => {
-		expect(annotations([real])).toEqual([
+		expect(annotations([real], true)).toEqual([
 			{
 				key: '2SQ873XZ',
 				text: 'The keeping of household records is central to archival policy, with the index card positioned as a key technology',
@@ -407,7 +439,7 @@ describe('annotations, against a real one', () => {
 	});
 
 	it('keeps the printed page, which is what a citation needs', () => {
-		expect(annotations([real])[0]?.page).toBe('840');
+		expect(annotations([real], true)[0]?.page).toBe('840');
 	});
 });
 
@@ -523,7 +555,7 @@ describe('passage', () => {
 	});
 
 	it('is what annotations() reads the selected text through', () => {
-		const [first] = annotations([{ key: 'K', data: { itemType: 'annotation', annotationText: 'written\n\ninformation' } }]);
+		const [first] = annotations([{ key: 'K', data: { itemType: 'annotation', annotationText: 'written\n\ninformation' } }], true);
 		expect(first?.text).toBe('written information');
 	});
 });
