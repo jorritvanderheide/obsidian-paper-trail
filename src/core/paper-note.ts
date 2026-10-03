@@ -142,6 +142,46 @@ export function renderAnnotations(list: Annotation[]): string {
 	return ['## Annotations', ...list.map((annotation) => `\n${renderAnnotation(annotation)}`)].join('\n');
 }
 
+/** A passage as a note holds it, read back out of the region. */
+export interface SyncedPassage {
+	key: string;
+	text: string;
+	page: string | null;
+}
+
+/**
+ * The passages in a note's region, in the order they are written.
+ *
+ * Read back out of what `renderAnnotation` wrote, so the quote line is the one
+ * shape this has to know: the passage, the page in brackets when there is one,
+ * and the block id. The colour line above it and the comment below it are
+ * skipped, and so is anything outside the markers, which is the user's.
+ */
+export function syncedPassages(body: string): SyncedPassage[] {
+	const from = body.indexOf(REGION_START);
+	const to = body.indexOf(REGION_END);
+	if (from === -1 || to === -1 || to < from) return [];
+
+	return body
+		.slice(from, to)
+		.split('\n')
+		.flatMap((line) => {
+			const match = /^> (.+?)(?: \(p\. ([^)]+)\))? \^zt-([A-Za-z0-9]+)$/.exec(line.trimEnd());
+			return match ? [{ key: match[3] ?? '', text: match[1] ?? '', page: match[2] ?? null }] : [];
+		});
+}
+
+/**
+ * Where the cursor is, by line, against the region: inside it, text typed is
+ * overwritten by the next sync.
+ */
+export function inRegion(body: string, line: number): boolean {
+	const lines = body.split('\n');
+	const start = lines.findIndex((text) => text.includes(REGION_START));
+	const end = lines.findIndex((text) => text.includes(REGION_END));
+	return start !== -1 && end !== -1 && start < line && line < end;
+}
+
 /**
  * Replace the managed region, leaving every other byte alone. A body with no
  * region gets one appended rather than being rearranged: the user may have

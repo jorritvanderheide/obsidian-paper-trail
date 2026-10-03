@@ -23,9 +23,11 @@
 // key a second time.
 import { MarkdownView, Notice } from 'obsidian';
 import { pickItem } from '../ui/item-picker';
+import { pickPassage, type PickedPassage } from '../ui/annotation-picker';
+import { inRegion, isPaper, syncedPassages } from '../core/paper-note';
 import { prompt } from '../ui/prompt';
 import { pickCitation } from '../source';
-import { citation, itemRefOfUri, linkAt, linkName, pageCitation, withPage, type CitedSource } from '../core/zotero';
+import { citation, itemRefOfUri, linkAt, linkName, pageCitation, quotation, withPage, type CitedSource } from '../core/zotero';
 import { paperNoteName } from '../outstanding';
 import { notify } from '../ui/notify';
 import type { Context } from '../context';
@@ -155,4 +157,53 @@ export async function addPage(context: Context): Promise<void> {
 		{ line: cursor.line, ch: link.from },
 		{ line: cursor.line, ch: link.to },
 	);
+}
+
+/**
+ * Quote a passage you annotated, with the citation to its page.
+ *
+ * The passages come out of the paper notes, as the last sync wrote them, and
+ * the most recently changed paper first, which is usually the one you are
+ * writing about. The quote is a copy: it is yours to cut down once it is in.
+ */
+export async function insertAnnotation(context: Context): Promise<void> {
+	const app = context.app;
+	const view = app.workspace.getActiveViewOfType(MarkdownView);
+	if (!view) {
+		new Notice('Open a note and put the cursor where the quote should go.');
+		return;
+	}
+	// Inside the region, the quote would be gone at the next sync.
+	const inPaper = view.file !== null && isPaper(app.metadataCache.getFileCache(view.file)?.frontmatter, context.settings.keyField);
+	if (inPaper && inRegion(view.editor.getValue(), view.editor.getCursor().line)) {
+		new Notice("That's inside the annotations, which are rewritten on every sync. Put the cursor above them.");
+		return;
+	}
+
+	const papers = app.vault
+		.getMarkdownFiles()
+		.filter((file) => isPaper(app.metadataCache.getFileCache(file)?.frontmatter, context.settings.keyField))
+		.sort((a, b) => b.stat.mtime - a.stat.mtime);
+	const passages: PickedPassage[] = [];
+	for (const file of papers) {
+		for (const passage of syncedPassages(await app.vault.cachedRead(file))) passages.push({ ...passage, file });
+	}
+	if (passages.length === 0) {
+		new Notice("There are no annotations in your paper notes yet. Open a paper's note with Zotero running to bring them in.");
+		return;
+	}
+
+	const chosen = await pickPassage(app, passages);
+	if (!chosen) return;
+
+	// Fetched after the picker closes, for the same reason as a citation: the
+	// cursor may have moved while it was open.
+	const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+	if (!editor) {
+		new Notice("There's no open note to put it in.");
+		return;
+	}
+	const cursor = editor.getCursor();
+	const line = editor.getLine(cursor.line);
+	editor.replaceSelection(quotation(chosen.text, chosen.file.basename, chosen.page, line.slice(0, cursor.ch), line.slice(cursor.ch)));
 }

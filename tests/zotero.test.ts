@@ -17,6 +17,7 @@ import {
 	annotations,
 	passage,
 	pdfBox,
+	quotation,
 	colorName,
 	ANNOTATION_COLORS,
 	itemYear,
@@ -662,5 +663,26 @@ describe('passage', () => {
 	it('is what annotations() reads the selected text through', () => {
 		const [first] = annotations([{ key: 'K', data: { itemType: 'annotation', annotationText: 'written\n\ninformation' } }], true);
 		expect(first?.text).toBe('written information');
+	});
+});
+
+describe('quotation', () => {
+	it('quotes the passage and cites its page', () => {
+		expect(quotation('Care is not inherently good.', 'okafor2021', '842', '', '')).toBe(
+			'> Care is not inherently good. [[okafor2021|okafor2021, p. 842]]',
+		);
+	});
+
+	it('gives a page label that is not a number its p. too', () => {
+		expect(quotation('A preface.', 'okafor2021', 'iv', '', '')).toBe('> A preface. [[okafor2021|okafor2021, p. iv]]');
+	});
+
+	it('cites the paper alone when there is no page', () => {
+		expect(quotation('A web page.', 'okafor2021', null, '', '')).toBe('> A web page. [[okafor2021]]');
+	});
+
+	it('starts a paragraph of its own in the middle of a line', () => {
+		expect(quotation('Quote.', 'a', null, 'As Okafor says:', ' and so on')).toBe('\n\n> Quote. [[a]]\n\n');
+		expect(quotation('Quote.', 'a', null, '   ', '')).toBe('> Quote. [[a]]');
 	});
 });

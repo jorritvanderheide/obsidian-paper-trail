@@ -181,6 +181,8 @@ If you want to work on the plugin, or build something on top of its notes:
   to citation** on a link you already wrote.
 - **Better BibTeX's dialog** - Prefixes, citations without the author, and
   several sources at once, all written as links.
+- **Insert annotation** - Quote a passage you highlighted, with a citation to
+  its page.
 - **Backlinks as a citation graph** - Every citation is a link, so the
   backlinks pane shows who cites whom.
 
@@ -477,7 +479,25 @@ label, the same way pandoc would write it:
 The page goes in the label, after the `|`, so the link still points at the
 paper: it opens it, shows a preview on hover, and counts in its backlinks.
 
-### 8.3 Exporting
+### 8.3 Quoting an annotation
+
+**Insert annotation** lets you search the passages in your paper notes, by their
+text or by the paper's name, and writes the one you pick as a quote with a
+citation to its page:
+
+```markdown
+> In offline interactions, heuristics help individuals judge. [[a|a, p. 7]]
+```
+
+The page and the block ID from the paper note are left out of the quote, and
+the page goes into the citation instead. The quote is a copy, so changes you
+make to it stay in your note, and it doesn't change when you edit the
+annotation in Zotero. It works without Zotero running, but it only knows the
+annotations that were synced the last time you opened each paper's note. It
+won't insert into a paper's annotations section, because that's rewritten on
+every sync.
+
+### 8.4 Exporting
 
 Paper Trail doesn't run pandoc itself. Exporting is what
 [Due Credit](https://community.obsidian.md/plugins/due-credit) does: it runs
@@ -582,6 +602,8 @@ Hotkeys.
   Zotero library. Press Tab to add a page.
 - `Paper Trail: Add page to citation` - Adds a page to the `[[citekey]]` at the
   cursor.
+- `Paper Trail: Insert annotation` - Inserts a passage from one of your paper
+  notes as a quote, with a citation to its page.
 
 **Record**
 

@@ -369,6 +369,23 @@ export function pageCitation(target: string, typed: string): string {
 	return citationLink(target, typedLocator(typed));
 }
 
+/**
+ * A passage quoted, with the citation that says where it is from.
+ *
+ * The page is a page label from Zotero, so it is always a page: "iv" gets its
+ * "p." as much as "7" does, where `pageCitation` would leave a typed "iv" as
+ * a locator of its own that the export does not know.
+ *
+ * Written as its own paragraph, with blank lines between it and whatever the
+ * cursor was in the middle of, because a quote that starts halfway along a line
+ * of prose is not a quote.
+ */
+export function quotation(text: string, target: string, page: string | null, before: string, after: string): string {
+	const cited = page ? pageCitation(target, `p. ${page}`) : `[[${target}]]`;
+	const quote = `> ${text} ${cited}`;
+	return (before.trim() ? '\n\n' : '') + quote + (after.trim() ? '\n\n' : '');
+}
+
 /** A wikilink in a line of text, and where it sits. */
 export interface LinkSpan {
 	from: number;

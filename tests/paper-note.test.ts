@@ -7,6 +7,8 @@ import {
 	paperFrontmatter,
 	renderAnnotation,
 	renderAnnotations,
+	syncedPassages,
+	inRegion,
 	replaceRegion,
 	fill,
 	isPaper,
@@ -505,3 +507,51 @@ describe('isPaper', () => {
 	});
 });
 
+
+describe('syncedPassages', () => {
+	const note = [
+		'# Paper',
+		'',
+		'> a quote of my own (p. 1) ^zt-MINE0001',
+		'',
+		'<!--paper-trail-->',
+		'',
+		'## Annotations',
+		'',
+		'> [!quote|zotero-yellow]',
+		'> In offline interactions (7), heuristics help. (p. 7) ^zt-VZRLJY6D',
+		'',
+		'a comment of mine',
+		'',
+		'> a plain one without a page ^zt-AAAA2345',
+		'',
+		'<!--/paper-trail-->',
+	].join('\n');
+
+	it('reads each passage back without its page or id', () => {
+		expect(syncedPassages(note)).toEqual([
+			{ key: 'VZRLJY6D', text: 'In offline interactions (7), heuristics help.', page: '7' },
+			{ key: 'AAAA2345', text: 'a plain one without a page', page: null },
+		]);
+	});
+
+	it('reads what renderAnnotations writes', () => {
+		const region = renderAnnotations([annotation({ color: 'red', comment: 'mine' }), annotation({ key: 'B', page: null })]);
+		expect(syncedPassages(replaceRegion('# Paper', region))).toEqual([
+			{ key: '2SQ873XZ', text: 'Care is not inherently good.', page: '842' },
+			{ key: 'B', text: 'Care is not inherently good.', page: null },
+		]);
+	});
+
+	it('is empty for a note without a region', () => {
+		expect(syncedPassages('> a quote (p. 1) ^zt-MINE0001')).toEqual([]);
+	});
+});
+
+describe('inRegion', () => {
+	const body = ['# Paper', '', '<!--paper-trail-->', '## Annotations', '<!--/paper-trail-->', 'after'].join('\n');
+
+	it('is true between the markers and nowhere else', () => {
+		expect([0, 1, 2, 3, 4, 5].map((line) => inRegion(body, line))).toEqual([false, false, false, true, false, false]);
+	});
+});

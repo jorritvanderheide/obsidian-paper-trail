@@ -1,6 +1,6 @@
 import { debounce, Plugin } from 'obsidian';
 import { next, opening } from './commands/workflow';
-import { addPage, insertCitation } from './commands/citations';
+import { addPage, insertAnnotation, insertCitation } from './commands/citations';
 import { refreshPaper, syncOnOpen } from './commands/papers';
 import { writeReport } from './commands/report';
 import { setReading } from './commands/reading';
@@ -78,6 +78,7 @@ export default class PaperTrail extends Plugin {
 		this.command('set-reading', 'Set reading status', () => setReading(this));
 		this.command('insert-citation', 'Insert citation', () => insertCitation(this));
 		this.command('add-page', 'Add page to citation', () => addPage(this));
+		this.command('insert-annotation', 'Insert annotation', () => insertAnnotation(this));
 
 		// The pane first, then the dialog over it, so closing the dialog leaves
 		// the queue already drawn rather than asking for one more click to see

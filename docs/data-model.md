@@ -83,6 +83,11 @@ quote. Changing the format rewrites the region the next time a note is opened,
 which is safe because the region is derived, as long as the block ID stays the
 same.
 
+**Insert annotation** reads the quote lines back (`syncedPassages` in
+`src/core/paper-note.ts`): the passage, ` (p. <label>)` when there is a page,
+and the block ID. A change to that line in `renderAnnotation` is a change to
+both, and a test writes a region and reads it back to keep them together.
+
 ## Headings
 
 The Claim and Assessment headings (names from settings) are written in above the
