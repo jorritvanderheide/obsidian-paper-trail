@@ -17,6 +17,7 @@ import {
 	type ItemRef,
 } from './core/zotero';
 import type { ApiCollection } from './core/collections';
+import type { ApiGroup } from './core/sources';
 import type { BetterBibtex, Contact } from './core/connection';
 import { getJson, getText, type Headers } from './http';
 
@@ -85,8 +86,8 @@ async function answered<T>(path: string): Promise<{ body: T; headers: Headers }>
 	return { body: response.json as T, headers: response.headers };
 }
 
-export function searchItems(query: string): Promise<ApiItem[]> {
-	return api<ApiItem[]>(`users/0/items/top?q=${encodeURIComponent(query)}&limit=25`);
+export function searchItems(query: string, group: number | null = null): Promise<ApiItem[]> {
+	return api<ApiItem[]>(`${libraryOf(group)}/items/top?q=${encodeURIComponent(query)}&limit=25`);
 }
 
 /**
@@ -97,8 +98,13 @@ export function searchItems(query: string): Promise<ApiItem[]> {
  * more as a list of those than as an instruction to start typing the title of
  * something you are already looking at.
  */
-export function recentItems(limit: number): Promise<ApiItem[]> {
-	return api<ApiItem[]>(`users/0/items/top?sort=dateAdded&direction=desc&limit=${limit}`);
+export function recentItems(limit: number, group: number | null = null): Promise<ApiItem[]> {
+	return api<ApiItem[]>(`${libraryOf(group)}/items/top?sort=dateAdded&direction=desc&limit=${limit}`);
+}
+
+/** The groups this Zotero is in, for the source picker and to notice one you have left. */
+export function allGroups(): Promise<ApiGroup[]> {
+	return api<ApiGroup[]>('users/0/groups');
 }
 
 /** Zotero's maximum, and the fewest requests a library can be read in. */

@@ -25,6 +25,29 @@ export function storedKey(ref: ItemRef): string {
 	return ref.groupID === null ? ref.key : `${ref.key}g${ref.groupID}`;
 }
 
+/**
+ * Where an item is, from what Zotero says about it. An item with no library
+ * named is one of your own, which is what every request here asked for before
+ * groups could be read.
+ */
+export function refOf(item: ApiItem): ItemRef {
+	const { type, id } = item.library ?? {};
+	return { key: item.key, groupID: type === 'group' && typeof id === 'number' ? id : null };
+}
+
+/**
+ * The most recently added items across several libraries, newest first.
+ *
+ * Each library answers with its own newest, so the lists are merged on when
+ * Zotero got each item rather than one library put after another.
+ */
+export function newestFirst(lists: ApiItem[][], limit: number): ApiItem[] {
+	return lists
+		.flat()
+		.sort((a, b) => (b.data.dateAdded ?? '').localeCompare(a.data.dateAdded ?? ''))
+		.slice(0, limit);
+}
+
 /** Path prefix of the library in the Zotero API. */
 export function libraryPath(ref: ItemRef): string {
 	return ref.groupID === null ? 'users/0' : `groups/${ref.groupID}`;
@@ -68,6 +91,12 @@ export function annotationUrl(ref: ItemRef, attachmentKey: string, annotationKey
  */
 export interface ApiItem {
 	key: string;
+	/** Which library the item is in: `user` for your own, `group` with the group's id. */
+	library?: {
+		type?: string;
+		id?: number;
+		name?: string;
+	};
 	data: {
 		itemType?: string;
 		title?: string;
@@ -82,6 +111,7 @@ export interface ApiItem {
 		institution?: string;
 		repository?: string;
 		citationKey?: string;
+		DOI?: string;
 		creators?: Creator[];
 		contentType?: string;
 		linkMode?: string;

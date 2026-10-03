@@ -6,7 +6,7 @@
 // else in the file belongs to whoever wrote it, and losing a word of that is
 // the one unforgivable failure for a plugin like this.
 import { applyStatusTag, NO_STATUS_TAGS, type Reading, type StatusTags } from './triage';
-import { authorNames, itemYear, readerUrl, type ApiItem, type Annotation, type ItemRef } from './zotero';
+import { authorNames, itemYear, readerUrl, storedKey, type ApiItem, type Annotation, type ItemRef } from './zotero';
 import { sortKeys } from './frontmatter';
 
 /**
@@ -108,7 +108,9 @@ export function paperFrontmatter(item: ApiItem, ref: ItemRef, basename: string):
 		year: itemYear(item),
 		citekey: key || null,
 		zotero: selectUrl(ref),
-		itemKey: ref.key,
+		// With its group, for a paper in one. The bare key would name an item in
+		// your own library, which is a different paper or none.
+		itemKey: storedKey(ref),
 	};
 }
 

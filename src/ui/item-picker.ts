@@ -5,7 +5,7 @@
 // and an empty box asks you to remember a title before it will show you
 // anything.
 import { SuggestModal, type App } from 'obsidian';
-import { authorNames, isPaperItem, itemYear, type ApiItem } from '../core/zotero';
+import { authorNames, isPaperItem, itemYear, newestFirst, type ApiItem } from '../core/zotero';
 import { messageOf } from './notify';
 import { recentItems, searchItems } from '../source';
 
@@ -43,6 +43,8 @@ class ItemPicker extends SuggestModal<ApiItem> {
 
 	constructor(
 		app: App,
+		/** Your own library and the groups to search as well, as null and group ids. */
+		private readonly libraries: (number | null)[],
 		private readonly done: (picked: Picked | null) => void,
 		escape?: Escape,
 	) {
@@ -83,7 +85,7 @@ class ItemPicker extends SuggestModal<ApiItem> {
 		const searching = text.length >= MIN_QUERY;
 
 		try {
-			const items = searching ? await searchItems(text) : await this.recentlyAdded();
+			const items = searching ? (await this.everywhere((group) => searchItems(text, group))).flat() : await this.recentlyAdded();
 			this.emptyStateText = searching ? 'Nothing matches.' : 'Nothing in your Zotero library yet.';
 			const papers = items.filter(isPaperItem);
 			this.shown = papers.length;
@@ -103,8 +105,20 @@ class ItemPicker extends SuggestModal<ApiItem> {
 	 * unset, which means the next keystroke tries again.
 	 */
 	private async recentlyAdded(): Promise<ApiItem[]> {
-		this.recent ??= await recentItems(RECENT);
+		this.recent ??= newestFirst(await this.everywhere((group) => recentItems(RECENT, group)), RECENT);
 		return this.recent;
+	}
+
+	/**
+	 * Ask every library, and settle for the ones that answer. A group you have
+	 * left answers with an error, and that is no reason to find nothing in your
+	 * own library; only all of them failing is worth saying.
+	 */
+	private async everywhere(ask: (group: number | null) => Promise<ApiItem[]>): Promise<ApiItem[][]> {
+		const results = await Promise.allSettled(this.libraries.map(ask));
+		const answered = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+		if (answered.length === 0 && results[0]?.status === 'rejected') throw results[0].reason;
+		return answered;
 	}
 
 	renderSuggestion(item: ApiItem, el: HTMLElement): void {
@@ -113,7 +127,10 @@ class ItemPicker extends SuggestModal<ApiItem> {
 		// The citation key earns its place on the line: it is what the note will
 		// be called and what a citation inserts, so seeing it is how you know
 		// you picked the right one of two papers with the same first author.
-		const byline = [authorNames(item).join(', '), itemYear(item), item.data.citationKey?.trim()].filter(Boolean).join(' · ');
+		// And the group, for a paper that is in one, since the same paper can be
+		// in your library and the lab's.
+		const group = item.library?.type === 'group' ? item.library.name : undefined;
+		const byline = [authorNames(item).join(', '), itemYear(item), item.data.citationKey?.trim(), group].filter(Boolean).join(' · ');
 		if (byline) el.createEl('small', { cls: 'paper-trail-picker-byline', text: byline });
 	}
 
@@ -137,6 +154,6 @@ class ItemPicker extends SuggestModal<ApiItem> {
  * simply to stop. Making this a three-way answer would put a union type through
  * every call site to describe a branch only one of them has.
  */
-export function pickItem(app: App, escape?: Escape): Promise<Picked | null> {
-	return new Promise((resolve) => new ItemPicker(app, resolve, escape).open());
+export function pickItem(app: App, libraries: (number | null)[], escape?: Escape): Promise<Picked | null> {
+	return new Promise((resolve) => new ItemPicker(app, libraries, resolve, escape).open());
 }

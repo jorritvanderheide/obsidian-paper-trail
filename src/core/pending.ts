@@ -42,7 +42,7 @@ export function pendingOf(placed: Placed[], known: Iterable<string>): Pending[] 
 	const have = new Set(known);
 
 	return placed
-		.filter(({ ref }) => !have.has(ref))
+		.filter(({ ref, copies }) => !have.has(ref) && !copies.some((copy) => have.has(copy)))
 		.map(({ item, ref, triage }) => ({
 			key: ref,
 			title: item.data.shortTitle?.trim() || item.data.title?.trim() || item.key,

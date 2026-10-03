@@ -3,7 +3,7 @@ import { headingCoverage, works } from '../core/stages';
 import { sourceChoices, sourceLabel, type LibraryChoice, type Source } from '../core/sources';
 import { loadSettings, retireStatusTag, workflowOf } from '../core/settings';
 import { readTags, retiredTagCount, type Passes } from '../core/triage';
-import { collections, refreshCollections, refreshLibrary } from '../library';
+import { collections, groups, refreshCollections, refreshGroups, refreshLibrary } from '../library';
 import { suggest } from './prompt';
 import { lastContact, probeBetterBibtex } from '../source';
 import { connectionStatus, type BetterBibtex } from '../core/connection';
@@ -44,7 +44,7 @@ export class SettingsTab extends PluginSettingTab {
 	/** Whether Zotero has been asked for its collections since this tab opened. */
 	private asked = false;
 
-	/** Whether that answer is in, so a collection not yet listed is not called missing. */
+	/** Whether Zotero has answered since this tab opened, so a source not yet listed is not called missing. */
 	private loaded = false;
 
 	/** What Better BibTeX said the last time this tab asked. */
@@ -79,11 +79,15 @@ export class SettingsTab extends PluginSettingTab {
 		// Zotero is there, so the two are asked together and drawn once.
 		void Promise.all([
 			refreshCollections(),
+			refreshGroups().then((list) => Promise.all(list.map((group) => refreshCollections(group.id)))),
 			probeBetterBibtex().then((answer) => {
 				this.betterBibtex = answer;
 			}),
 		]).then(() => {
-			this.loaded = true;
+			// Only an answer counts. A Zotero that is not running lists no groups
+			// and no collections, and reading that as every source being gone
+			// would mark each one missing until it was opened again.
+			this.loaded = lastContact()?.reachable === true;
 			this.update();
 		});
 	}
@@ -154,9 +158,16 @@ export class SettingsTab extends PluginSettingTab {
 		this.update();
 	}
 
-	/** The libraries the picker knows about. */
+	/** The libraries the picker knows about: your own, and every group you are in. */
 	private libraries(): LibraryChoice[] {
-		return [{ group: null, name: MY_LIBRARY, collections: collections(null) }];
+		return [
+			{ group: null, name: MY_LIBRARY, collections: collections(null) },
+			...(groups() ?? []).map((group) => ({
+				group: group.id,
+				name: group.data?.name?.trim() || `Group ${group.id}`,
+				collections: collections(group.id),
+			})),
+		];
 	}
 
 	/** Offer everything not already chosen, and add what is picked. */
@@ -174,22 +185,27 @@ export class SettingsTab extends PluginSettingTab {
 	/**
 	 * One row per source, with its triage switch.
 	 *
-	 * A collection Zotero no longer has keeps its row, named as missing, rather
-	 * than disappearing: the row is where it is fixed, and a source that
-	 * vanished from the list would look like a setting that did not save.
+	 * A group or collection Zotero no longer has keeps its row, named as
+	 * missing, rather than disappearing: the row is where it is fixed, and a
+	 * source that vanished from the list would look like a setting that did not
+	 * save.
 	 */
 	private sourceRows(): SettingDefinition[] {
 		const libraries = this.libraries();
 		return this.plugin.settings.sources.map((source, index) => {
 			const label = sourceLabel(source, libraries);
 			const missing = label === null && this.loaded;
+			const library = libraries.find((entry) => entry.group === source.group);
+			const name = library?.name ?? (source.group === null ? MY_LIBRARY : `Group ${source.group}`);
 			return {
-				name: label ?? `${MY_LIBRARY} / ${source.collection}${missing ? ' (not in Zotero)' : ''}`,
-				desc: missing
-					? "⚠ Zotero doesn't have this collection anymore, so no papers come from it. Delete it here, or add the one you meant."
-					: source.triage
+				name: label ?? `${name}${source.collection ? ` / ${source.collection}` : ''}${missing ? ' (not in Zotero)' : ''}`,
+				desc: !missing
+					? source.triage
 						? "Papers from here that you haven't decided about yet go to Triage first."
-						: "Papers from here go straight to Reading. Turn this on if other people add papers here, like a lab's reading list, so they go to Triage first.",
+						: "Papers from here go straight to Reading. Turn this on if other people add papers here, like a lab's reading list, so they go to Triage first."
+					: library
+						? "⚠ Zotero doesn't have this collection anymore, so no papers come from it. Delete it here, or add the one you meant."
+						: "⚠ You're not in this Zotero group anymore, or it's gone, so no papers come from it. Delete it here.",
 				control: { type: 'toggle', key: `source-triage-${index}` },
 			};
 		});

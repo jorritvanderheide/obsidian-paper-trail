@@ -15,7 +15,7 @@ const item = (key: string, over: Partial<ApiItem['data']> = {}): ApiItem => ({
 /** Papers as the sources place them: from your own library, with no triage. */
 const pending = (items: ApiItem[], known: string[]) =>
 	pendingOf(
-		items.map((entry) => ({ item: entry, ref: entry.key, triage: false })),
+		items.map((entry) => ({ item: entry, ref: entry.key, triage: false, copies: [] })),
 		known,
 	);
 
@@ -70,9 +70,16 @@ describe('pendingOf', () => {
 	});
 
 	it('knows a paper by what its note will store, and says where it arrives', () => {
-		const placed = [{ item: item('AAAA1111'), ref: 'AAAA1111g5', triage: true }];
+		const placed = [{ item: item('AAAA1111'), ref: 'AAAA1111g5', triage: true, copies: [] }];
 		expect(pendingOf(placed, [])[0]).toMatchObject({ key: 'AAAA1111g5', triage: true });
 		expect(pendingOf(placed, ['AAAA1111g5'])).toEqual([]);
+	});
+
+	it('counts a note for another copy of the paper as a note for it', () => {
+		// The paper is in your library and the lab's, and you wrote your note on
+		// your own copy before the lab's list was added.
+		const placed = [{ item: item('LABCOPY0'), ref: 'LABCOPY0g5', triage: true, copies: ['MINE0000'] }];
+		expect(pendingOf(placed, ['MINE0000'])).toEqual([]);
 	});
 
 	it('is empty when Zotero has nothing, rather than throwing', () => {

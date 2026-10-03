@@ -12,10 +12,11 @@ All of them are in `src/source.ts`. Paths are under `/api/`, and
 
 | Path | Used for |
 | --- | --- |
-| `users/0/items/top?since=<v>` | What changed since library version `v`, paged. The catch-up on focus |
-| `users/0/collections` | Collection names and nesting, for **Papers from** and subcollections. Only when a source names a collection, and again when the library version moves |
-| `users/0/items/top?q=<query>` | **Insert citation** search |
-| `users/0/items/top?sort=dateAdded&direction=desc` | **Insert citation** before anything is typed |
+| `<library>/items/top?since=<v>` | What changed since library version `v`, paged. The catch-up on focus, per library under **Papers from** |
+| `<library>/collections` | Collection names and nesting, for **Papers from** and subcollections. Only when a source names a collection, and again when the library version moves |
+| `users/0/groups` | The groups you are in, for **Papers from**, and to notice one you have left. Once a session, and when the settings tab opens |
+| `<library>/items/top?q=<query>` | **Insert citation** search, in your library and each group under **Papers from** |
+| `<library>/items/top?sort=dateAdded&direction=desc` | **Insert citation** before anything is typed |
 | `<library>/items/<key>` | One item's metadata, for writing a note. Also an annotation's, whose `parentItem` is the attachment **Show in Zotero** opens |
 | `<library>/items/<key>/children` | An item's attachments |
 | `<library>/items/<attachment>/children?itemType=annotation` | An attachment's annotations |
@@ -57,6 +58,15 @@ answers 200 with the entire library. So `src/library.ts` holds whole libraries,
 and `place` in `src/core/sources.ts` picks out each source's papers by the
 collection keys every item lists in `data.collections`. A change of sources
 reads nothing again.
+
+**Every item says which library it is in.** `library: {type, id, name}` on each
+item, with `type` `user` and your Zotero user id for your own (not `0`), and
+`group` with the group id for a group's. `refOf` in `src/core/zotero.ts` reads
+it. A note for a group paper stores `<key>g<id>` under the item key property
+(`storedKey`), because item keys are only unique within a library.
+
+**Annotations in a group carry no author.** The local API leaves out who made
+an annotation, so a group paper's note has everyone's.
 
 **`Total-Results` counts the query, not the library.** On a `?since=` request it
 is how much changed, and nothing like the number of items Zotero holds.

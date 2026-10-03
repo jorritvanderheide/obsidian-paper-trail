@@ -31,12 +31,39 @@ export interface Contents {
 	collections: ApiCollection[];
 }
 
+/** A Zotero group, as the local API lists them. */
+export interface ApiGroup {
+	id: number;
+	data?: {
+		name?: string;
+	};
+}
+
 /** A paper in scope, and what the source that brought it in says about it. */
 export interface Placed {
 	item: ApiItem;
 	/** What its note holds under the item key property, which is how the vault knows it. */
 	ref: string;
 	triage: boolean;
+	/**
+	 * The same paper in other libraries the sources read, which it stands for.
+	 * A note for any of them is a note for this paper.
+	 */
+	copies: string[];
+}
+
+/**
+ * What makes two items in different libraries the same paper: the DOI, or
+ * failing that the citation key and the title together.
+ *
+ * Not the citation key alone. Better BibTeX keeps keys unique within a library,
+ * so two libraries can each have a smith2020 and mean two papers by it.
+ */
+function sameWork(item: ApiItem): string[] {
+	const doi = item.data.DOI?.trim().toLowerCase().replace(/^(https?:\/\/(dx\.)?doi\.org\/|doi:)/, '');
+	const key = item.data.citationKey?.trim();
+	const title = item.data.title?.trim().toLowerCase();
+	return [...(doi ? [`doi:${doi}`] : []), ...(key && title ? [`key:${key}|${title}`] : [])];
 }
 
 /** Whether two sources name the same place, whatever each says about triage. */
@@ -77,10 +104,38 @@ export function place(contents: Contents[], sources: Source[], subcollections: b
 			if (scope && !(item.data.collections ?? []).some((key) => scope.has(key))) continue;
 
 			const ref = storedKey({ key: item.key, groupID: source.group });
-			if (!placed.has(ref)) placed.set(ref, { item, ref, triage: source.triage });
+			if (!placed.has(ref)) placed.set(ref, { item, ref, triage: source.triage, copies: [] });
 		}
 	}
-	return [...placed.values()];
+	return onePerWork([...placed.values()]);
+}
+
+/**
+ * The same paper in two libraries, kept once: as the first source has it.
+ *
+ * Only across libraries. Two items for one paper in the same library are a
+ * duplicate Zotero can merge, and hiding one here would hide that from you.
+ */
+function onePerWork(placed: Placed[]): Placed[] {
+	const first = new Map<string, Placed>();
+	const out: Placed[] = [];
+	for (const entry of placed) {
+		const works = sameWork(entry.item);
+		const group = refGroup(entry.ref);
+		const kept = works.map((work) => first.get(work)).find((found) => found !== undefined && refGroup(found.ref) !== group);
+		if (kept) {
+			kept.copies.push(entry.ref);
+			continue;
+		}
+		for (const work of works) if (!first.has(work)) first.set(work, entry);
+		out.push(entry);
+	}
+	return out;
+}
+
+/** Which library a stored key is in, as text so two can be compared. */
+function refGroup(ref: string): string {
+	return /g(\d+)$/.exec(ref)?.[1] ?? '';
 }
 
 /**
@@ -91,9 +146,14 @@ export function place(contents: Contents[], sources: Source[], subcollections: b
  * fill. Only checked against libraries that have been read, since a library
  * Zotero has not answered for says nothing either way.
  */
-export function sourceProblem(sources: Source[], contents: Contents[]): string | null {
+export function sourceProblem(sources: Source[], contents: Contents[], groups: ApiGroup[] | null = null): string | null {
 	if (sources.length === 0) {
 		return "Nothing is chosen under Papers from, so no papers come in from Zotero. Add your library or a collection in the settings.";
+	}
+
+	// Only once the list of groups is in, since before that nothing is known.
+	if (groups !== null && sources.some((source) => source.group !== null && !groups.some((group) => group.id === source.group))) {
+		return "A group under Papers from isn't in Zotero anymore, or you've left it, so no papers come from it. Remove it in the settings.";
 	}
 
 	const gone = sources.some((source) => {

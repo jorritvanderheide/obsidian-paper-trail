@@ -23,10 +23,47 @@ import {
 	itemYear,
 	noteName,
 	parseItemRef,
+	refOf,
+	newestFirst,
+	storedKey,
 	readerUrl,
 	annotationUrl,
 	type ApiItem,
 } from '../src/core/zotero';
+describe('storedKey', () => {
+	it('is the key for your own library, and the key with its group for a group', () => {
+		expect(storedKey({ key: 'ABCD2345', groupID: null })).toBe('ABCD2345');
+		expect(storedKey({ key: 'ABCD2345', groupID: 5 })).toBe('ABCD2345g5');
+	});
+
+	it('is what parseItemRef reads back', () => {
+		for (const ref of [{ key: 'ABCD2345', groupID: null }, { key: 'ABCD2345', groupID: 12 }]) {
+			expect(parseItemRef(storedKey(ref))).toEqual(ref);
+		}
+	});
+});
+
+describe('newestFirst', () => {
+	const added = (key: string, dateAdded: string) => ({ key, data: { dateAdded } });
+
+	it('merges the libraries on when Zotero got each item, and keeps the newest', () => {
+		const mine = [added('MINE2', '2026-03-01'), added('MINE1', '2026-01-01')];
+		const lab = [added('LAB2', '2026-04-01'), added('LAB1', '2026-02-01')];
+		expect(newestFirst([mine, lab], 3).map((item) => item.key)).toEqual(['LAB2', 'MINE2', 'LAB1']);
+	});
+});
+
+describe('refOf', () => {
+	it('reads the library Zotero says an item is in', () => {
+		expect(refOf({ key: 'ABCD2345', library: { type: 'group', id: 5 }, data: {} })).toEqual({ key: 'ABCD2345', groupID: 5 });
+		expect(refOf({ key: 'ABCD2345', library: { type: 'user', id: 21810799 }, data: {} })).toEqual({ key: 'ABCD2345', groupID: null });
+	});
+
+	it('takes an item with no library for one of your own', () => {
+		expect(refOf({ key: 'ABCD2345', data: {} })).toEqual({ key: 'ABCD2345', groupID: null });
+	});
+});
+
 describe('parseItemRef', () => {
 	it('reads a personal library key', () => {
 		expect(parseItemRef('ABCD2345')).toEqual({ key: 'ABCD2345', groupID: null });

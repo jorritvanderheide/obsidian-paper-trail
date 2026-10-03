@@ -4,13 +4,15 @@ import type { ApiItem } from '../src/core/zotero';
 const changedSince = vi.fn<(since: number, group: number | null) => Promise<unknown>>();
 const libraryState = vi.fn<(group: number | null) => Promise<unknown>>();
 const allCollections = vi.fn<(group: number | null) => Promise<unknown>>();
+const allGroups = vi.fn<() => Promise<unknown>>();
 vi.mock('../src/source', () => ({
+	allGroups: () => allGroups(),
 	changedSince: (since: number, group: number | null) => changedSince(since, group),
 	libraryState: (group: number | null) => libraryState(group),
 	allCollections: (group: number | null) => allCollections(group),
 }));
 
-const { collections, contents, forgetLibrary, library, onLibraryChange, refreshLibrary } = await import('../src/library');
+const { collections, contents, forgetLibrary, groups, library, onLibraryChange, refreshLibrary } = await import('../src/library');
 
 /** The default: your whole library, and nothing else. */
 const MINE = [{ group: null, collection: '', triage: false }];
@@ -33,6 +35,8 @@ beforeEach(() => {
 	libraryState.mockReset();
 	allCollections.mockReset();
 	allCollections.mockResolvedValue([]);
+	allGroups.mockReset();
+	allGroups.mockResolvedValue([{ id: 5, data: { name: 'Lab' } }]);
 	forgetLibrary();
 });
 
@@ -238,6 +242,33 @@ describe('sources', () => {
 		expect(library(null).map((entry) => entry.key)).toEqual(['MINE']);
 		expect(library(5).map((entry) => entry.key)).toEqual(['LAB']);
 		expect(contents().map((entry) => entry.group)).toEqual([null, 5]);
+	});
+
+	it('asks which groups you are in once, and only when a source names one', async () => {
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary(MINE);
+		expect(allGroups).not.toHaveBeenCalled();
+
+		const both = [...MINE, { group: 5, collection: '', triage: true }];
+		await refreshLibrary(both);
+		await refreshLibrary(both);
+		expect(allGroups).toHaveBeenCalledTimes(1);
+		expect(groups()).toEqual([{ id: 5, data: { name: 'Lab' } }]);
+	});
+
+	it('does not read a group you are no longer in', async () => {
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary([...MINE, { group: 9, collection: '', triage: true }]);
+		expect(libraryState.mock.calls.map((call) => call[0])).toEqual([null]);
+	});
+
+	it('still reads the other libraries when one fails', async () => {
+		libraryState.mockImplementation((group) => (group === 5 ? Promise.reject(new Error('gone')) : Promise.resolve(state(10, 1))));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		expect(await refreshLibrary([...MINE, { group: 5, collection: '', triage: true }])).toBe(true);
+		expect(library(null).map((entry) => entry.key)).toEqual(['A']);
 	});
 
 	it('reads nothing at all when there are no sources', async () => {

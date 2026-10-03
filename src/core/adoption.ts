@@ -7,7 +7,7 @@
 // the item key and nothing else. The note's first sync does the rest, which is
 // why this says beforehand what that sync will replace.
 import { replacedKeys, paperFrontmatter } from './paper-note';
-import { isPaperItem, parseItemRef, type ApiItem } from './zotero';
+import { isPaperItem, parseItemRef, refOf, storedKey, type ApiItem } from './zotero';
 
 /** A note in the vault, as much of it as matching needs. */
 export interface Candidate {
@@ -18,7 +18,7 @@ export interface Candidate {
 
 export interface Adoption {
 	path: string;
-	/** The Zotero item key, which goes under the item key property. */
+	/** What goes under the item key property: the Zotero key, with its group for a paper in one. */
 	key: string;
 	/** Properties the note has with other values than Zotero's, which its first sync replaces. */
 	replaced: string[];
@@ -53,17 +53,22 @@ function citekeysOf(note: Candidate): string[] {
  * value is somebody's and this does not overwrite it.
  */
 export function planAdoption(notes: Candidate[], items: ApiItem[], keyField: string): AdoptionPlan {
-	// Two items with one citation key are left out rather than guessed between.
+	// Two items with one citation key in one library are left out rather than
+	// guessed between. In two libraries it is usually one paper in both, and the
+	// first library, in the order the sources list them, has it.
 	const byCitekey = new Map<string, ApiItem | null>();
 	for (const item of items.filter(isPaperItem)) {
 		const citekey = item.data.citationKey?.trim();
-		if (citekey) byCitekey.set(citekey, byCitekey.has(citekey) ? null : item);
+		if (!citekey) continue;
+		const first = byCitekey.get(citekey);
+		if (first === undefined) byCitekey.set(citekey, item);
+		else if (first !== null && refOf(first).groupID === refOf(item).groupID) byCitekey.set(citekey, null);
 	}
 
 	const papers = new Set(
 		notes.flatMap((note) => {
 			const ref = parseItemRef(note.frontmatter?.[keyField]);
-			return ref && ref.groupID === null ? [ref.key] : [];
+			return ref ? [storedKey(ref)] : [];
 		}),
 	);
 
@@ -77,13 +82,14 @@ export function planAdoption(notes: Candidate[], items: ApiItem[], keyField: str
 			.find((found) => found);
 		if (!item) continue;
 
-		if (papers.has(item.key)) {
+		const key = storedKey(refOf(item));
+		if (papers.has(key)) {
 			taken.push(note.path);
 			continue;
 		}
-		const entry = byItem.get(item.key) ?? { item, notes: [] };
+		const entry = byItem.get(key) ?? { item, notes: [] };
 		entry.notes.push(note);
-		byItem.set(item.key, entry);
+		byItem.set(key, entry);
 	}
 
 	const adopt: Adoption[] = [];
@@ -94,8 +100,9 @@ export function planAdoption(notes: Candidate[], items: ApiItem[], keyField: str
 			shared.push(item.data.citationKey?.trim() ?? item.key);
 			continue;
 		}
-		const managed = paperFrontmatter(item, { key: item.key, groupID: null }, only.basename);
-		adopt.push({ path: only.path, key: item.key, replaced: replacedKeys(only.frontmatter ?? {}, managed, keyField) });
+		const ref = refOf(item);
+		const managed = paperFrontmatter(item, ref, only.basename);
+		adopt.push({ path: only.path, key: storedKey(ref), replaced: replacedKeys(only.frontmatter ?? {}, managed, keyField) });
 	}
 
 	return {

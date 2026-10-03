@@ -27,7 +27,7 @@ import { pickPaper, pickPassage, type AnnotatedPaper } from '../ui/annotation-pi
 import { inRegion, isPaper, syncedPassages } from '../core/paper-note';
 import { prompt } from '../ui/prompt';
 import { pickCitation } from '../source';
-import { citation, itemRefOfUri, linkAt, linkName, pageCitation, quotation, withPage, type CitedSource } from '../core/zotero';
+import { citation, itemRefOfUri, refOf, linkAt, linkName, pageCitation, quotation, withPage, type CitedSource } from '../core/zotero';
 import { paperNoteName } from '../outstanding';
 import { notify } from '../ui/notify';
 import type { Context } from '../context';
@@ -70,7 +70,11 @@ export async function insertCitation(context: Context): Promise<void> {
 	}
 
 	try {
-		const chosen = await pickItem(app, {
+		// Your own library always, and every group under Papers from: what you
+		// cite is not limited to what is in the queue, but a group you never
+		// added is one you did not ask to search.
+		const groups = context.settings.sources.flatMap((source) => (source.group === null ? [] : [source.group]));
+		const chosen = await pickItem(app, [null, ...new Set(groups)], {
 			purpose: "Better BibTeX's dialog: prefixes, several papers",
 			run: () => void advanced(context),
 		});
@@ -90,8 +94,7 @@ export async function insertCitation(context: Context): Promise<void> {
 			return;
 		}
 
-		// The picker lists the personal library, so the item is in it.
-		const target = paperNoteName(context, { key: item.key, groupID: null }) ?? key;
+		const target = paperNoteName(context, refOf(item)) ?? key;
 		let cited = citation([{ citationKey: key }], () => target);
 
 		// Dismissing the page question cancels the citation, as Escape does

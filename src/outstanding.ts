@@ -25,7 +25,7 @@ import { pendingOf } from './core/pending';
 import { place, sourceProblem } from './core/sources';
 import { parseItemRef, storedKey, type ItemRef } from './core/zotero';
 import { workflowOf } from './core/settings';
-import { contents } from './library';
+import { contents, groups } from './library';
 import type { Context } from './context';
 import { today } from './today';
 
@@ -133,7 +133,7 @@ export function queue(context: Context): {
 
 /** Why the queue is not showing everything the sources ask for, or null. */
 export function sourcesProblem(context: Context): string | null {
-	return sourceProblem(context.settings.sources, contents());
+	return sourceProblem(context.settings.sources, contents(), groups());
 }
 
 /**

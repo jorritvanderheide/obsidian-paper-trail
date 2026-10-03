@@ -277,13 +277,24 @@ export async function showAnnotation(context: Context, file: TFile, annotationKe
  * owns, and those may hold values somebody chose. The rest arrives through
  * that sync when each note is opened, the same way it does for every paper.
  *
- * Reads the whole library, whatever **Papers from** is set to, because notes
- * written before you picked a collection are as likely to be outside it as in.
+ * Reads whole libraries, whatever collections **Papers from** names, because
+ * notes written before you picked a collection are as likely to be outside it
+ * as in: your own library, and every group under Papers from, in their order.
  */
 export async function adoptNotes(context: Context): Promise<void> {
 	const { app } = context;
 	const { keyField } = context.settings;
-	const { items } = await changedSince(0, null);
+	const libraries = [...new Set([...context.settings.sources.map((source) => source.group), null])];
+	const items: ApiItem[] = [];
+	for (const group of libraries) {
+		try {
+			items.push(...(await changedSince(0, group)).items);
+		} catch (error) {
+			// A group you have left is no reason not to link the rest. Your own
+			// library failing is Zotero not being there, which is.
+			if (group === null) throw error;
+		}
+	}
 
 	const notes = app.vault.getMarkdownFiles().map((file) => ({
 		path: file.path,

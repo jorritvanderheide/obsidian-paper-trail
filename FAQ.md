@@ -57,15 +57,28 @@ A few things to check:
   only in a subcollection doesn't.
 - **Is it in Triage?** If you turned on **Triage first** for where it came
   from, it waits there instead of in Reading.
-- **Is it in a group library?** Paper Trail looks for new papers in your
-  personal library only, so a paper that only lives in a group library doesn't
-  show up.
+- **Is it in a group library?** Add the group, or a collection in it, under
+  **Papers from**. Groups aren't read until you do.
 
 ### "A collection under Papers from isn't in Zotero anymore"
 
 A collection you added under **Papers from** was deleted in Zotero. In Paper
 Trail's settings it's marked as not in Zotero: delete it from the list, or add
 the one you meant. The other sources keep working.
+
+### "A group under Papers from isn't in Zotero anymore, or you've left it"
+
+Zotero doesn't list that group anymore: it was deleted, or you left it. In
+Paper Trail's settings it's marked as not in Zotero. Delete it from the list.
+Notes you already have for its papers keep working, and the other sources do
+too.
+
+### The same paper is in my library and a group's
+
+Zotero keeps them as two items, but the queue shows the paper once, from
+whichever of the two comes first under **Papers from**. They count as the same
+paper when they have the same DOI, or the same citation key and title. A note
+for either copy counts as the paper's note.
 
 ### "Nothing is chosen under Papers from"
 
@@ -123,6 +136,12 @@ To avoid it, rename the heading in those notes too, for example with Obsidian's
 search and replace.
 
 ## Annotations
+
+### Whose annotations are in a group paper's note?
+
+Everyone's. In a group library, the paper's note gets every annotation on its
+PDF, yours and the rest of the group's, the way Zotero shows them. Zotero
+doesn't tell Paper Trail who made which, so it can't leave out other people's.
 
 ### The annotations section is empty
 

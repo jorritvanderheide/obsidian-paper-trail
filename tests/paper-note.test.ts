@@ -96,6 +96,11 @@ describe('paperFrontmatter', () => {
 		expect(fm.citekey).toBeNull();
 	});
 
+	it('writes a group paper\'s item key with its group, so the note can find it again', () => {
+		expect(paperFrontmatter(item, { key: '5UPN73EU', groupID: 5 }, 'x').itemKey).toBe('5UPN73EUg5');
+		expect(paperFrontmatter(item, ref, 'x').itemKey).toBe('5UPN73EU');
+	});
+
 	it('writes only keys it declares as managed, plus the item key', () => {
 		const fm = paperFrontmatter(item, ref, 'some-old-name');
 		expect(Object.keys(fm).sort()).toEqual([...MANAGED_KEYS, 'itemKey'].sort());

@@ -86,6 +86,38 @@ describe('place', () => {
 	});
 });
 
+/**
+ * The same paper in your library and a group's is two Zotero items, and would
+ * be two rows and two notes. Shown once, from the first source it is in.
+ */
+describe('place, with the same paper in two libraries', () => {
+	const doi = '10.1145/1273445.1273458';
+	const own: Contents = { group: null, collections: [], items: [paper('MINE0000', [], { DOI: doi, citationKey: 'keshavHowReadPaper2007', title: 'How to read a paper' })] };
+	const lab: Contents = { group: 5, collections: [], items: [paper('LABCOPY0', [], { DOI: `https://doi.org/${doi.toUpperCase()}`, title: 'How to Read a Paper' })] };
+
+	it('shows it once, from the first source, and knows the other copy', () => {
+		const placed = place([own, lab], [source({ group: 5, triage: true }), source()], true);
+		expect(placed.map((entry) => [entry.ref, entry.triage, entry.copies])).toEqual([['LABCOPY0g5', true, ['MINE0000']]]);
+	});
+
+	it('matches by citation key and title when there is no DOI', () => {
+		const a: Contents = { group: null, collections: [], items: [paper('MINE0000', [], { citationKey: 'smith2020', title: 'Care' })] };
+		const b: Contents = { group: 5, collections: [], items: [paper('LABCOPY0', [], { citationKey: 'smith2020', title: 'care' })] };
+		expect(keys([a, b], [source(), source({ group: 5 })])).toEqual(['MINE0000']);
+	});
+
+	it('keeps two papers that only share a citation key, since keys are unique per library', () => {
+		const a: Contents = { group: null, collections: [], items: [paper('MINE0000', [], { citationKey: 'smith2020', title: 'Care' })] };
+		const b: Contents = { group: 5, collections: [], items: [paper('LABCOPY0', [], { citationKey: 'smith2020', title: 'Repair' })] };
+		expect(keys([a, b], [source(), source({ group: 5 })])).toEqual(['MINE0000', 'LABCOPY0g5']);
+	});
+
+	it('leaves duplicates inside one library alone, which are Zotero\'s to merge', () => {
+		const twice: Contents = { group: null, collections: [], items: [paper('AAAAAAAA', [], { DOI: doi }), paper('BBBBBBBB', [], { DOI: doi })] };
+		expect(keys([twice], [source()])).toEqual(['AAAAAAAA', 'BBBBBBBB']);
+	});
+});
+
 describe('sourceProblem', () => {
 	it('is quiet when every source can be read', () => {
 		expect(sourceProblem([source(), source({ collection: 'THESIS00' })], [mine])).toBeNull();
@@ -101,6 +133,15 @@ describe('sourceProblem', () => {
 
 	it('says why the queue has nothing from Zotero when nothing is chosen', () => {
 		expect(sourceProblem([], [mine])).toMatch(/Nothing is chosen under Papers from/);
+	});
+
+	it('says when a group is gone, or you are no longer in it', () => {
+		expect(sourceProblem([source({ group: 5 })], [mine], [{ id: 6 }])).toMatch(/group under Papers from/);
+		expect(sourceProblem([source({ group: 5 })], [mine], [{ id: 5 }])).toBeNull();
+	});
+
+	it('says nothing about a group before the list of groups is in', () => {
+		expect(sourceProblem([source({ group: 5 })], [mine], null)).toBeNull();
 	});
 });
 
@@ -142,6 +183,7 @@ describe('the source picker', () => {
 	});
 
 	it('names a chosen source the way the picker did', () => {
+		expect(sourceLabel(source({ group: 5, collection: 'READING0' }), libraries)).toBe('Lab / READING0');
 		expect(sourceLabel(source({ collection: 'CHAPTER1' }), libraries)).toBe('My library / THESIS00 / CHAPTER1');
 		expect(sourceLabel(source({ group: 5 }), libraries)).toBe('Lab');
 	});

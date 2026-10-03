@@ -242,7 +242,8 @@ paper is still fresh in your mind.
 with **Triage first**. Leave it off where you read abstracts in the browser and
 only save what you want to read: saving is then your decision, and papers
 arrive ready to read. Turn it on where papers arrive that you haven't made up
-your mind about, like a collection you fill from database searches. Each paper
+your mind about, like a lab's shared reading list in a group library or a
+collection you fill from database searches. Each paper
 from there first shows up with its title, venue, year and abstract, and you
 choose one of three answers: drop it (and say why), queue it, or mark it as
 already read.
@@ -448,8 +449,8 @@ to know about your own literature, and the backlinks pane shows you.
 
 ### 8.1 Inserting a citation
 
-**Insert citation** lets you pick an item from your Zotero library and writes
-`[[citekey]]`. It needs Better BibTeX, which is what gives an item its citation
+**Insert citation** lets you pick an item from your Zotero library, or from a
+group under **Papers from**, and writes `[[citekey]]`. It needs Better BibTeX, which is what gives an item its citation
 key. To add a page, press Tab instead of Enter: `4` becomes page 4, and
 anything else, like `ch. 3` or `§ 2`, is used as you typed it. If the paper
 has a note, the link points to the note by its name, so it keeps working even
@@ -632,8 +633,8 @@ BibTeX is installed. Click the arrow to check again.
 
 | Setting | Default | |
 | --- | --- | --- |
-| **Papers from** | My library | Where the queue gets papers: your library, or collections in it, if your library holds more than the papers for this thesis. Add, remove and drag them into order. A paper in more than one belongs to the first. Papers outside them that already have a note keep working. |
-| **Triage first** | Off | On each source under **Papers from**: papers from there that you haven't decided about go to Triage before Reading. |
+| **Papers from** | My library | Where the queue gets papers: your library, a group library, or collections in them, if your library holds more than the papers for this thesis. Add, remove and drag them into order. A paper in more than one belongs to the first. Papers outside them that already have a note keep working. |
+| **Triage first** | Off, on for a group | On each source under **Papers from**: papers from there that you haven't decided about go to Triage before Reading. |
 | **Include subcollections** | On | A collection under **Papers from** also brings in the collections under it. |
 | **Include underlines** | On | Show underlines in a paper's annotations. Turn it off if you underline terms and highlight passages. An underline you've commented on still shows up. |
 
@@ -694,7 +695,8 @@ and doesn't send anything anywhere.
 
 - **Requests:** `http://127.0.0.1:23119/api/...` for items, collections and
   annotations. These are read-only: Paper Trail never changes anything in
-  Zotero. It reads your whole library even when **Papers from** names a
+  Zotero. It reads your own library, and only the group libraries you add under
+  **Papers from**. It reads a whole library even when **Papers from** names a
   collection, and picks out the collection's papers itself.
 - **When:** When the queue opens, when Obsidian comes back into focus (a single
   request asking what changed since last time), when you open a paper note or

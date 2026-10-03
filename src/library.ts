@@ -18,9 +18,9 @@
 // Nothing here is written to disk. This caches Zotero's state, never the
 // vault's, and the worst a stale copy costs is a paper missing from the queue
 // until the next look.
-import { allCollections, changedSince, libraryState } from './source';
+import { allCollections, allGroups, changedSince, libraryState } from './source';
 import type { ApiCollection } from './core/collections';
-import type { Contents, Source } from './core/sources';
+import type { ApiGroup, Contents, Source } from './core/sources';
 import type { ApiItem } from './core/zotero';
 
 /** One library, as far as it has been read. */
@@ -35,6 +35,9 @@ interface Held {
 
 /** Your own library under null, and each group under its id. */
 const held = new Map<number | null, Held>();
+
+/** The groups Zotero says you are in, or null before anything has asked. */
+let known: ApiGroup[] | null = null;
 
 /** Whether the last look got an answer, or null before the first. */
 let reached: boolean | null = null;
@@ -74,9 +77,25 @@ export function collections(group: number | null = null): ApiCollection[] {
 	return held.get(group)?.collections ?? [];
 }
 
+/** The groups you are in, or null before anything has asked. */
+export function groups(): ApiGroup[] | null {
+	return known;
+}
+
+/** Ask Zotero which groups you are in, for a settings tab that has just opened. */
+export async function refreshGroups(): Promise<ApiGroup[]> {
+	try {
+		known = await allGroups();
+	} catch {
+		// `source` has already recorded why, and the settings tab says so.
+	}
+	return known ?? [];
+}
+
 /** Forget everything, so the next look reads every library afresh. */
 export function forgetLibrary(): void {
 	held.clear();
+	known = null;
 	reached = null;
 }
 
@@ -126,11 +145,11 @@ export function refreshLibrary(sources: Source[]): Promise<boolean> {
 	if (pending?.asked === asked) return pending.answer;
 
 	const was = reached;
-	const answer = Promise.all([...wanted].map(([group, scoped]) => look(group, scoped)))
+	const answer = lookAll(wanted)
 		.then(
 			(moved) => {
 				reached = true;
-				return moved.some(Boolean);
+				return moved;
 			},
 			// `source` has already recorded why, and the queue says so. What was
 			// held stays held.
@@ -155,6 +174,27 @@ export function refreshLibrary(sources: Source[]): Promise<boolean> {
 
 	pending = { asked, answer };
 	return answer;
+}
+
+/**
+ * Every library asked for, each on its own.
+ *
+ * A group you have left is not read at all: it would answer with an error, and
+ * `sourceProblem` says so from the list of groups instead. The list is asked
+ * for once a session, and again from the settings tab. One library failing
+ * leaves the others to be read; only all of them failing is a Zotero that is
+ * not there, and that throws.
+ */
+async function lookAll(wanted: Map<number | null, boolean>): Promise<boolean> {
+	if (known === null && [...wanted.keys()].some((group) => group !== null)) known = await allGroups();
+
+	const readable = [...wanted].filter(([group]) => group === null || (known ?? []).some((entry) => entry.id === group));
+	if (readable.length === 0) return false;
+
+	const results = await Promise.allSettled(readable.map(([group, scoped]) => look(group, scoped)));
+	const answered = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+	if (answered.length === 0) throw (results[0] as PromiseRejectedResult).reason;
+	return answered.some(Boolean);
 }
 
 /**

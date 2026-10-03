@@ -78,6 +78,24 @@ describe('planAdoption', () => {
 		expect(planAdoption([note('Lit/@smith2020.md')], twins, 'zotero-key').adopt).toEqual([]);
 	});
 
+	it('links a paper in a group with its group, as its note will need', () => {
+		const lab = { ...paper('GGGGGGGG', 'garcia2022'), library: { type: 'group', id: 5 } };
+		expect(planAdoption([note('Lit/@garcia2022.md')], [...items, lab], 'zotero-key').adopt[0]?.key).toBe('GGGGGGGGg5');
+	});
+
+	it('takes the first library when two have the same citation key', () => {
+		// The same paper in your library and the lab's, given in the order the
+		// sources list them.
+		const lab = { ...paper('GGGGGGGG', 'smith2020'), library: { type: 'group', id: 5 } };
+		expect(planAdoption([note('Lit/@smith2020.md')], [...items, lab], 'zotero-key').adopt[0]?.key).toBe('AAAAAAAA');
+	});
+
+	it('knows a group paper that already has a note', () => {
+		const lab = { ...paper('GGGGGGGG', 'garcia2022'), library: { type: 'group', id: 5 } };
+		const plan = planAdoption([note('Lit/garcia.md', { 'zotero-key': 'GGGGGGGGg5' }), note('Old/@garcia2022.md')], [lab], 'zotero-key');
+		expect(plan.taken).toEqual(['Old/@garcia2022.md']);
+	});
+
 	it('matches papers only, not attachments or notes', () => {
 		const odd = [paper('EEEEEEEE', 'smith2020', { itemType: 'note' })];
 		expect(planAdoption([note('Lit/@smith2020.md')], odd, 'zotero-key').adopt).toEqual([]);

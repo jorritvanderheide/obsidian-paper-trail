@@ -28,7 +28,7 @@ added to (`MANAGED_KEYS` in `src/core/paper-note.ts`):
 | `year` | The year, or empty |
 | `citekey` | Better BibTeX's citation key, or empty without it |
 | `zotero` | `zotero://select/...` link to the item |
-| *item key property* | The Zotero item key |
+| *item key property* | The Zotero item key, with `g` and the group's id after it for a paper in a group library (`ABCD1234g5`) |
 
 ## Keys a decision writes
 
