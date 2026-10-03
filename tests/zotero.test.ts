@@ -24,6 +24,7 @@ import {
 	noteName,
 	parseItemRef,
 	readerUrl,
+	annotationUrl,
 	type ApiItem,
 } from '../src/core/zotero';
 describe('parseItemRef', () => {
@@ -59,6 +60,22 @@ describe('attachmentKeys', () => {
 		expect(attachmentKeys(children)).toEqual(['PDF23456', 'HTML2345']);
 	});
 });
+describe('annotationUrl', () => {
+	it('opens the reader at the annotation', () => {
+		// The `annotation` parameter is read by Zotero's own open-pdf handler,
+		// which turns to its page and selects it.
+		expect(annotationUrl({ key: 'PARENT23', groupID: null }, 'ATTACH23', 'ANNOT234')).toBe(
+			'zotero://open-pdf/library/items/ATTACH23?annotation=ANNOT234',
+		);
+	});
+
+	it('uses the group path for a group library', () => {
+		expect(annotationUrl({ key: 'PARENT23', groupID: 9 }, 'ATTACH23', 'ANNOT234')).toBe(
+			'zotero://open-pdf/groups/9/items/ATTACH23?annotation=ANNOT234',
+		);
+	});
+});
+
 describe('readerUrl', () => {
 	it('opens the reader rather than selecting the row', () => {
 		expect(readerUrl({ key: 'PARENT23', groupID: null }, 'ATTACH23')).toBe('zotero://open-pdf/library/items/ATTACH23');

@@ -12,6 +12,7 @@ import { openQueue, QUEUE_VIEW, QueueView } from './ui/queue';
 import { decorate, undecorate } from './ui/view-actions';
 import { noteStatus } from './ui/note-status';
 import { explorerMenu } from './ui/paper-menu';
+import { annotationEditorMenu, annotationReadingMenu } from './ui/annotation-menu';
 import { questions } from './ui/ghost';
 import { notify } from './ui/notify';
 
@@ -64,6 +65,9 @@ export default class PaperTrail extends Plugin {
 		this.registerMarkdownPostProcessor(noteStatus(this));
 		// A paper's menu on its note in the file explorer, the one its row has.
 		this.registerEvent(this.app.workspace.on('file-menu', explorerMenu(this)));
+		// Show in Zotero on a synced passage, in the editor and in reading view.
+		this.registerEvent(this.app.workspace.on('editor-menu', annotationEditorMenu(this)));
+		this.registerMarkdownPostProcessor(annotationReadingMenu(this));
 		// What goes under an empty Claim or Assessment heading, on the line itself.
 		this.registerEditorExtension(questions(this));
 		this.registerMarkdownCodeBlockProcessor(WORKFLOW_BLOCK, (_source, el, ctx) => {

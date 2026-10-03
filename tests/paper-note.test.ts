@@ -9,6 +9,7 @@ import {
 	renderAnnotations,
 	syncedPassages,
 	inRegion,
+	annotationAt,
 	replaceRegion,
 	fill,
 	isPaper,
@@ -596,6 +597,49 @@ describe('inRegion', () => {
 
 	it('is true from marker to marker and nowhere else', () => {
 		expect([0, 1, 2, 3, 4, 5].map((line) => inRegion(body, line))).toEqual([false, false, true, true, true, false]);
+	});
+});
+
+describe('annotationAt', () => {
+	const body = [
+		'# Paper', //                                        0
+		'> Mine, not synced ^zt-NOTMINE1', //                1
+		REGION_START, //                                     2
+		'', //                                               3
+		'## Annotations', //                                 4
+		'', //                                               5
+		'> [!quote|zotero-yellow]', //                       6
+		'> Care is not inherently good. (p. 842) ^zt-2SQ873XZ', // 7
+		'', //                                               8
+		'A comment of mine.', //                             9
+		'', //                                               10
+		'> A plain quote. ^zt-PLAIN234', //                  11
+		'', //                                               12
+		REGION_END, //                                       13
+	].join('\n');
+
+	it('finds the annotation on its quote line', () => {
+		expect(annotationAt(body, 7)).toBe('2SQ873XZ');
+		expect(annotationAt(body, 11)).toBe('PLAIN234');
+	});
+
+	it('finds it from the callout line above the quote', () => {
+		expect(annotationAt(body, 6)).toBe('2SQ873XZ');
+	});
+
+	it('finds nothing on a comment, a heading or a blank line', () => {
+		// A comment is not tied to its quote by anything in the text, and a
+		// comment with no passage has no id at all, so guessing would open the
+		// wrong annotation as often as the right one.
+		expect([3, 4, 5, 8, 9, 10, 12].map((line) => annotationAt(body, line))).toEqual(Array(7).fill(null));
+	});
+
+	it('finds nothing outside the region, where the text is yours', () => {
+		expect(annotationAt(body, 1)).toBeNull();
+	});
+
+	it('finds nothing past the end of the note', () => {
+		expect(annotationAt(body, 99)).toBeNull();
 	});
 });
 

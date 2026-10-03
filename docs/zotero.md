@@ -17,7 +17,7 @@ All of them are in `src/source.ts`. Paths are under `/api/`, and
 | `users/0/collections` | Collection names, for the **Papers from** setting |
 | `users/0/items/top?q=<query>` | **Insert citation** search |
 | `users/0/items/top?sort=dateAdded&direction=desc` | **Insert citation** before anything is typed |
-| `<library>/items/<key>` | One item's metadata, for writing a note |
+| `<library>/items/<key>` | One item's metadata, for writing a note. Also an annotation's, whose `parentItem` is the attachment **Show in Zotero** opens |
 | `<library>/items/<key>/children` | An item's attachments |
 | `<library>/items/<attachment>/children?itemType=annotation` | An attachment's annotations |
 | `/better-bibtex/cayw?format=json` | Better BibTeX's citation dialog. No timeout, since it waits on the user |
@@ -45,6 +45,12 @@ An annotation made on a page whose text the reader had not loaded gets offset
 and top both zero, `00002|000000|00000`, and sorts to the top of its page.
 Reading Mode in Zotero 10 does this. `annotations()` places those by the
 rectangles in `annotationPosition` instead.
+
+**An annotation is opened through its attachment.**
+`zotero://open-pdf/<library>/items/<attachment>?annotation=<key>` turns to the
+annotation and selects it; Zotero's `open-pdf` handler reads
+`annotation` next to `page`. A note records only the annotation's key, so
+**Show in Zotero** asks for the annotation first to learn its `parentItem`.
 
 **`Total-Results` counts the query, not the library.** On a `?since=` request it
 is how much changed, and nothing like the number of items Zotero holds.

@@ -186,6 +186,25 @@ export function inRegion(body: string, line: number): boolean {
 }
 
 /**
+ * The Zotero key of the annotation on a line, or null.
+ *
+ * The quote line, which carries the id, and the callout line above it, which is
+ * where a right-click on a coloured passage in reading view lands. Not the
+ * comment under it: nothing in the text ties a comment to its quote, and a
+ * comment with no passage has no id at all, so guessing would open the wrong
+ * annotation as often as the right one. Only inside the region, since a quote
+ * outside it with the same shape is somebody's own text.
+ */
+export function annotationAt(body: string, line: number): string | null {
+	if (!inRegion(body, line)) return null;
+
+	const lines = body.split('\n');
+	const at = (index: number) => /^> .* \^zt-([A-Za-z0-9]+)$/.exec((lines[index] ?? '').trimEnd())?.[1] ?? null;
+	if (/^> \[!quote\|zotero-[a-z]+\]$/.test((lines[line] ?? '').trimEnd())) return at(line + 1);
+	return at(line);
+}
+
+/**
  * Replace the managed region, leaving every other byte alone. A body with no
  * region gets one appended rather than being rearranged: the user may have
  * removed it, and rebuilding the file around their prose would be exactly the

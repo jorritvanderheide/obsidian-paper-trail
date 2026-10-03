@@ -376,6 +376,10 @@ without Paper Trail it's still an ordinary quote callout. Annotations that came
 inside the PDF, in a colour Zotero's reader doesn't offer, show up as a plain
 quote.
 
+Right-click a passage and choose **Show in Zotero** to open the PDF at that
+annotation. This works in reading view and in the editor, where it's the line
+the cursor is on.
+
 ### 7.3 The template
 
 New notes are made from `Paper.md` in the template folder. Paper Trail puts it
@@ -704,7 +708,8 @@ and doesn't send anything anywhere.
 ### 13.3 Zotero links
 
 - `zotero://` links open an item or a PDF in Zotero. Paper Trail only follows
-  them when you click a row or a link.
+  them when you click a row or a link, or choose **Show in Zotero** on an
+  annotation.
 
 ### 13.4 Files it writes
 

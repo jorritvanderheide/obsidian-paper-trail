@@ -20,7 +20,7 @@ import {
 	replaceRegion,
 	renderAnnotations,
 } from '../core/paper-note';
-import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
+import { annotationUrl, attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
 import { arrivalReading, type Reading } from '../core/triage';
 import { attachmentAnnotations, changedSince, itemChildren, itemMetadata, SourceError } from '../source';
 import { adoptionSummary, planAdoption } from '../core/adoption';
@@ -243,6 +243,25 @@ export async function syncOnOpen(context: Context, file: TFile): Promise<void> {
 	} finally {
 		syncing.delete(file.path);
 	}
+}
+
+/**
+ * Open the PDF in Zotero at one of the paper's annotations.
+ *
+ * Asks Zotero which attachment the annotation is on, because the note does not
+ * say: the PDF link in its body is yours to edit, and a paper whose PDF was
+ * replaced has its annotations on the new one. The Zotero that answers is the
+ * one about to open the PDF, so needing it here costs nothing the link would
+ * not have needed anyway.
+ */
+export async function showAnnotation(context: Context, file: TFile, annotationKey: string): Promise<void> {
+	const ref = parseItemRef(context.app.metadataCache.getFileCache(file)?.frontmatter?.[context.settings.keyField]);
+	if (!ref) return;
+
+	const annotation = await itemMetadata({ key: annotationKey, groupID: ref.groupID });
+	const attachment = annotation.data.parentItem;
+	if (!attachment) throw new SourceError("Zotero doesn't know which PDF this annotation is on.");
+	window.open(annotationUrl(ref, attachment, annotationKey));
 }
 
 /**

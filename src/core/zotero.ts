@@ -36,6 +36,17 @@ export function readerUrl(ref: ItemRef, attachmentKey: string): string {
 }
 
 /**
+ * The reader at one annotation: Zotero turns to its page and selects it.
+ *
+ * `annotation` is read by Zotero's own `open-pdf` handler, next to `page`.
+ * The link needs the attachment the annotation was made on, which a note does
+ * not record, so whoever builds it asks Zotero first.
+ */
+export function annotationUrl(ref: ItemRef, attachmentKey: string, annotationKey: string): string {
+	return `${readerUrl(ref, attachmentKey)}?annotation=${annotationKey}`;
+}
+
+/**
  * The fields of a Zotero API item that are read here, and only those.
  *
  * Zotero sends a great deal more. Declaring a field nothing reads makes the
@@ -74,6 +85,8 @@ export interface ApiItem {
 		annotationSortIndex?: string;
 		annotationPosition?: string;
 		annotationColor?: string;
+		/** On an annotation, the attachment it was made on. */
+		parentItem?: string;
 	};
 	meta?: {
 		parsedDate?: string;
