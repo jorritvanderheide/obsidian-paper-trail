@@ -21,7 +21,7 @@ import {
 	renderAnnotations,
 } from '../core/paper-note';
 import { annotationUrl, attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
-import { arrivalReading, type Reading } from '../core/triage';
+import type { Reading } from '../core/triage';
 import { attachmentAnnotations, changedSince, itemChildren, itemMetadata, SourceError } from '../source';
 import { adoptionSummary, planAdoption } from '../core/adoption';
 import { confirmed } from '../ui/prompt';
@@ -60,8 +60,12 @@ async function writePaperFrontmatter(
  * Only a decision makes one: the first judgement about a paper Zotero holds
  * and the vault has no note for, whether it comes from the triage dialog, the
  * end of a reading or the status chooser.
+ *
+ * `arriving` is the state the paper was in before it had a note, which its
+ * source decided: untriaged from one that triages, queued from one that does
+ * not. The decision is written over it straight after.
  */
-export async function createPaperNote(context: Context, item: ApiItem, ref: ItemRef): Promise<TFile> {
+export async function createPaperNote(context: Context, item: ApiItem, ref: ItemRef, arriving: Reading): Promise<TFile> {
 	const app = context.app;
 
 	// A note that is already there is the note, not a name collision to fail on.
@@ -111,7 +115,7 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	// the cache, finds no Zotero key on a file this new, and quietly does
 	// nothing.
 	const file = await app.vault.create(path, `---\n---\n${replaceRegion(body, renderAnnotations(annotations))}`);
-	await writePaperFrontmatter(context, file, item, ref, arrivalReading(context.settings.triage));
+	await writePaperFrontmatter(context, file, item, ref, arriving);
 	return file;
 }
 
@@ -279,7 +283,7 @@ export async function showAnnotation(context: Context, file: TFile, annotationKe
 export async function adoptNotes(context: Context): Promise<void> {
 	const { app } = context;
 	const { keyField } = context.settings;
-	const { items } = await changedSince(0, '');
+	const { items } = await changedSince(0, null);
 
 	const notes = app.vault.getMarkdownFiles().map((file) => ({
 		path: file.path,

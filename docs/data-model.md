@@ -52,8 +52,8 @@ one decision that clears progress is sending a read paper back to be read again.
 A `reading` value Paper Trail does not know reads as `untriaged`.
 
 `reading-after` stores a Zotero key rather than a link because the paper you
-wait for is usually unread, and with triage off an unread paper has no note to
-link to.
+wait for is usually unread, and from a source without triage an unread paper
+has no note to link to.
 
 A deferral that has come back is worked out on every draw (`markDue` in
 `src/core/stages.ts`) and writes nothing. Its note keeps saying `deferred` until

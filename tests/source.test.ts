@@ -201,20 +201,27 @@ describe('lastContact', () => {
 describe('changedSince', () => {
 	const item = (key: string) => ({ key, data: { itemType: 'journalArticle', title: key } });
 
+	it('reads a whole library, your own or a group\'s', async () => {
+		getJson.mockResolvedValue(answer([]));
+		await changedSince(0, null);
+		await changedSince(0, 5);
+		expect(getJson.mock.calls.map((call) => call[0]?.split('?')[0])).toEqual(['/api/users/0/items/top', '/api/groups/5/items/top']);
+	});
+
 	it('asks from the version it was given', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await changedSince(79, '');
+		await changedSince(79, null);
 		expect(getJson.mock.calls[0]?.[0]).toContain('since=79');
 	});
 
 	it('hands back the version to ask with next time', async () => {
 		getJson.mockResolvedValue(answer([], { version: 80 }));
-		expect((await changedSince(79, '')).version).toBe(80);
+		expect((await changedSince(79, null)).version).toBe(80);
 	});
 
 	it('answers with nothing when nothing has changed, which is the usual case', async () => {
 		getJson.mockResolvedValue(answer([], { version: 79, total: 0 }));
-		const changes = await changedSince(79, '');
+		const changes = await changedSince(79, null);
 		expect(changes.items).toEqual([]);
 		expect(changes.version).toBe(79);
 	});
@@ -224,37 +231,37 @@ describe('changedSince', () => {
 	// library size is the mistake `libraryState` exists to make impossible.
 	it('hands back no count, because the count here would be the wrong one', async () => {
 		getJson.mockResolvedValue(answer([], { version: 79, total: 0 }));
-		expect(Object.keys(await changedSince(79, '')).sort()).toEqual(['items', 'version']);
+		expect(Object.keys(await changedSince(79, null)).sort()).toEqual(['items', 'version']);
 	});
 
 	it('reads the whole library when asked from nothing', async () => {
 		getJson.mockResolvedValue(answer([item('AAAA1111'), item('BBBB2222')]));
-		expect((await changedSince(0, '')).items).toHaveLength(2);
+		expect((await changedSince(0, null)).items).toHaveLength(2);
 		expect(getJson.mock.calls[0]?.[0]).toContain('since=0');
 	});
 
 	it('asks only top-level items, so attachments never reach the queue', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await changedSince(0, '');
+		await changedSince(0, null);
 		expect(getJson.mock.calls[0]?.[0]).toContain('/items/top');
 	});
 
 	it('pages when a full page comes back, because one is not always enough', async () => {
 		const full = Array.from({ length: 100 }, (_, n) => item(`K${n}`));
 		getJson.mockResolvedValueOnce(answer(full)).mockResolvedValueOnce(answer([item('LAST')]));
-		expect((await changedSince(0, '')).items).toHaveLength(101);
+		expect((await changedSince(0, null)).items).toHaveLength(101);
 		expect(getJson.mock.calls[1]?.[0]).toContain('start=100');
 	});
 
 	it('stops after one page when that page was short', async () => {
 		getJson.mockResolvedValue(answer([item('AAAA1111')]));
-		await changedSince(0, '');
+		await changedSince(0, null);
 		expect(getJson).toHaveBeenCalledTimes(1);
 	});
 
 	it('reports an unreachable Zotero rather than an empty library', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(changedSince(0, '')).rejects.toBeInstanceOf(SourceError);
+		await expect(changedSince(0, null)).rejects.toBeInstanceOf(SourceError);
 	});
 });
 
@@ -283,12 +290,12 @@ describe('the connectivity messages', () => {
 describe('libraryState', () => {
 	it('hands back the library version and how many items it holds', async () => {
 		getJson.mockResolvedValue(answer([{ key: 'AAAA1111', data: {} }], { version: 122, total: 412 }));
-		expect(await libraryState('')).toEqual({ version: 122, total: 412 });
+		expect(await libraryState(null)).toEqual({ version: 122, total: 412 });
 	});
 
 	it('asks with no since, or the count would be of what changed', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await libraryState('');
+		await libraryState(null);
 		expect(getJson.mock.calls[0]?.[0]).not.toContain('since=');
 	});
 
@@ -297,12 +304,12 @@ describe('libraryState', () => {
 	// thousand, which is what lets it be asked on every window focus.
 	it('asks for one item, because neither answer is in the body', async () => {
 		getJson.mockResolvedValue(answer([]));
-		await libraryState('');
+		await libraryState(null);
 		expect(getJson.mock.calls[0]?.[0]).toContain('limit=1');
 	});
 
 	it('reports an unreachable Zotero rather than an empty library', async () => {
 		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(libraryState('')).rejects.toBeInstanceOf(SourceError);
+		await expect(libraryState(null)).rejects.toBeInstanceOf(SourceError);
 	});
 });

@@ -17,6 +17,14 @@ export function parseItemRef(value: unknown): ItemRef | null {
 	return { key: match[1], groupID: match[2] ? Number(match[2]) : null };
 }
 
+/**
+ * What a note stores under the item key property: the key, with `g` and the
+ * group's id after it for a paper in a group. `parseItemRef` reads it back.
+ */
+export function storedKey(ref: ItemRef): string {
+	return ref.groupID === null ? ref.key : `${ref.key}g${ref.groupID}`;
+}
+
 /** Path prefix of the library in the Zotero API. */
 export function libraryPath(ref: ItemRef): string {
 	return ref.groupID === null ? 'users/0' : `groups/${ref.groupID}`;
@@ -87,6 +95,8 @@ export interface ApiItem {
 		annotationColor?: string;
 		/** On an annotation, the attachment it was made on. */
 		parentItem?: string;
+		/** The keys of the collections the item is filed in, directly. */
+		collections?: string[];
 	};
 	meta?: {
 		parsedDate?: string;

@@ -172,7 +172,7 @@ const file = { path: 'Literature/a.md', basename: 'a', created: 100 };
 /** A paper Zotero holds that the vault has no note for, as a queue row. */
 const pendingRow = (key = 'AAAA1111'): Row => ({
 	kind: 'pending',
-	item: { key, title: key, abstract: null, venue: null, year: null, added: '2026-01-01' },
+	item: { key, title: key, abstract: null, venue: null, year: null, added: '2026-01-01', triage: false },
 });
 
 
@@ -257,7 +257,7 @@ describe('noteState', () => {
  * the vault does not, *plus* notes you deliberately put back into it.
  */
 describe('rowsByStage', () => {
-	const item = (key: string, title: string) => ({ key, title, abstract: null, venue: null, year: null, added: '2026-01-01' });
+	const item = (key: string, title: string) => ({ key, title, abstract: null, venue: null, year: null, added: '2026-01-01', triage: true });
 
 	it('puts pending papers into Triage alongside untriaged notes', () => {
 		const rows = rowsByStage([paper({ state: { reading: 'untriaged', progress: null }, title: 'a note' })], [item('AAAA1111', 'a pending paper')], wf(true));
@@ -427,7 +427,7 @@ describe('matchesQuery', () => {
 	const noted = (over: Partial<NoteState> = {}): Row => ({ kind: 'note', note: paper(over) });
 	const pending = (title: string): Row => ({
 		kind: 'pending',
-		item: { key: 'AAAA1111', title, abstract: null, venue: null, year: null, added: '2026-01-01' },
+		item: { key: 'AAAA1111', title, abstract: null, venue: null, year: null, added: '2026-01-01', triage: false },
 	});
 
 	it('matches everything when nothing is typed', () => {
@@ -546,32 +546,41 @@ describe('PASS_PROGRESS', () => {
  * A paper Zotero holds that the vault has no note for.
  *
  * What it is asking for depends on what putting it in Zotero meant, which is
- * the one thing the plugin cannot work out and the only reason there is a
- * setting for it.
+ * the one thing the plugin cannot work out, and the answer can differ by where
+ * it came from: your own save was a decision, a lab's reading list was not.
+ * So it is the paper's source that says, and not the vault.
  */
-describe('a pending paper, with triage on and off', () => {
-	const waiting = { key: 'AAAA1111', title: 'pending', abstract: null, venue: null, year: null, added: '2026-01-01' };
-	const pending = { kind: 'pending' as const, item: waiting };
+describe('a pending paper, from a source that triages and one that does not', () => {
+	const waiting = (triage: boolean) => ({ key: 'AAAA1111', title: 'pending', abstract: null, venue: null, year: null, added: '2026-01-01', triage });
+	const pending = (triage: boolean) => ({ kind: 'pending' as const, item: waiting(triage) });
 
-	it('wants ruling on when the queue is to ask first', () => {
-		expect(rowTask(pending, wf(true))).toBe('triage');
-		expect(rowsByStage([], [pending.item], wf(true)).get('triage')).toHaveLength(1);
-		expect(rowsByStage([], [pending.item], wf(true)).get('reading')).toHaveLength(0);
+	it('wants ruling on when its source asks first', () => {
+		expect(rowTask(pending(true), wf(true))).toBe('triage');
+		expect(rowsByStage([], [waiting(true)], wf(true)).get('triage')).toHaveLength(1);
+		expect(rowsByStage([], [waiting(true)], wf(true)).get('reading')).toHaveLength(0);
 	});
 
 	// Saving it to Zotero was the first pass: the abstract was on the page and
 	// the connector button was the answer.
-	it('wants reading when it does not', () => {
-		expect(rowTask(pending, wf(false))).toBe('reading');
-		expect(rowsByStage([], [pending.item], wf(false)).get('reading')).toHaveLength(1);
-		expect(rowsByStage([], [pending.item], wf(false)).get('triage')).toHaveLength(0);
+	it('wants reading when its source does not', () => {
+		expect(rowTask(pending(false), wf(true))).toBe('reading');
+		expect(rowsByStage([], [waiting(false)], wf(true)).get('reading')).toHaveLength(1);
+		expect(rowsByStage([], [waiting(false)], wf(true)).get('triage')).toHaveLength(0);
 	});
 
-	it('lands in whichever section the setting says, either way', () => {
+	it('puts each paper where its own source says, in one queue', () => {
+		const lab = { ...waiting(true), key: 'LABPAPER', title: 'from the lab' };
+		const mine = { ...waiting(false), key: 'MYPAPER0', title: 'saved myself' };
+		const rows = rowsByStage([], [lab, mine], wf(true));
+		expect(rows.get('triage')?.map(rowTitle)).toEqual(['from the lab']);
+		expect(rows.get('reading')?.map(rowTitle)).toEqual(['saved myself']);
+	});
+
+	it('lands beside the notes already in that section', () => {
 		for (const triage of [true, false]) {
 			const stage = triage ? 'triage' : 'reading';
 			const already = paper({ state: { reading: triage ? 'untriaged' : 'queued', progress: null }, created: 1 });
-			expect(rowsByStage([already], [pending.item], wf(triage)).get(stage)?.map((row) => row.kind).sort()).toEqual([
+			expect(rowsByStage([already], [waiting(triage)], wf(triage)).get(stage)?.map((row) => row.kind).sort()).toEqual([
 				'note',
 				'pending',
 			]);
@@ -1216,7 +1225,7 @@ describe('a deferral coming back', () => {
 });
 
 describe('unread', () => {
-	const pending = (key: string): Row => ({ kind: 'pending', item: { key, title: key, abstract: null, venue: null, year: null, added: '' } });
+	const pending = (key: string): Row => ({ kind: 'pending', item: { key, title: key, abstract: null, venue: null, year: null, added: '', triage: false } });
 	const noted = (key: string, task: 'reading' | 'claim'): Row => ({
 		kind: 'note',
 		note: paper({ key, title: key, state: { reading: 'queued', progress: task === 'claim' ? 'read' : null } }),

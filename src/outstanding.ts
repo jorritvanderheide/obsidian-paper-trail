@@ -22,9 +22,10 @@ import {
 	type Task,
 } from './core/stages';
 import { pendingOf } from './core/pending';
-import { parseItemRef, type ItemRef } from './core/zotero';
+import { place, sourceProblem } from './core/sources';
+import { parseItemRef, storedKey, type ItemRef } from './core/zotero';
 import { workflowOf } from './core/settings';
-import { library } from './library';
+import { contents } from './library';
 import type { Context } from './context';
 import { today } from './today';
 
@@ -108,20 +109,39 @@ export function queue(context: Context): {
 } {
 	const notes = collect(context);
 	const workflow = workflowOf(context.settings);
-	const items = library();
+	const libraries = contents();
 	const keys = notes.flatMap((note) => (note.key === null ? [] : [note.key]));
+	const placed = place(libraries, context.settings.sources, context.settings.subcollections);
 
 	// When Zotero got each paper, so a note and a paper with no note yet can be
-	// put in one order. Built from the same read of the library the pending list
-	// comes from, which is already in hand.
-	const arrived = new Map(items.flatMap((item) => (item.data.dateAdded ? [[item.key, item.data.dateAdded]] : [])));
+	// put in one order. Built from every library that was read rather than only
+	// what the sources bring in, so a note for a paper outside them still sorts
+	// by when Zotero got it.
+	const arrived = new Map(
+		libraries.flatMap(({ group, items }) =>
+			items.flatMap((item) => (item.data.dateAdded ? [[storedKey({ key: item.key, groupID: group }), item.data.dateAdded] as const] : [])),
+		),
+	);
 
 	return {
 		notes,
-		rows: rowsByStage(notes, pendingOf(items, keys), workflow, arrived),
+		rows: rowsByStage(notes, pendingOf(placed, keys), workflow, arrived),
 		waiting: parked(notes, workflow),
 		done: settled(notes, workflow),
 	};
+}
+
+/** Why the queue is not showing everything the sources ask for, or null. */
+export function sourcesProblem(context: Context): string | null {
+	return sourceProblem(context.settings.sources, contents());
+}
+
+/**
+ * How many papers the sources bring in, notes or not, for the welcome dialog
+ * to say what it found.
+ */
+export function placedCount(context: Context): number {
+	return place(contents(), context.settings.sources, context.settings.subcollections).length;
 }
 
 /** The next paper waiting to be assessed, skipping one you have just ruled on. */

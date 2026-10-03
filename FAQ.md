@@ -52,17 +52,26 @@ A few things to check:
 - **Did you save it while you were in Obsidian?** The queue asks Zotero what's
   new when Obsidian gets focus. Click into another window and back, and it's
   there.
-- **Is the queue limited to one collection?** With **Papers from** set to a
-  collection, only papers directly in that collection show up. A paper that is
-  only in one of its subcollections doesn't.
+- **Is it under Papers from?** Only papers in the libraries and collections
+  listed there show up. With **Include subcollections** off, a paper that is
+  only in a subcollection doesn't.
+- **Is it in Triage?** If you turned on **Triage first** for where it came
+  from, it waits there instead of in Reading.
 - **Is it in a group library?** Paper Trail looks for new papers in your
   personal library only, so a paper that only lives in a group library doesn't
   show up.
 
-### "The Zotero collection chosen under Papers from isn't there anymore"
+### "A collection under Papers from isn't in Zotero anymore"
 
-The collection chosen under **Papers from** was deleted or moved in Zotero.
-Pick another one in Paper Trail's settings, or choose **Whole library**.
+A collection you added under **Papers from** was deleted in Zotero. In Paper
+Trail's settings it's marked as not in Zotero: delete it from the list, or add
+the one you meant. The other sources keep working.
+
+### "Nothing is chosen under Papers from"
+
+The list under **Papers from** is empty, so no papers come in from Zotero.
+Papers that already have a note still work. Add your library, or a collection
+in it, in Paper Trail's settings.
 
 ### "… isn't a paper's note: it has no zotero-key property"
 

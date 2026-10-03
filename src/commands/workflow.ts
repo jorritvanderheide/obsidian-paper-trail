@@ -18,6 +18,7 @@ import {
 	type Task,
 } from '../core/stages';
 import { attachmentKeys, parseItemRef, readerUrl, type ItemRef } from '../core/zotero';
+import { pendingRef } from '../core/pending';
 import { selectUrl } from '../core/paper-note';
 import { itemChildren, lastContact } from '../source';
 import { decideOn, openTriage, targetOf, writeTriage } from './reading';
@@ -145,10 +146,10 @@ export async function act(context: Context, task: Task, row: Row): Promise<void>
 		// to look at a PDF.
 		//
 		// Which leaves the rule the rest of the plugin already follows: deciding is
-		// what writes a note. With triage on the deciding has happened and the note
-		// exists; with triage off nothing has been decided until you say what came
-		// of the reading, and that is what writes it.
-		const ref: ItemRef = { key: row.item.key, groupID: null };
+		// what writes a note. From a source that triages the deciding has happened
+		// and the note exists; from one that does not, nothing has been decided
+		// until you say what came of the reading, and that is what writes it.
+		const ref = pendingRef(row.item);
 		await toZotero(await attachmentUrl(ref, selectUrl(ref)));
 		return;
 	}
@@ -321,8 +322,8 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
 	if (task !== 'reading') return;
 	const app = context.app;
 
-	// A pending paper can be finished too, when triage is off: you may have read
-	// it in Zotero without ever opening its row. Through the same path a triage
+	// A pending paper can be finished too, from a source without triage: you may
+	// have read it in Zotero without ever opening its row. Through the same path a triage
 	// decision takes, which asks its question before it writes anything, so
 	// escaping a drop still leaves no file behind.
 	const target = targetOf(app, row);

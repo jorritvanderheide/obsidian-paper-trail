@@ -61,7 +61,7 @@ export class WorkflowBlock extends MarkdownRenderChild {
 		// one request.
 		this.register(onLibraryChange(this.redraw));
 		const ask = () => {
-			void refreshLibrary(this.context.settings.collection);
+			void refreshLibrary(this.context.settings.sources);
 			// And on another day than it was drawn on, a deferral may be due.
 			if (this.containerEl.dataset.day !== today()) this.redraw();
 		};

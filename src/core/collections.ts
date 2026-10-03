@@ -77,19 +77,22 @@ export function collectionPaths(collections: ApiCollection[]): CollectionChoice[
 }
 
 /**
- * Why the configured scope cannot be used, or null when it can.
+ * Every collection under one, at any depth, not counting itself.
  *
- * This exists because of how the local API fails. Asking for the items of a
- * collection that is not there does not 404 and does not come back empty: it
- * answers 200 with the entire library. So a collection renamed away in Zotero
- * would not break the scope, it would silently remove it, and the first sign
- * would be a morning of triaging papers from a project finished two years ago.
- *
- * Checked against the collection list instead, which does report a missing key
- * honestly, and refusing to read is the right answer: showing nothing with a
- * reason beats showing everything with none.
+ * `seen` for the same reason `collectionPaths` keeps one: a parent pointing
+ * at its own descendant is a malformed answer rather than an impossible one.
  */
-export function missingScope(collection: string, known: ApiCollection[]): string | null {
-	if (collection === '' || known.some((entry) => entry.key === collection)) return null;
-	return "The Zotero collection chosen under Papers from isn't there anymore. Pick another one in the settings, or choose Whole library.";
+export function descendants(key: string, collections: ApiCollection[]): string[] {
+	const out: string[] = [];
+	const seen = new Set([key]);
+	for (let parents = [key]; parents.length > 0; ) {
+		const children = collections.filter((entry) => {
+			const parent = entry.data.parentCollection;
+			return typeof parent === 'string' && parents.includes(parent) && !seen.has(entry.key);
+		});
+		for (const child of children) seen.add(child.key);
+		out.push(...children.map((child) => child.key));
+		parents = children.map((child) => child.key);
+	}
+	return out;
 }

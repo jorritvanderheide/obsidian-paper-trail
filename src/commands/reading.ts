@@ -37,7 +37,7 @@ import {
 import { statusTagsOf, workflowOf } from '../core/settings';
 import { isPaper, notAPaper } from '../core/paper-note';
 import { createPaperNote } from './papers';
-import type { Pending } from '../core/pending';
+import { pendingRef, type Pending } from '../core/pending';
 import { prompt, suggest } from '../ui/prompt';
 import { askDeferral, type Waitable } from '../ui/defer-modal';
 import { fileOf, nextTriage, paperNote, queue } from '../outstanding';
@@ -210,10 +210,10 @@ export interface Offer {
  */
 export function offersFor(context: Context, target: TriageTarget): { now: State; offers: Offer[] } {
 	// Where the paper is now. A paper with no note is wherever the queue shows
-	// it, which is what putting it in Zotero meant: Triage with triage on,
-	// Reading with it off.
+	// it, which is what putting it where it came from meant: Triage from a
+	// source that triages, Reading from one that does not.
 	const note = target.kind === 'note' ? paperNote(context, target.file) : null;
-	const now: State = note?.state ?? { reading: arrivalReading(context.settings.triage), progress: null };
+	const now: State = note?.state ?? { reading: arrivalReading(target.kind === 'pending' && target.item.triage), progress: null };
 	// A deferral that has come back can be deferred again, which is how you say
 	// "not yet", though the word on it would not change.
 	const due = note?.due ?? false;
@@ -302,10 +302,10 @@ export function targetOf(app: App, row: Row): TriageTarget | null {
 
 /** Make the note a decision needs, for a paper that did not have one. */
 async function noteFor(context: Context, item: Pending): Promise<TFile> {
-	const ref: ItemRef = { key: item.key, groupID: null };
+	const ref = pendingRef(item);
 	// The queue's copy is a summary. The note wants the authors and the citation
 	// key, which only the item itself carries.
-	return createPaperNote(context, await itemMetadata(ref), ref);
+	return createPaperNote(context, await itemMetadata(ref), ref, arrivalReading(item.triage));
 }
 
 /**
@@ -432,7 +432,7 @@ export async function openTriage(context: Context, target: TriageTarget): Promis
 		const item = target.item;
 		title = item.title;
 		key = item.key;
-		ref = { key: item.key, groupID: null };
+		ref = pendingRef(item);
 		brief = { abstract: item.abstract, venue: item.venue, year: item.year };
 	} else {
 		const file = target.file;

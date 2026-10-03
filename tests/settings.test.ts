@@ -24,21 +24,83 @@ describe('loadSettings, the address fields', () => {
 		});
 	});
 
-	it('keeps an empty collection, where empty means the whole library', () => {
-		expect(loadSettings({ collection: '' }).collection).toBe('');
+	it('reads from your whole library by default, with no triage, so Zotero\'s save button is the first pass', () => {
+		expect(loadSettings(null).sources).toEqual([{ group: null, collection: '', triage: false }]);
 	});
 
-	it('is opt-in about triage, so Zotero\'s save button is the first pass by default', () => {
-		expect(loadSettings(null).triage).toBe(false);
-		expect(loadSettings({ triage: true }).triage).toBe(true);
-		// Anything that is not a boolean is not an answer.
-		expect(loadSettings({ triage: 'yes' }).triage).toBe(false);
+	it('includes subcollections by default', () => {
+		expect(loadSettings(null).subcollections).toBe(true);
+		expect(loadSettings({ subcollections: false }).subcollections).toBe(false);
+		expect(loadSettings({ subcollections: 'no' }).subcollections).toBe(true);
 	});
 
 	it('includes underlines by default, so every annotation comes through', () => {
 		expect(loadSettings(null).underlines).toBe(true);
 		expect(loadSettings({ underlines: false }).underlines).toBe(false);
 		expect(loadSettings({ underlines: 'no' }).underlines).toBe(true);
+	});
+});
+
+describe('sources', () => {
+	it('keeps what it is given, in order', () => {
+		const sources = [
+			{ group: 5, collection: 'LABLIST0', triage: true },
+			{ group: null, collection: '', triage: false },
+		];
+		expect(loadSettings({ sources }).sources).toEqual(sources);
+	});
+
+	it('keeps an empty list, which is a choice and not a missing value', () => {
+		expect(loadSettings({ sources: [] }).sources).toEqual([]);
+	});
+
+	it('trims a collection key, and reads anything but true as no triage', () => {
+		expect(loadSettings({ sources: [{ group: null, collection: ' THESIS00 ', triage: 'yes' }] }).sources).toEqual([
+			{ group: null, collection: 'THESIS00', triage: false },
+		]);
+	});
+
+	it('drops an entry that names no library it can read', () => {
+		const sources = [{ group: 'lab', collection: '' }, { group: -1, collection: '' }, 'THESIS00', null, { group: 5, collection: '' }];
+		expect(loadSettings({ sources }).sources).toEqual([{ group: 5, collection: '', triage: false }]);
+	});
+
+	it('keeps only the first of two entries for the same place', () => {
+		const sources = [
+			{ group: null, collection: 'THESIS00', triage: true },
+			{ group: null, collection: 'THESIS00', triage: false },
+		];
+		expect(loadSettings({ sources }).sources).toEqual([{ group: null, collection: 'THESIS00', triage: true }]);
+	});
+});
+
+/**
+ * Version 1 had one collection and one triage switch for the whole vault, and
+ * 1.0.0 to 1.7.0 wrote them into people's settings.
+ */
+describe('migrating from version 1', () => {
+	it('turns the collection into the one source', () => {
+		expect(loadSettings({ version: 1, collection: 'THESIS00', triage: false }).sources).toEqual([
+			{ group: null, collection: 'THESIS00', triage: false },
+		]);
+	});
+
+	it('turns an empty collection into the whole library', () => {
+		expect(loadSettings({ version: 1, collection: '', triage: false }).sources).toEqual([
+			{ group: null, collection: '', triage: false },
+		]);
+	});
+
+	it('carries the triage switch over to that source', () => {
+		expect(loadSettings({ version: 1, collection: '', triage: true }).sources[0]?.triage).toBe(true);
+		// Anything that is not a boolean was never an answer.
+		expect(loadSettings({ version: 1, collection: '', triage: 'yes' }).sources[0]?.triage).toBe(false);
+	});
+
+	it('leaves the old keys behind', () => {
+		const loaded = loadSettings({ version: 1, collection: 'THESIS00', triage: true }) as unknown as Record<string, unknown>;
+		expect('collection' in loaded).toBe(false);
+		expect('triage' in loaded).toBe(false);
 	});
 });
 
@@ -85,7 +147,6 @@ describe('the toggles', () => {
 
 	it('takes only a boolean as an answer, on either of them', () => {
 		expect(loadSettings({ statusPill: 'no' }).statusPill).toBe(true);
-		expect(loadSettings({ triage: 'yes' }).triage).toBe(false);
 	});
 });
 
@@ -106,7 +167,14 @@ describe('written passes', () => {
 	});
 
 	it('hands the rules both switches together', () => {
-		expect(workflowOf(loadSettings({ triage: true, passes: 'none' }))).toEqual({ triage: true, passes: 'none' });
+		expect(workflowOf(loadSettings({ version: 1, triage: true, passes: 'none' }))).toEqual({ triage: true, passes: 'none' });
+	});
+
+	it('works triage when any source triages, and not when none does', () => {
+		const sources = (...triage: boolean[]) => triage.map((flag, n) => ({ group: null, collection: `COLL000${n}`, triage: flag }));
+		expect(workflowOf({ sources: sources(false, true), passes: 'both' }).triage).toBe(true);
+		expect(workflowOf({ sources: sources(false, false), passes: 'both' }).triage).toBe(false);
+		expect(workflowOf({ sources: [], passes: 'both' }).triage).toBe(false);
 	});
 });
 

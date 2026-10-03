@@ -9,11 +9,13 @@
 // opinionated workflow into a rules engine that asks the user to invent one,
 // which is what Dataview already is.
 //
-// A stage can be switched off, which is not the same thing: `triage` and
-// `passes` take stages away and never add, rename or reorder one, so every rule
-// about what a stage means still holds wherever the stage is worked.
+// A stage can be switched off, which is not the same thing: triage, source by
+// source, and `passes` take stages away and never add, rename or reorder one,
+// so every rule about what a stage means still holds wherever the stage is
+// worked.
 
 import { PASSES, type Passes, type StatusTags, type Workflow } from './triage';
+import { sameSource, type Source } from './sources';
 
 /**
  * Stamped on every save, and bumped when a saved key is renamed or its meaning
@@ -22,14 +24,14 @@ import { PASSES, type Passes, type StatusTags, type Workflow } from './triage';
  * which builds a fresh object out of the names it knows rather than editing the
  * saved one.
  *
- * The stamp is here before the first release because it is the one thing that
- * cannot be added afterwards: a rename later on needs to know what it is
- * looking at, and by then the data is already on disk unlabelled. There is no
- * migration step yet, and writing an empty one to hold the place would only be
- * guessing at the shape of a rename nobody has made. The first one reads
- * `data.version` in `loadSettings` and moves the value it is about to drop.
+ * The stamp was there before the first release because it is the one thing
+ * that cannot be added afterwards: a rename later on needs to know what it is
+ * looking at, and by then the data is already on disk unlabelled.
+ *
+ * 2: `collection` and `triage` became `sources`, one place with its own
+ * triage switch, which `sourcesOf` reads either way.
  */
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;
 
 export interface Settings {
 	version: number;
@@ -70,26 +72,6 @@ export interface Settings {
 	 */
 	quietNotices: boolean;
 	/**
-	 * Whether a paper Zotero holds and the vault has no note for arrives to be
-	 * triaged, or arrives already queued to read.
-	 *
-	 * Off, so it arrives queued. One of the few settings here with an opinion in
-	 * it rather than an address, and it earns the exception by recording
-	 * something only you can know: what putting an item in Zotero means to you.
-	 *
-	 * For a lot of people it means "I have read the abstract and I want this",
-	 * because the abstract was on the page in front of them and the connector
-	 * button was the decision. Making those people re-take it, one paper at a
-	 * time, in a dialog, is asking them to record a judgement they have already
-	 * made. Turn this on and the queue asks first; leave it off and Zotero's
-	 * save button is the first pass.
-	 *
-	 * Off also takes Untriaged out of the status chooser, since nothing in a
-	 * workflow without triage would ever take a paper back out of it. Triage
-	 * itself still exists, for a note that arrives with no `reading` on it.
-	 */
-	triage: boolean;
-	/**
 	 * Which written passes follow a reading: none, the claim, or the claim and,
 	 * for papers you promote, the assessment.
 	 *
@@ -105,20 +87,38 @@ export interface Settings {
 	 */
 	passes: Passes;
 	/**
-	 * Zotero collection key the queue draws papers from, or empty for the whole
-	 * library.
+	 * Where the queue draws papers from: libraries and collections, read top to
+	 * bottom, and whether a paper from each arrives to be triaged.
 	 *
-	 * An address, and the one that decides whether this is usable by anybody
-	 * whose Zotero predates the thesis: a library carried through a masters and
-	 * two side projects is not one corpus, and a Triage list opening with three
+	 * Addresses, and the ones that decide whether this is usable by anybody whose
+	 * Zotero predates the thesis: a library carried through a masters and two
+	 * side projects is not one corpus, and a Triage list opening with three
 	 * thousand rows is not a queue.
 	 *
-	 * It scopes what turns up and nothing else, and copies nothing. A note that
-	 * already exists for a paper outside the collection is still a paper, still
-	 * refreshes, and still sits in whatever stage it reached, so moving
-	 * something out of a collection in Zotero cannot strand its note here.
+	 * The triage switch on each is the one opinion, and it earns the exception
+	 * by recording something only you can know: what putting an item there
+	 * means. For your own saves it is usually "I have read the abstract and I
+	 * want this", because the connector button was the decision, and making you
+	 * re-take it one paper at a time is asking for a judgement already made. A
+	 * lab's reading list is the opposite: somebody else put it there. Off for a
+	 * source, and Zotero's save button is the first pass; on, and the queue asks
+	 * first. With it off everywhere, Untriaged leaves the status chooser, since
+	 * nothing would ever take a paper back out of it.
+	 *
+	 * They scope what turns up and nothing else, and copy nothing. A note that
+	 * already exists for a paper outside them is still a paper, still refreshes,
+	 * and still sits in whatever stage it reached, so moving something out of a
+	 * collection in Zotero cannot strand its note here.
 	 */
-	collection: string;
+	sources: Source[];
+	/**
+	 * Whether a collection under Papers from includes the collections under it.
+	 *
+	 * On, because a thesis collection is usually a tree, a chapter or a question
+	 * to a branch, and a queue showing only what was filed at the top of it
+	 * looked like a queue missing papers for no reason.
+	 */
+	subcollections: boolean;
 	/**
 	 * Whether underlines are synced along with highlights.
 	 *
@@ -200,9 +200,9 @@ export const DEFAULT_SETTINGS: Settings = {
 	keyField: 'zotero-key',
 	statusPill: true,
 	quietNotices: false,
-	triage: false,
 	passes: 'both',
-	collection: '',
+	sources: [{ group: null, collection: '', triage: false }],
+	subcollections: true,
 	underlines: true,
 	papersFolder: 'Literature',
 	statusTag: '',
@@ -253,21 +253,47 @@ function text(value: unknown, fallback: string): string {
 	return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
+/**
+ * The sources, from either shape the settings have been saved in.
+ *
+ * Version 1 had one `collection`, empty for the whole library, and one
+ * `triage` switch for everything, and both become the one source. A saved list
+ * is kept as it is, empty included: with nothing under Papers from the queue
+ * has nothing from Zotero, and that is a choice somebody made, which the queue
+ * says rather than undoes.
+ */
+function sourcesOf(data: Record<string, unknown>): Source[] {
+	if (!Array.isArray(data.sources)) {
+		return [{ group: null, collection: typeof data.collection === 'string' ? data.collection.trim() : '', triage: data.triage === true }];
+	}
+
+	const out: Source[] = [];
+	for (const entry of data.sources as unknown[]) {
+		if (typeof entry !== 'object' || entry === null) continue;
+		const { group, collection, triage } = entry as Record<string, unknown>;
+		// A group is a positive whole number, and anything else names no library.
+		if (group !== null && !(typeof group === 'number' && Number.isInteger(group) && group > 0)) continue;
+
+		const source: Source = { group, collection: typeof collection === 'string' ? collection.trim() : '', triage: triage === true };
+		if (!out.some((kept) => sameSource(kept, source))) out.push(source);
+	}
+	return out;
+}
+
 export function loadSettings(raw: unknown): Settings {
-	const data = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<Record<keyof Settings, unknown>>;
+	const data = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
 	return {
 		version: SETTINGS_VERSION,
 		keyField: text(data.keyField, DEFAULT_SETTINGS.keyField),
 		statusPill: typeof data.statusPill === 'boolean' ? data.statusPill : DEFAULT_SETTINGS.statusPill,
 		quietNotices: typeof data.quietNotices === 'boolean' ? data.quietNotices : DEFAULT_SETTINGS.quietNotices,
-		triage: typeof data.triage === 'boolean' ? data.triage : DEFAULT_SETTINGS.triage,
 		passes: PASSES.find((known) => known === data.passes) ?? DEFAULT_SETTINGS.passes,
-		// Two fields where empty is meaningful rather than missing, so neither can
-		// go through `text`: an empty collection means the whole library, and an
-		// empty status tag means write no tags.
-		collection: typeof data.collection === 'string' ? data.collection.trim() : DEFAULT_SETTINGS.collection,
+		sources: sourcesOf(data),
+		subcollections: typeof data.subcollections === 'boolean' ? data.subcollections : DEFAULT_SETTINGS.subcollections,
 		underlines: typeof data.underlines === 'boolean' ? data.underlines : DEFAULT_SETTINGS.underlines,
 		papersFolder: text(data.papersFolder, DEFAULT_SETTINGS.papersFolder),
+		// Empty is meaningful rather than missing, so this cannot go through
+		// `text`: an empty status tag means write no tags.
 		statusTag: typeof data.statusTag === 'string' ? data.statusTag.trim() : DEFAULT_SETTINGS.statusTag,
 		retiredStatusTags: namespaces(data.retiredStatusTags),
 		templateFolder: text(data.templateFolder, DEFAULT_SETTINGS.templateFolder),
@@ -287,9 +313,16 @@ function namespaces(value: unknown): string[] {
 	return [...new Set(cleaned.filter((entry) => entry.length > 0))].sort();
 }
 
-/** The stages this vault works, as every rule about what is outstanding wants them. */
-export function workflowOf(settings: Pick<Settings, 'triage' | 'passes'>): Workflow {
-	return { triage: settings.triage, passes: settings.passes };
+/**
+ * The stages this vault works, as every rule about what is outstanding wants
+ * them.
+ *
+ * Triage is worked when any source triages. That is what decides whether
+ * Untriaged is offered and whether its section shows while empty; which stage
+ * a paper with no note goes to is its own source's to say.
+ */
+export function workflowOf(settings: Pick<Settings, 'sources' | 'passes'>): Workflow {
+	return { triage: settings.sources.some((source) => source.triage), passes: settings.passes };
 }
 
 /** The namespaces to write and to take back out, as `applyStatusTag` wants them. */

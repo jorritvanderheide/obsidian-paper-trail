@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiItem } from '../src/core/zotero';
 
-const changedSince = vi.fn<(since: number, collection: string) => Promise<unknown>>();
-const libraryState = vi.fn<(collection: string) => Promise<unknown>>();
-const allCollections = vi.fn<() => Promise<unknown>>();
+const changedSince = vi.fn<(since: number, group: number | null) => Promise<unknown>>();
+const libraryState = vi.fn<(group: number | null) => Promise<unknown>>();
+const allCollections = vi.fn<(group: number | null) => Promise<unknown>>();
 vi.mock('../src/source', () => ({
-	changedSince: (since: number, collection: string) => changedSince(since, collection),
-	libraryState: (collection: string) => libraryState(collection),
-	allCollections: () => allCollections(),
+	changedSince: (since: number, group: number | null) => changedSince(since, group),
+	libraryState: (group: number | null) => libraryState(group),
+	allCollections: (group: number | null) => allCollections(group),
 }));
 
-const { collections, forgetLibrary, library, onLibraryChange, refreshLibrary, scopeProblem } = await import('../src/library');
+const { collections, contents, forgetLibrary, library, onLibraryChange, refreshLibrary } = await import('../src/library');
+
+/** The default: your whole library, and nothing else. */
+const MINE = [{ group: null, collection: '', triage: false }];
 
 const item = (key: string, title = key): ApiItem => ({ key, data: { itemType: 'journalArticle', title } });
 const changes = (items: ApiItem[], version: number) => ({ items, version });
@@ -37,29 +40,29 @@ describe('refreshLibrary', () => {
 	it('reads everything the first time, because a first read is an update from nothing', async () => {
 		libraryState.mockResolvedValue(state(10, 2));
 		changedSince.mockResolvedValue(changes([item('A'), item('B')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
-		expect(changedSince).toHaveBeenCalledWith(0, '');
+		expect(changedSince).toHaveBeenCalledWith(0, null);
 		expect(library().map((entry) => entry.key)).toEqual(['A', 'B']);
 	});
 
 	it('asks from the version Zotero last reported after that', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		libraryState.mockResolvedValue(state(11, 1));
 		changedSince.mockResolvedValue(changes([item('A', 'renamed')], 11));
-		await refreshLibrary('');
-		expect(changedSince).toHaveBeenLastCalledWith(10, '');
+		await refreshLibrary(MINE);
+		expect(changedSince).toHaveBeenLastCalledWith(10, null);
 	});
 
 	it('asks nothing at all when the version and the count both agree', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
-		expect(await refreshLibrary('')).toBe(false);
+		expect(await refreshLibrary(MINE)).toBe(false);
 		// Once, for the first read. The second look settled on the state alone.
 		expect(changedSince).toHaveBeenCalledTimes(1);
 	});
@@ -67,23 +70,23 @@ describe('refreshLibrary', () => {
 	it('adds what is new without rereading what is not', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		libraryState.mockResolvedValue(state(11, 2));
 		changedSince.mockResolvedValue(changes([item('B')], 11));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(library().map((entry) => entry.key)).toEqual(['A', 'B']);
-		expect(changedSince).toHaveBeenLastCalledWith(10, '');
+		expect(changedSince).toHaveBeenLastCalledWith(10, null);
 	});
 
 	it('replaces an item that changed rather than holding two of it', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A', 'old title')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		libraryState.mockResolvedValue(state(11, 1));
 		changedSince.mockResolvedValue(changes([item('A', 'new title')], 11));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(library()).toHaveLength(1);
 		expect(library()[0]?.data.title).toBe('new title');
 	});
@@ -93,13 +96,13 @@ describe('refreshLibrary', () => {
 		// A count that disagrees with what we hold is the only sign there is.
 		libraryState.mockResolvedValue(state(10, 2));
 		changedSince.mockResolvedValue(changes([item('A'), item('B')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		libraryState.mockResolvedValue(state(11, 1));
 		changedSince.mockResolvedValueOnce(changes([], 11)).mockResolvedValueOnce(changes([item('A')], 11));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
-		expect(changedSince).toHaveBeenLastCalledWith(0, '');
+		expect(changedSince).toHaveBeenLastCalledWith(0, null);
 		expect(library().map((entry) => entry.key)).toEqual(['A']);
 	});
 
@@ -108,11 +111,11 @@ describe('refreshLibrary', () => {
 		// not something worth resting on. The count answers either way.
 		libraryState.mockResolvedValue(state(10, 2));
 		changedSince.mockResolvedValue(changes([item('A'), item('B')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValueOnce(changes([], 10)).mockResolvedValueOnce(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		expect(library().map((entry) => entry.key)).toEqual(['A']);
 	});
@@ -120,119 +123,127 @@ describe('refreshLibrary', () => {
 	it('does not reread when the count agrees, which is almost always', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		// A version that moved with no deletion behind it: one delta, no reread.
 		libraryState.mockResolvedValue(state(11, 1));
 		changedSince.mockResolvedValue(changes([item('A', 'renamed')], 11));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(changedSince).toHaveBeenCalledTimes(2);
 	});
 
 	it('says whether anything moved, so a caller can skip a redraw', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		expect(await refreshLibrary('')).toBe(true);
+		expect(await refreshLibrary(MINE)).toBe(true);
 
-		expect(await refreshLibrary('')).toBe(false);
+		expect(await refreshLibrary(MINE)).toBe(false);
 	});
 
 	it('keeps what it had when Zotero cannot be reached', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		libraryState.mockRejectedValue(new Error('ECONNREFUSED'));
-		expect(await refreshLibrary('')).toBe(false);
+		expect(await refreshLibrary(MINE)).toBe(false);
 		// A closed Zotero is not evidence that your library is empty.
 		expect(library().map((entry) => entry.key)).toEqual(['A']);
 	});
 
 	it('reads afresh after a failed first attempt rather than treating it as read', async () => {
 		libraryState.mockRejectedValue(new Error('ECONNREFUSED'));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
-		expect(changedSince).toHaveBeenLastCalledWith(0, '');
+		await refreshLibrary(MINE);
+		expect(changedSince).toHaveBeenLastCalledWith(0, null);
 	});
 });
 
 /**
- * Reading one collection instead of the whole library.
- *
- * The scope is passed in on every call rather than held here, because it is a
- * setting and settings change under a running session.
+ * Sources name collections, but libraries are what is read: which papers a
+ * collection brings in is worked out from the items, in `core/sources.ts`.
  */
-describe('scope', () => {
-	const collection = (key: string, name: string) => ({ key, data: { name, parentCollection: false as const } });
+describe('sources', () => {
+	const collection = (key: string) => ({ key, data: { name: key, parentCollection: false as const } });
+	const thesis = [{ group: null, collection: 'THESIS00', triage: false }];
 
-	it('asks Zotero for the collection it was given', async () => {
-		allCollections.mockResolvedValue([collection('AAAA1111', 'Thesis')]);
+	it('reads the whole library for a source that is one collection', async () => {
+		allCollections.mockResolvedValue([collection('THESIS00')]);
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
 
-		await refreshLibrary('AAAA1111');
-		expect(changedSince).toHaveBeenCalledWith(0, 'AAAA1111');
-		expect(library().map((entry) => entry.key)).toEqual(['A']);
+		await refreshLibrary(thesis);
+		expect(changedSince).toHaveBeenCalledWith(0, null);
+		expect(contents()).toEqual([{ group: null, items: [item('A')], collections: [collection('THESIS00')] }]);
 	});
 
-	it('starts over when the scope changes, rather than merging two collections', async () => {
-		allCollections.mockResolvedValue([collection('AAAA1111', 'One'), collection('BBBB2222', 'Two')]);
+	it('reads nothing again when the sources change and the library has not', async () => {
+		allCollections.mockResolvedValue([collection('THESIS00')]);
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('AAAA1111');
-
-		changedSince.mockResolvedValue(changes([item('B')], 10));
-		await refreshLibrary('BBBB2222');
-
-		expect(changedSince).toHaveBeenLastCalledWith(0, 'BBBB2222');
-		expect(library().map((entry) => entry.key)).toEqual(['B']);
+		await refreshLibrary(MINE);
+		await refreshLibrary(thesis);
+		expect(changedSince).toHaveBeenCalledTimes(1);
 	});
 
-	// The whole reason `missingScope` exists: asking for a gone collection's
-	// items answers 200 with everything, so carrying on would quietly replace
-	// the queue with every paper in the library.
-	it('reads nothing at all when the collection is gone', async () => {
-		allCollections.mockResolvedValue([collection('AAAA1111', 'Thesis')]);
+	it('asks for the collection list only when a source names a collection', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-
-		expect(await refreshLibrary('GONE0000')).toBe(false);
-		expect(changedSince).not.toHaveBeenCalled();
-		expect(libraryState).not.toHaveBeenCalled();
-		expect(library()).toEqual([]);
-	});
-
-	it('says why, so the queue can explain itself', async () => {
-		allCollections.mockResolvedValue([collection('AAAA1111', 'Thesis')]);
-		await refreshLibrary('GONE0000');
-		expect(scopeProblem()).toMatch(/anymore/i);
-
-		libraryState.mockResolvedValue(state(10, 1));
-		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('AAAA1111');
-		expect(scopeProblem()).toBeNull();
-	});
-
-	it('does not ask for the collection list when nothing is scoped', async () => {
-		libraryState.mockResolvedValue(state(10, 1));
-		changedSince.mockResolvedValue(changes([item('A')], 10));
-
-		await refreshLibrary('');
-		// One request per refresh bought for the majority who never scope.
+		await refreshLibrary(MINE);
 		expect(allCollections).not.toHaveBeenCalled();
-		expect(scopeProblem()).toBeNull();
+	});
+
+	it('reads the collection list again once the library has moved, and only then', async () => {
+		allCollections.mockResolvedValue([collection('THESIS00')]);
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary(thesis);
+		await refreshLibrary(thesis);
+		expect(allCollections).toHaveBeenCalledTimes(1);
+
+		libraryState.mockResolvedValue(state(11, 1));
+		changedSince.mockResolvedValue(changes([], 11));
+		await refreshLibrary(thesis);
+		expect(allCollections).toHaveBeenCalledTimes(2);
+	});
+
+	it('counts a changed collection list as movement, since it changes what a source brings in', async () => {
+		allCollections.mockResolvedValue([collection('THESIS00')]);
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary(thesis);
+
+		allCollections.mockResolvedValue([]);
+		libraryState.mockResolvedValue(state(11, 1));
+		changedSince.mockResolvedValue(changes([], 11));
+		expect(await refreshLibrary(thesis)).toBe(true);
 	});
 
 	it('keeps the collection list for the picker', async () => {
-		allCollections.mockResolvedValue([collection('AAAA1111', 'Thesis')]);
+		allCollections.mockResolvedValue([collection('THESIS00')]);
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
+		await refreshLibrary(thesis);
+		expect(collections().map((entry) => entry.key)).toEqual(['THESIS00']);
+	});
 
-		await refreshLibrary('AAAA1111');
-		expect(collections().map((entry) => entry.key)).toEqual(['AAAA1111']);
+	it('reads each library a source names, once, and keeps them apart', async () => {
+		libraryState.mockResolvedValue(state(10, 1));
+		changedSince.mockImplementation((_since, group) => Promise.resolve(changes([item(group === null ? 'MINE' : 'LAB')], 10)));
+		await refreshLibrary([...MINE, { group: 5, collection: '', triage: true }]);
+
+		expect(library(null).map((entry) => entry.key)).toEqual(['MINE']);
+		expect(library(5).map((entry) => entry.key)).toEqual(['LAB']);
+		expect(contents().map((entry) => entry.group)).toEqual([null, 5]);
+	});
+
+	it('reads nothing at all when there are no sources', async () => {
+		await refreshLibrary([]);
+		expect(libraryState).not.toHaveBeenCalled();
+		expect(contents()).toEqual([]);
 	});
 });
 
@@ -253,7 +264,7 @@ describe('onLibraryChange', () => {
 		const b = listening();
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(a.heard).toHaveBeenCalledTimes(1);
 		expect(b.heard).toHaveBeenCalledTimes(1);
 		a.stop();
@@ -264,9 +275,9 @@ describe('onLibraryChange', () => {
 	it('says nothing when nothing moved', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		const { heard, stop } = listening();
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(heard).not.toHaveBeenCalled();
 		stop();
 	});
@@ -274,11 +285,11 @@ describe('onLibraryChange', () => {
 	it('tells when a paper was removed', async () => {
 		libraryState.mockResolvedValue(state(10, 2));
 		changedSince.mockResolvedValue(changes([item('A'), item('B')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		const { heard, stop } = listening();
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(library().map((entry) => entry.key)).toEqual(['A']);
 		expect(heard).toHaveBeenCalledTimes(1);
 		stop();
@@ -288,13 +299,13 @@ describe('onLibraryChange', () => {
 	it('tells when Zotero stops answering, and again when it comes back', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		const { heard, stop } = listening();
 		libraryState.mockRejectedValue(new Error('closed'));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(heard).toHaveBeenCalledTimes(1);
 		libraryState.mockResolvedValue(state(10, 1));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(heard).toHaveBeenCalledTimes(2);
 		stop();
 	});
@@ -304,7 +315,7 @@ describe('onLibraryChange', () => {
 		stop();
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		await refreshLibrary('');
+		await refreshLibrary(MINE);
 		expect(heard).not.toHaveBeenCalled();
 	});
 
@@ -312,7 +323,7 @@ describe('onLibraryChange', () => {
 	it('shares a look already under way rather than asking twice', async () => {
 		libraryState.mockResolvedValue(state(10, 1));
 		changedSince.mockResolvedValue(changes([item('A')], 10));
-		const [first, second] = await Promise.all([refreshLibrary(''), refreshLibrary('')]);
+		const [first, second] = await Promise.all([refreshLibrary(MINE), refreshLibrary(MINE)]);
 		expect(libraryState).toHaveBeenCalledTimes(1);
 		expect(first).toBe(second);
 	});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectionPaths, missingScope, type ApiCollection } from '../src/core/collections';
+import { collectionPaths, descendants, type ApiCollection } from '../src/core/collections';
 
 const collection = (key: string, name: string, parentCollection: string | false = false): ApiCollection => ({
 	key,
@@ -52,27 +52,25 @@ describe('collectionPaths', () => {
 	});
 });
 
-/**
- * The local API answers a request for a missing collection's items with the
- * whole library and HTTP 200, so a scope that has gone does not fail, it
- * silently stops being a scope. This is the check that catches that.
- */
-describe('missingScope', () => {
-	const known = [collection('AAAA1111', 'Thesis')];
+describe('descendants', () => {
+	const tree = [
+		collection('THESIS00', 'Thesis'),
+		collection('CHAPTER1', 'Chapter 1', 'THESIS00'),
+		collection('CHAPTER2', 'Chapter 2', 'THESIS00'),
+		collection('METHODS0', 'Methods', 'CHAPTER2'),
+		collection('ELSEWHER', 'Side project'),
+	];
 
-	it('is happy with no scope at all, which is the default', () => {
-		expect(missingScope('', [])).toBeNull();
+	it('finds every collection under one, at any depth', () => {
+		expect(descendants('THESIS00', tree).sort()).toEqual(['CHAPTER1', 'CHAPTER2', 'METHODS0']);
 	});
 
-	it('is happy with a collection Zotero still has', () => {
-		expect(missingScope('AAAA1111', known)).toBeNull();
+	it('finds nothing under a collection with no children', () => {
+		expect(descendants('METHODS0', tree)).toEqual([]);
 	});
 
-	it('complains about one it does not', () => {
-		expect(missingScope('GONE0000', known)).toMatch(/anymore/i);
-	});
-
-	it('says what to do about it, since the answer is in settings', () => {
-		expect(missingScope('GONE0000', known)).toMatch(/settings/i);
+	it('stops at a loop rather than going round it forever', () => {
+		const looped = [collection('AAAAAAAA', 'A', 'BBBBBBBB'), collection('BBBBBBBB', 'B', 'AAAAAAAA')];
+		expect(descendants('AAAAAAAA', looped)).toEqual(['BBBBBBBB']);
 	});
 });

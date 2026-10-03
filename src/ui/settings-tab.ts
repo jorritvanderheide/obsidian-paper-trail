@@ -1,9 +1,10 @@
-import { PluginSettingTab, type App, type SettingDefinitionItem } from 'obsidian';
+import { PluginSettingTab, type App, type SettingDefinition, type SettingDefinitionItem } from 'obsidian';
 import { headingCoverage, works } from '../core/stages';
-import { collectionPaths } from '../core/collections';
+import { sourceChoices, sourceLabel, type LibraryChoice, type Source } from '../core/sources';
 import { loadSettings, retireStatusTag, workflowOf } from '../core/settings';
 import { readTags, retiredTagCount, type Passes } from '../core/triage';
-import { collections, forgetLibrary, refreshCollections, refreshLibrary } from '../library';
+import { collections, refreshCollections, refreshLibrary } from '../library';
+import { suggest } from './prompt';
 import { lastContact, probeBetterBibtex } from '../source';
 import { connectionStatus, type BetterBibtex } from '../core/connection';
 import { decorate } from './view-actions';
@@ -20,8 +21,11 @@ const PASS_OPTIONS: Record<Passes, string> = {
 	none: 'None',
 };
 
-/** What the scope control offers when nothing is chosen, which is the default. */
-const WHOLE_LIBRARY = 'Whole library';
+/** What your own library is called in the source list, as Zotero calls it. */
+const MY_LIBRARY = 'My library';
+
+/** The control key for one source's triage switch, which is not a settings key. */
+const TRIAGE_KEY = /^source-triage-(\d+)$/;
 
 export class SettingsTab extends PluginSettingTab {
 	constructor(
@@ -32,11 +36,16 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	getControlValue(key: string): unknown {
+		const triage = TRIAGE_KEY.exec(key);
+		if (triage) return this.plugin.settings.sources[Number(triage[1])]?.triage ?? false;
 		return this.plugin.settings[key as Key];
 	}
 
 	/** Whether Zotero has been asked for its collections since this tab opened. */
 	private asked = false;
+
+	/** Whether that answer is in, so a collection not yet listed is not called missing. */
+	private loaded = false;
 
 	/** What Better BibTeX said the last time this tab asked. */
 	private betterBibtex: BetterBibtex = null;
@@ -52,7 +61,7 @@ export class SettingsTab extends PluginSettingTab {
 	/**
 	 * Read the collection list, then draw the tab again with it in.
 	 *
-	 * The scope control is the one thing here whose options come from another
+	 * The source list is the one thing here whose names come from another
 	 * program, and `getSettingDefinitions` is synchronous, so the tab opens with
 	 * whatever was cached and fills in a moment later. That is the right way
 	 * round: a tab that waited on Zotero would open blank for everyone who does
@@ -73,12 +82,16 @@ export class SettingsTab extends PluginSettingTab {
 			probeBetterBibtex().then((answer) => {
 				this.betterBibtex = answer;
 			}),
-		]).then(() => this.update());
+		]).then(() => {
+			this.loaded = true;
+			this.update();
+		});
 	}
 
 	/** Closing the tab is what makes the next opening ask again. */
 	hide(): void {
 		this.asked = false;
+		this.loaded = false;
 		this.tagsAtOpen = null;
 		super.hide();
 	}
@@ -94,6 +107,13 @@ export class SettingsTab extends PluginSettingTab {
 	 * settings appear to name.
 	 */
 	async setControlValue(key: string, value: unknown): Promise<void> {
+		const triage = TRIAGE_KEY.exec(key);
+		if (triage) {
+			const index = Number(triage[1]);
+			await this.saveSources(this.plugin.settings.sources.map((source, n) => (n === index ? { ...source, triage: value === true } : source)));
+			return;
+		}
+
 		// Against the namespace in force when the tab opened, because the tags
 		// already written under it are the ones a later decision has to take back
 		// out, and it is the only namespace anything was written under.
@@ -103,14 +123,6 @@ export class SettingsTab extends PluginSettingTab {
 
 		(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
 		this.plugin.settings = loadSettings(this.plugin.settings);
-
-		// Another collection means another set of items, so what is cached is the
-		// wrong set rather than a stale one. Asked for at once, so the queue fills
-		// with the new set rather than waiting for you to come back to Obsidian.
-		if (key === 'collection') {
-			forgetLibrary();
-			void refreshLibrary(this.plugin.settings.collection);
-		}
 
 		await this.plugin.saveSettings();
 		settingsChanged(this.app);
@@ -126,37 +138,61 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Every collection, plus the whole library, plus whatever is stored if it is
-	 * neither.
+	 * Save a new list of sources, and read whatever it now needs.
 	 *
-	 * That last case is the one worth the code. A dropdown silently shows its
-	 * first option when the stored value is not among them, so a collection
-	 * deleted in Zotero would make this tab claim the scope is something it is
-	 * not, and the next thing you changed would save that claim. Keeping the
-	 * stored key as an option, named as missing, is what stops the display of a
-	 * problem from becoming the problem.
+	 * Nothing cached is thrown away: libraries are held whole, and which papers
+	 * a source brings in is worked out from them on every draw. A library or a
+	 * collection list not read yet is asked for at once, so the queue fills
+	 * rather than waiting for you to come back to Obsidian.
 	 */
-	private scopeOptions(): Record<string, string> {
-		const options: Record<string, string> = { '': WHOLE_LIBRARY };
-		for (const { key, path } of collectionPaths(collections())) options[key] = path;
-
-		const chosen = this.plugin.settings.collection;
-		if (chosen !== '' && !(chosen in options)) options[chosen] = `${chosen} (not in Zotero)`;
-		return options;
+	private async saveSources(sources: Source[]): Promise<void> {
+		this.plugin.settings.sources = sources;
+		this.plugin.settings = loadSettings(this.plugin.settings);
+		await this.plugin.saveSettings();
+		settingsChanged(this.app);
+		void refreshLibrary(this.plugin.settings.sources);
+		this.update();
 	}
 
-	/** What the scope is actually doing, in the same voice the heading checks use. */
-	private scopeStatus(): string {
-		const chosen = this.plugin.settings.collection;
-		const contact = lastContact();
+	/** The libraries the picker knows about. */
+	private libraries(): LibraryChoice[] {
+		return [{ group: null, name: MY_LIBRARY, collections: collections(null) }];
+	}
 
-		// The Connection row above says why. Saying it twice in one group reads
-		// as two problems, and "not in Zotero" would be a third, untrue one.
-		if (contact !== null && !contact.reachable) return '';
-		if (chosen === '') return '';
-		if (collections().some((entry) => entry.key === chosen)) return '';
-		// Said here as well as in the queue, because this is where it is fixed.
-		return " ⚠ Zotero doesn't have this collection anymore, so no papers reach the queue. Pick another one, or choose Whole library.";
+	/** Offer everything not already chosen, and add what is picked. */
+	private async addSource(): Promise<void> {
+		const chosen = this.plugin.settings.sources;
+		const picked = await suggest(
+			this.app,
+			sourceChoices(this.libraries(), chosen),
+			(choice) => choice.label,
+			'A library or a collection to take papers from',
+		);
+		if (picked) await this.saveSources([...chosen, picked.source]);
+	}
+
+	/**
+	 * One row per source, with its triage switch.
+	 *
+	 * A collection Zotero no longer has keeps its row, named as missing, rather
+	 * than disappearing: the row is where it is fixed, and a source that
+	 * vanished from the list would look like a setting that did not save.
+	 */
+	private sourceRows(): SettingDefinition[] {
+		const libraries = this.libraries();
+		return this.plugin.settings.sources.map((source, index) => {
+			const label = sourceLabel(source, libraries);
+			const missing = label === null && this.loaded;
+			return {
+				name: label ?? `${MY_LIBRARY} / ${source.collection}${missing ? ' (not in Zotero)' : ''}`,
+				desc: missing
+					? "⚠ Zotero doesn't have this collection anymore, so no papers come from it. Delete it here, or add the one you meant."
+					: source.triage
+						? "Papers from here that you haven't decided about yet go to Triage first."
+						: "Papers from here go straight to Reading. Turn this on if other people add papers here, like a lab's reading list, so they go to Triage first.",
+				control: { type: 'toggle', key: `source-triage-${index}` },
+			};
+		});
 	}
 
 	/**
@@ -187,7 +223,7 @@ export class SettingsTab extends PluginSettingTab {
 	 *
 	 * A paper sheds the old tag on its next decision, and a paper you settled
 	 * two years ago will not get one, so this says how many are left rather than
-	 * letting the rename look complete. The same voice as the heading and scope
+	 * letting the rename look complete. The same voice as the heading and source
 	 * checks, for the same reason: a setting that disagrees with the vault should
 	 * say so where it is fixed.
 	 */
@@ -241,18 +277,29 @@ export class SettingsTab extends PluginSettingTab {
 							);
 						},
 					},
+				],
+			},
+			{
+				type: 'list',
+				heading: 'Papers from',
+				items: this.sourceRows(),
+				emptyState: "Nothing here, so no papers come in from Zotero. Add your library, or a collection in it.",
+				onReorder: (from, to) => {
+					const sources = [...this.plugin.settings.sources];
+					const [moved] = sources.splice(from, 1);
+					if (moved) sources.splice(to, 0, moved);
+					void this.saveSources(sources);
+				},
+				onDelete: (index) => void this.saveSources(this.plugin.settings.sources.filter((_, n) => n !== index)),
+				addItem: { name: 'Add a library or collection', action: () => void this.addSource() },
+			},
+			{
+				type: 'group',
+				items: [
 					{
-						name: 'Papers from',
-						desc:
-							'Which part of your Zotero library shows up in the queue. Pick one collection if your library holds more than the papers for this thesis. Nothing is copied either way, and papers outside it that already have a note keep working.' +
-							this.scopeStatus(),
-						control: { type: 'dropdown', key: 'collection', options: this.scopeOptions() },
-					},
-					{
-						name: 'Triage before reading',
-						desc:
-							"Off: a paper you save to Zotero goes straight into Reading. Turn it on if you also save papers you haven't decided about yet. Each one then shows up first with its abstract, and you drop it (and say why), queue it, or mark it as already read.",
-						control: { type: 'toggle', key: 'triage' },
+						name: 'Include subcollections',
+						desc: 'A collection above also brings in the papers in the collections under it, the way a thesis collection holds one per chapter. A paper in more than one source belongs to the first one in the list. Nothing is copied, and papers outside them that already have a note keep working.',
+						control: { type: 'toggle', key: 'subcollections' },
 					},
 					{
 						name: 'Include underlines',

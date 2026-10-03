@@ -754,16 +754,16 @@ function folded(text: string): string {
  * What a row is asking for.
  *
  * A pending paper is one Zotero holds that the vault has no note for, so what
- * it is asking for is whatever you decided putting it in Zotero means. With
- * triage on it wants ruling on; with triage off that ruling already happened,
- * in the browser, and what it wants is reading.
+ * it is asking for is whatever putting it where it came from means. From a
+ * source that triages it wants ruling on; from one that does not, that ruling
+ * already happened, in the browser, and what it wants is reading.
  *
  * Either way nothing is written until you decide on it, and deciding is what
  * gives it a note.
  */
 export function rowTask(row: Row, workflow: Workflow): Task | null {
 	if (row.kind !== 'pending') return taskOf(row.note, workflow);
-	return workflow.triage ? 'triage' : 'reading';
+	return row.item.triage ? 'triage' : 'reading';
 }
 
 /**
@@ -840,7 +840,7 @@ function arrivedAt(row: Row, arrived: ReadonlyMap<string, string>): number {
  *
  * The block order had a reason, and it was a Triage reason: a note already
  * marked untriaged is one you made a point of keeping. It was applied to
- * whichever section pending papers land in, which with triage off is Reading,
+ * whichever section pending papers land in, which without triage is Reading,
  * where it means nothing. Sorting on when the paper arrived says the same thing
  * where it is true and nothing where it is not.
  */
@@ -859,9 +859,11 @@ export function rowsByStage(
 	}
 
 	// A paper Zotero holds that the vault has no note for is asking for whatever
-	// the first thing you do with a paper is, which is what the setting decides.
-	const stage: Task = workflow.triage ? 'triage' : 'reading';
-	out.set(stage, [...(out.get(stage) ?? []), ...pending.map((item) => ({ kind: 'pending' as const, item }))]);
+	// the first thing you do with a paper is, which its source decides.
+	for (const item of pending) {
+		const stage: Task = item.triage ? 'triage' : 'reading';
+		out.set(stage, [...(out.get(stage) ?? []), { kind: 'pending' as const, item }]);
+	}
 
 	for (const [task, rows] of out) {
 		out.set(

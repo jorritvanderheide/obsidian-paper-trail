@@ -6,7 +6,8 @@
 // own; it has to be asked for, and it goes where you put the cursor.
 import { MarkdownView, Modal, Notice, Setting, type App } from 'obsidian';
 import { WORKFLOW_BLOCK } from '../ui/workflow-block';
-import { library, refreshLibrary } from '../library';
+import { refreshLibrary } from '../library';
+import { placedCount } from '../outstanding';
 import { lastContact } from '../source';
 import { openQueue } from '../ui/queue';
 import type { Context } from '../context';
@@ -57,7 +58,7 @@ class Welcome extends Modal {
 	constructor(
 		app: App,
 		private readonly name: string,
-		private readonly collection: string,
+		private readonly context: Context,
 		private readonly onOpenQueue: () => Promise<void>,
 	) {
 		super(app);
@@ -108,7 +109,7 @@ class Welcome extends Modal {
 	 */
 	private async check(): Promise<void> {
 		this.say('Asking Zotero…', false);
-		await refreshLibrary(this.collection);
+		await refreshLibrary(this.context.settings.sources);
 
 		// Null is unreachable here rather than "nobody has asked", because the
 		// call above is the asking. Reading it the same way the queue's offline
@@ -119,11 +120,11 @@ class Welcome extends Modal {
 			return;
 		}
 
-		const count = library().length;
+		const count = placedCount(this.context);
 		this.say(
 			count === 0
 				? "Zotero is answering, but your library is empty. Add papers to it, and they'll show up in the queue."
-				: `Zotero is answering: ${count.toLocaleString('en')} ${count === 1 ? 'item' : 'items'} in your library, ready for the queue.`,
+				: `Zotero is answering: ${count.toLocaleString('en')} ${count === 1 ? 'paper' : 'papers'} in your library, ready for the queue.`,
 			false,
 		);
 	}
@@ -138,5 +139,5 @@ class Welcome extends Modal {
 }
 
 export function welcome(context: Context, name: string): void {
-	new Welcome(context.app, name, context.settings.collection, () => openQueue(context.app)).open();
+	new Welcome(context.app, name, context, () => openQueue(context.app)).open();
 }

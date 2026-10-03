@@ -180,29 +180,29 @@ export async function pickCitation(): Promise<CitedSource[] | null> {
 
 
 /**
- * Where to read top-level items from: one collection, or the whole library.
+ * A library's path: your own, or a group's.
  *
- * An empty scope is the whole library, which is both the default and the only
- * honest reading of "no collection chosen". The key is escaped because it
- * arrives from a setting, and a setting is a place a person can type.
+ * Whole libraries only. Which collections a source reads from is decided
+ * from what each item says it is filed in, because Zotero has no request for
+ * a collection with its subcollections and answers one for a collection that
+ * is gone with the entire library.
  */
-function itemsPath(collection: string): string {
-	if (collection === '') return 'users/0/items/top';
-	return `users/0/collections/${encodeURIComponent(collection)}/items/top`;
+function libraryOf(group: number | null): string {
+	return libraryPath({ key: '', groupID: group });
 }
 
 /**
- * Every collection in the library, for the scope picker and for checking that
- * the scope still exists.
+ * Every collection in a library, for the source picker, for subcollections,
+ * and for checking that a source still exists.
  *
  * Paged like the items are. Nobody has a thousand collections, but the loop
  * costs one comparison and the alternative is a library that silently stops at
  * a hundred for the one person who does.
  */
-export async function allCollections(): Promise<ApiCollection[]> {
+export async function allCollections(group: number | null): Promise<ApiCollection[]> {
 	const out: ApiCollection[] = [];
 	for (let start = 0; ; start += PAGE) {
-		const page = await api<ApiCollection[]>(`users/0/collections?limit=${PAGE}&start=${start}`);
+		const page = await api<ApiCollection[]>(`${libraryOf(group)}/collections?limit=${PAGE}&start=${start}`);
 		out.push(...page);
 		if (page.length < PAGE) break;
 	}
@@ -231,8 +231,8 @@ export interface Changes {
  * round that, and it has to be asked separately: the count on this response is
  * the count of what changed, not of what exists.
  */
-export async function changedSince(since: number, collection: string): Promise<Changes> {
-	const path = itemsPath(collection);
+export async function changedSince(since: number, group: number | null): Promise<Changes> {
+	const path = `${libraryOf(group)}/items/top`;
 	const { body, headers } = await answered<ApiItem[]>(`${path}?since=${since}&limit=${PAGE}`);
 
 	// A full read can exceed one page. An update almost never will, but a week
@@ -252,12 +252,11 @@ export interface LibraryState {
 	/**
 	 * The library's current version, which moves whenever anything in it does.
 	 *
-	 * The library's and not the collection's: Zotero versions the library as a
-	 * whole, so under a scope this moves for changes outside it too. That costs
-	 * a delta request that comes back empty, and it is the safe way round.
+	 * It moves for changes to anything in the library, collections included,
+	 * which is what tells a look that the collection list wants reading again.
 	 */
 	version: number;
-	/** How many top-level items are in scope, deleted ones already gone. */
+	/** How many top-level items the library holds, deleted ones already gone. */
 	total: number;
 }
 
@@ -275,7 +274,7 @@ export interface LibraryState {
  * nothing had, so the incremental path never once took effect and every look
  * read the whole library twice.
  */
-export async function libraryState(collection: string): Promise<LibraryState> {
-	const { headers } = await answered<ApiItem[]>(`${itemsPath(collection)}?limit=1`);
+export async function libraryState(group: number | null): Promise<LibraryState> {
+	const { headers } = await answered<ApiItem[]>(`${libraryOf(group)}/items/top?limit=1`);
 	return { version: headers.version, total: headers.total };
 }

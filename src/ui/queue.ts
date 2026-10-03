@@ -30,12 +30,12 @@ import {
 import { DEFAULT_ROWS, fit } from '../core/fit';
 import { act, finish, next, openNote } from '../commands/workflow';
 import { iconOf } from '../core/triage';
-import { queue } from '../outstanding';
+import { queue, sourcesProblem } from '../outstanding';
 import { WhileWriting } from './editing';
 import { say } from './notify';
 import { paperMenu } from './paper-menu';
 import { lastContact } from '../source';
-import { onLibraryChange, refreshLibrary, scopeProblem } from '../library';
+import { onLibraryChange, refreshLibrary } from '../library';
 import { workflowOf } from '../core/settings';
 import { onSettingsChanged, type Context } from '../context';
 import { today } from '../today';
@@ -301,7 +301,7 @@ function searchBox(header: HTMLElement, context: Context, kept: HTMLElement | nu
 
 /** Ask Zotero now, and say what it said: always when it is not there, and what it found unless told to be quiet. */
 async function recheck(root: HTMLElement, context: Context): Promise<void> {
-	const moved = await refreshLibrary(context.settings.collection);
+	const moved = await refreshLibrary(context.settings.sources);
 	renderQueue(paneOf(root), context);
 
 	const contact = lastContact();
@@ -384,7 +384,7 @@ function capacity(root: HTMLElement, files: HTMLElement, headers: number): numbe
  */
 function offline(root: HTMLElement, context: Context): void {
 	const contact = lastContact();
-	const reason = contact !== null && !contact.reachable ? contact.reason : scopeProblem();
+	const reason = contact !== null && !contact.reachable ? contact.reason : sourcesProblem(context);
 	if (reason === null) return;
 
 	// Said once. The sidebar always says it; a block in a note says it only when
@@ -401,7 +401,7 @@ function offline(root: HTMLElement, context: Context): void {
 	// is the same gesture: go and ask Zotero again. The reason beside it is
 	// already carrying the words, so the button does not need to repeat them.
 	iconButton(box, 'refresh-cw', 'Try again', () => {
-		void refreshLibrary(context.settings.collection).then(() => renderQueue(root, context));
+		void refreshLibrary(context.settings.sources).then(() => renderQueue(root, context));
 	});
 }
 
@@ -1004,7 +1004,7 @@ export class QueueView extends ItemView {
 	 *
 	 * Coalesced because the events that call it arrive in bursts.
 	 */
-	private readonly catchUp = debounce(() => void refreshLibrary(this.context.settings.collection), 300, true);
+	private readonly catchUp = debounce(() => void refreshLibrary(this.context.settings.sources), 300, true);
 
 	async onOpen(): Promise<void> {
 		expanded.clear();
@@ -1018,7 +1018,7 @@ export class QueueView extends ItemView {
 		// waiting for the request before showing anything would mean an empty pane
 		// every time this opens.
 		this.register(onLibraryChange(() => this.redraw()));
-		void refreshLibrary(this.context.settings.collection);
+		void refreshLibrary(this.context.settings.sources);
 
 		// A note's own change waits while you are the one writing it. Everything
 		// else lands at once: a deletion, a rename, or a paper arriving from a

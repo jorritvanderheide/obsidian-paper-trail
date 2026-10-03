@@ -102,7 +102,8 @@ export function stateOf(frontmatter: Record<string, unknown> | undefined): State
 }
 
 /**
- * The state a paper arrives in, which is what putting it in Zotero meant.
+ * The state a paper arrives in, which is what putting it where it came from
+ * meant, so its source decides.
  *
  * `untriaged` when the queue is to ask first. `queued` when it is not, because
  * then the first pass already happened: on the publisher's page, on the
@@ -282,9 +283,9 @@ const LANDINGS: Record<string, string> = {
  * Whether a judgement is worth offering at all, to a paper this far along, in a
  * vault working this way.
  *
- * Untriaged only with triage on. With it off, Triage is not a stage you work:
- * a paper sent there sits in a section that is otherwise hidden, waiting on a
- * dialog nothing in your workflow opens. What you meant was almost always
+ * Untriaged only where some source triages. Where none does, Triage is not a
+ * stage you work: a paper sent there sits in a section that is otherwise
+ * hidden, waiting on a dialog nothing in your workflow opens. What you meant was almost always
  * Queued, and offering both is offering the wrong one beside the right one.
  *
  * Promoted only once the paper has been read. Worth a third pass is the
