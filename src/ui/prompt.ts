@@ -174,3 +174,46 @@ class Prompt extends Modal {
 export function prompt(app: App, label: string, options: PromptOptions = {}): Promise<string | null> {
 	return new Promise((resolve) => new Prompt(app, label, options.cta ?? 'OK', options.placeholder ?? '', resolve).open());
 }
+
+class Confirm extends Modal {
+	private confirmed = false;
+
+	constructor(
+		app: App,
+		private readonly title: string,
+		private readonly paragraphs: string[],
+		private readonly cta: string,
+		private readonly done: (confirmed: boolean) => void,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.setTitle(this.title);
+		for (const text of this.paragraphs) this.contentEl.createEl('p', { text });
+
+		new Setting(this.contentEl)
+			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()))
+			.addButton((button) =>
+				button
+					.setButtonText(this.cta)
+					.setCta()
+					.onClick(() => {
+						this.confirmed = true;
+						this.close();
+					}),
+			);
+	}
+
+	onClose(): void {
+		this.done(this.confirmed);
+	}
+}
+
+/**
+ * Say what is about to happen, and go ahead only on the button that names it.
+ * Closing the dialog any other way is a no.
+ */
+export function confirmed(app: App, title: string, paragraphs: string[], cta: string): Promise<boolean> {
+	return new Promise((resolve) => new Confirm(app, title, paragraphs, cta, resolve).open());
+}

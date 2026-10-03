@@ -596,6 +596,9 @@ Hotkeys.
   paper, or send it back to be read again.
 - `Paper Trail: Refresh paper from Zotero` - Refreshes the open paper right away
   and lets you know. Opening a paper already does this quietly.
+- `Paper Trail: Link existing notes to Zotero` - Turns literature notes from
+  another plugin into paper notes, matched by citation key. It tells you what
+  will change before it changes anything.
 
 **Citations**
 
@@ -712,6 +715,9 @@ and doesn't send anything anywhere.
   `zotero` and the item key property), the status tag if you set one, the
   region between `<!--paper-trail-->` and `<!--/paper-trail-->`, and the Claim
   and Assessment headings once a paper needs them.
+- **Notes from other plugins:** Only when you run **Link existing notes to
+  Zotero** and confirm, and only the item key property, on each note it
+  matched. From then on they're paper notes, and the item above applies.
 - **Template:** `Paper.md` in the template folder, when a paper note is made and
   there's no file with that name. If the file is there, edited or not, it's
   never overwritten.

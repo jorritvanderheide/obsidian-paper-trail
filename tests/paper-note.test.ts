@@ -13,6 +13,7 @@ import {
 	fill,
 	isPaper,
 	managedDiffers,
+	replacedKeys,
 	paperLinks,
 	selectUrl,
 } from '../src/core/paper-note';
@@ -652,5 +653,24 @@ describe('syncing a note another plugin made', () => {
 		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, '@vanderlindMendingQuietArchive2026'), null, 'zotero-key');
 		expect(fm.title).toBe('Mending quiet archive practices');
 		expect(fm.authors).toBe('Ida Van Der Lind, Bram De Veld');
+	});
+});
+
+describe('replacedKeys', () => {
+	const managed = () => paperFrontmatter(item, ref, '@vanderlindMendingQuietArchive2026');
+
+	it('names the properties a note has with other values', () => {
+		expect(replacedKeys({ title: 'Mine', year: '2026', citekey: 'vanderlindMendingQuietArchive2026' }, managed(), 'zotero-key')).toEqual([
+			'title',
+			'year',
+		]);
+	});
+
+	it('leaves out what the note does not have, since filling in is not replacing', () => {
+		expect(replacedKeys({}, managed(), 'zotero-key')).toEqual([]);
+	});
+
+	it('never names aliases, which a sync only adds to', () => {
+		expect(replacedKeys({ aliases: ['Care paper'] }, managed(), 'zotero-key')).toEqual([]);
 	});
 });

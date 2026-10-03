@@ -73,8 +73,29 @@ vault. If your existing literature notes keep the key under another name, set
 
 ### My existing literature notes aren't recognised
 
-Same answer as above: point **Item key property** at the property your notes
-already use for the Zotero item key.
+If they already hold the Zotero item key under another property, point **Item
+key property** at it.
+
+If they don't have the item key at all, which is how Zotero Integration and
+the Citations plugin make them, run **Link existing notes to Zotero**. It
+matches each note to its paper by citation key, from a `citekey` property or
+from the note's name, with or without an `@` in front. Before it changes
+anything, it tells you how many notes it found and which of their properties
+will be replaced with what Zotero has. It only adds the item key property, and
+the rest is filled in when you open each note. The linked papers show up in
+Triage, where you can mark the ones you've already read.
+
+### "Zotero didn't give any of your papers a citation key, so there's nothing to match your notes by"
+
+**Link existing notes to Zotero** matches notes by citation key, and Zotero
+only has those with [Better BibTeX](https://retorque.re/zotero-better-bibtex/)
+installed. Install it, and run the command again.
+
+### "Found no notes to link"
+
+None of your notes has a `citekey` property or a name that matches a citation
+key in your Zotero library. A note that's already a paper's note, or that has
+the item key property with something else in it, isn't looked at.
 
 ### Can I change a paper's status by hand?
 

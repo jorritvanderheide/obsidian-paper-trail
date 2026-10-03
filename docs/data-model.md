@@ -9,6 +9,12 @@ A note is a paper when its frontmatter has a string under the **item key
 property** (`zotero-key` by default). Not its folder, its tags or its template.
 `isPaper` in `src/core/paper-note.ts` is the one test, and everything asks it.
 
+Two things write that property: a decision about a paper with no note, which
+makes the note, and **Link existing notes to Zotero**, which writes it on
+notes another plugin made and nothing else (`planAdoption` in
+`src/core/adoption.ts` matches them by citation key). Its confirmation lists
+the managed keys below that the first sync will replace (`replacedKeys`).
+
 ## Keys a refresh from Zotero writes
 
 Overwritten from Zotero whenever they differ, except `aliases`, which is only

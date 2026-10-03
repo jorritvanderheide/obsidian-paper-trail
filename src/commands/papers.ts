@@ -22,7 +22,9 @@ import {
 } from '../core/paper-note';
 import { attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
 import { arrivalReading, type Reading } from '../core/triage';
-import { attachmentAnnotations, itemChildren, itemMetadata, SourceError } from '../source';
+import { attachmentAnnotations, changedSince, itemChildren, itemMetadata, SourceError } from '../source';
+import { adoptionSummary, planAdoption } from '../core/adoption';
+import { confirmed } from '../ui/prompt';
 import { settle } from '../ui/editing';
 import { notify, say } from '../ui/notify';
 import { statusTagsOf } from '../core/settings';
@@ -241,4 +243,50 @@ export async function syncOnOpen(context: Context, file: TFile): Promise<void> {
 	} finally {
 		syncing.delete(file.path);
 	}
+}
+
+/**
+ * Make literature notes another plugin wrote into paper notes, matched by
+ * citation key.
+ *
+ * Writes the item key property and nothing else, and only after saying what
+ * that leads to: the note's first sync replaces the properties Paper Trail
+ * owns, and those may hold values somebody chose. The rest arrives through
+ * that sync when each note is opened, the same way it does for every paper.
+ *
+ * Reads the whole library, whatever **Papers from** is set to, because notes
+ * written before you picked a collection are as likely to be outside it as in.
+ */
+export async function adoptNotes(context: Context): Promise<void> {
+	const { app } = context;
+	const { keyField } = context.settings;
+	const { items } = await changedSince(0, '');
+
+	const notes = app.vault.getMarkdownFiles().map((file) => ({
+		path: file.path,
+		basename: file.basename,
+		frontmatter: app.metadataCache.getFileCache(file)?.frontmatter,
+	}));
+	const plan = planAdoption(notes, items, keyField);
+	const summary = adoptionSummary(plan, keyField);
+
+	if (plan.adopt.length === 0) {
+		new Notice(summary.join('\n\n'));
+		return;
+	}
+
+	const n = plan.adopt.length;
+	if (!(await confirmed(app, 'Link existing notes to Zotero', summary, `Link ${n} ${n === 1 ? 'note' : 'notes'}`))) return;
+
+	for (const { path, key } of plan.adopt) {
+		const file = app.vault.getFileByPath(path);
+		if (!file) continue;
+		// Checked again inside the write, since the dialog may have been open
+		// while the note gained a key some other way.
+		await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+			if (frontmatter[keyField] === undefined) frontmatter[keyField] = key;
+		});
+	}
+
+	say(context, `Linked ${n} ${n === 1 ? 'note' : 'notes'} to Zotero. You'll find them in Triage.`);
 }

@@ -256,6 +256,22 @@ export function managedDiffers(current: Record<string, unknown> | undefined, man
 }
 
 /**
+ * The managed keys a note already has with another value, which a sync would
+ * replace.
+ *
+ * For saying so before a note another plugin made becomes a paper, since from
+ * then on those values are Zotero's. Aliases are never in it: a sync only adds
+ * to them.
+ */
+export function replacedKeys(current: Record<string, unknown>, managed: PaperFrontmatter, keyField: string): string[] {
+	const after: Record<string, unknown> = { ...current };
+	applyPaperFrontmatter(after, managed, null, keyField);
+	return MANAGED_KEYS.filter(
+		(key) => key !== 'aliases' && key in current && JSON.stringify(current[key]) !== JSON.stringify(after[key]),
+	);
+}
+
+/**
  * Apply the managed frontmatter in place, which is the shape
  * `processFrontMatter` wants.
  *

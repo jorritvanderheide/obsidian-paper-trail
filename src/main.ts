@@ -1,7 +1,7 @@
 import { debounce, Plugin } from 'obsidian';
 import { next, opening } from './commands/workflow';
 import { addPage, insertAnnotation, insertCitation } from './commands/citations';
-import { refreshPaper, syncOnOpen } from './commands/papers';
+import { adoptNotes, refreshPaper, syncOnOpen } from './commands/papers';
 import { writeReport } from './commands/report';
 import { setReading } from './commands/reading';
 import { insertBlock, welcome } from './commands/setup';
@@ -74,6 +74,7 @@ export default class PaperTrail extends Plugin {
 		this.command('insert-block', 'Insert queue block', () => insertBlock(this));
 		this.command('next', 'Next', () => next(this));
 		this.command('refresh-paper', 'Refresh paper from Zotero', () => refreshPaper(this));
+		this.command('link-notes', 'Link existing notes to Zotero', () => adoptNotes(this));
 		this.command('excluded', 'Export excluded papers', () => writeReport(this));
 		this.command('set-reading', 'Set reading status', () => setReading(this));
 		this.command('insert-citation', 'Insert citation', () => insertCitation(this));
