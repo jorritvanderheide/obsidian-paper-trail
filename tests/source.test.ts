@@ -14,6 +14,7 @@ const {
 	itemMetadata,
 	lastContact,
 	pickCitation,
+	probeBetterBibtex,
 	recentItems,
 	searchItems,
 	SourceError,
@@ -122,6 +123,30 @@ describe('pickCitation', () => {
 	it('explains an unreachable Zotero rather than throwing a socket error', async () => {
 		getText.mockRejectedValue(new Error('ECONNREFUSED'));
 		await expect(pickCitation()).rejects.toBeInstanceOf(SourceError);
+	});
+});
+
+describe('probeBetterBibtex', () => {
+	it('asks with probe, which answers without opening the dialog', async () => {
+		getText.mockResolvedValue({ status: 200, body: 'ready' });
+		expect(await probeBetterBibtex()).toBe('ready');
+		// Without `probe` this is the citation dialog, raised over the settings tab.
+		expect(getText.mock.calls[0]?.[0]).toBe('/better-bibtex/cayw?probe=true');
+	});
+
+	it('says when Better BibTeX is still starting', async () => {
+		getText.mockResolvedValue({ status: 200, body: 'starting' });
+		expect(await probeBetterBibtex()).toBe('starting');
+	});
+
+	it('reads a missing endpoint as Better BibTeX not installed', async () => {
+		getText.mockResolvedValue({ status: 404, body: 'No endpoint found' });
+		expect(await probeBetterBibtex()).toBe('missing');
+	});
+
+	it('knows nothing when Zotero itself is not there', async () => {
+		getText.mockRejectedValue(new Error('ECONNREFUSED'));
+		expect(await probeBetterBibtex()).toBeNull();
 	});
 });
 

@@ -17,6 +17,7 @@ import {
 	type ItemRef,
 } from './core/zotero';
 import type { ApiCollection } from './core/collections';
+import type { BetterBibtex, Contact } from './core/connection';
 import { getJson, getText, type Headers } from './http';
 
 /** A failure to show the user as is. */
@@ -38,12 +39,6 @@ export class SourceError extends Error {}
  */
 const UNREACHABLE = 'Zotero is not answering. Is it running?';
 const REFUSED = 'Zotero refused. Turn on its local API in Settings > Advanced.';
-
-/**
- * Whether Zotero answered the last time anything asked it something, and what
- * it said if it did not. Null until something has asked.
- */
-export type Contact = { reachable: true } | { reachable: false; reason: string } | null;
 
 let contact: Contact = null;
 
@@ -132,6 +127,26 @@ export function itemChildren(ref: ItemRef): Promise<ApiItem[]> {
 }
 
 const BBT_MISSING = "Couldn't reach Better BibTeX. Is it installed in Zotero?";
+
+/**
+ * Whether Better BibTeX is installed, without opening anything.
+ *
+ * `probe` makes the cite-as-you-write endpoint answer `ready`, or `starting`
+ * while Zotero is still loading it, instead of raising its dialog. Without
+ * Better BibTeX the endpoint does not exist and Zotero answers 404. Null when
+ * Zotero itself is not there to ask.
+ */
+export async function probeBetterBibtex(): Promise<BetterBibtex> {
+	let response;
+	try {
+		response = await getText('/better-bibtex/cayw?probe=true');
+	} catch {
+		return null;
+	}
+	if (response.status === 404) return 'missing';
+	if (response.status !== 200) return null;
+	return response.body.trim() === 'starting' ? 'starting' : 'ready';
+}
 
 /**
  * Better BibTeX's cite-as-you-write picker. One GET opens Zotero's own citation

@@ -21,6 +21,7 @@ All of them are in `src/source.ts`. Paths are under `/api/`, and
 | `<library>/items/<key>/children` | An item's attachments |
 | `<library>/items/<attachment>/children?itemType=annotation` | An attachment's annotations |
 | `/better-bibtex/cayw?format=json` | Better BibTeX's citation dialog. No timeout, since it waits on the user |
+| `/better-bibtex/cayw?probe=true` | Whether Better BibTeX is installed, for the settings tab. Answers `ready` or `starting` and opens nothing; Zotero answers 404 without Better BibTeX |
 
 Zotero puts the library version and the result count on every response
 (`Last-Modified-Version`, `Total-Results`), and `src/http.ts` keeps both, so
@@ -55,7 +56,10 @@ Trail.
 
 Every request goes through `api()` in `src/source.ts`, which records whether
 Zotero answered (`lastContact`). The queue reads that to say Zotero is closed or
-refusing, rather than drawing an empty list. A refused request means the local
+refusing, rather than drawing an empty list, and so does the **Connection** row
+at the top of the settings tab, along with what the Better BibTeX probe said.
+The probe does not go through `api()`: it is not a local API request, and
+Better BibTeX answers it whether the local API is on or not. A refused request means the local
 API is off: *Allow other applications on this computer to communicate with
 Zotero*, in Zotero's Settings → Advanced.
 

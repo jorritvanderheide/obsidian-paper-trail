@@ -617,6 +617,9 @@ Hotkeys.
 
 **Zotero**
 
+At the top, **Connection** says whether Zotero is answering and whether Better
+BibTeX is installed. Click the arrow to check again.
+
 | Setting | Default | |
 | --- | --- | --- |
 | **Papers from** | Whole library | Use one Zotero collection, if your library holds more than the papers for this thesis. Papers outside it that already have a note keep working. |
@@ -682,16 +685,18 @@ and doesn't send anything anywhere.
   annotations. These are read-only: Paper Trail never changes anything in
   Zotero.
 - **When:** When the queue opens, when Obsidian comes back into focus (a single
-  request asking what changed since last time), when you open a paper note, and
-  when a command needs it.
+  request asking what changed since last time), when you open a paper note or
+  Paper Trail's settings, and when a command needs it.
 - **Storage:** What Zotero returns is kept in memory while Obsidian runs, and
   never written to disk.
 
 ### 13.2 Better BibTeX
 
-- **Request:** `http://127.0.0.1:23119/better-bibtex/cayw?format=json`
-- **When:** Only when you open Better BibTeX's citation dialog from **Insert
-  citation**.
+- **Requests:** `http://127.0.0.1:23119/better-bibtex/cayw?format=json` opens
+  Better BibTeX's citation dialog, and `.../cayw?probe=true` only asks whether
+  Better BibTeX is installed, without opening anything.
+- **When:** The dialog only when you open it from **Insert citation**. The
+  check when you open Paper Trail's settings.
 
 ### 13.3 Zotero links
 

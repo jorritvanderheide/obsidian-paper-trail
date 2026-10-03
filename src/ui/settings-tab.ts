@@ -4,7 +4,8 @@ import { collectionPaths } from '../core/collections';
 import { loadSettings, retireStatusTag, workflowOf } from '../core/settings';
 import { readTags, retiredTagCount, type Passes } from '../core/triage';
 import { collections, forgetLibrary, refreshCollections, refreshLibrary } from '../library';
-import { lastContact } from '../source';
+import { lastContact, probeBetterBibtex } from '../source';
+import { connectionStatus, type BetterBibtex } from '../core/connection';
 import { decorate } from './view-actions';
 import { settingsChanged } from '../context';
 import type PaperTrail from '../main';
@@ -37,6 +38,9 @@ export class SettingsTab extends PluginSettingTab {
 	/** Whether Zotero has been asked for its collections since this tab opened. */
 	private asked = false;
 
+	/** What Better BibTeX said the last time this tab asked. */
+	private betterBibtex: BetterBibtex = null;
+
 	/**
 	 * The status tag as it stood when this tab opened, which is the namespace
 	 * the plugin has actually been writing under. A change is retired against
@@ -62,7 +66,14 @@ export class SettingsTab extends PluginSettingTab {
 	private askZotero(): void {
 		if (this.asked) return;
 		this.asked = true;
-		void refreshCollections().then(() => this.update());
+		// The collection request is also what tells the Connection row whether
+		// Zotero is there, so the two are asked together and drawn once.
+		void Promise.all([
+			refreshCollections(),
+			probeBetterBibtex().then((answer) => {
+				this.betterBibtex = answer;
+			}),
+		]).then(() => this.update());
 	}
 
 	/** Closing the tab is what makes the next opening ask again. */
@@ -139,7 +150,9 @@ export class SettingsTab extends PluginSettingTab {
 		const chosen = this.plugin.settings.collection;
 		const contact = lastContact();
 
-		if (contact !== null && !contact.reachable) return ` ${contact.reason}`;
+		// The Connection row above says why. Saying it twice in one group reads
+		// as two problems, and "not in Zotero" would be a third, untrue one.
+		if (contact !== null && !contact.reachable) return '';
 		if (chosen === '') return '';
 		if (collections().some((entry) => entry.key === chosen)) return '';
 		// Said here as well as in the queue, because this is where it is fixed.
@@ -213,6 +226,21 @@ export class SettingsTab extends PluginSettingTab {
 				type: 'group',
 				heading: 'Zotero',
 				items: [
+					{
+						name: 'Connection',
+						desc: connectionStatus(lastContact(), this.betterBibtex),
+						render: (setting) => {
+							setting.addExtraButton((button) =>
+								button
+									.setIcon('refresh-cw')
+									.setTooltip('Check again')
+									.onClick(() => {
+										this.asked = false;
+										this.askZotero();
+									}),
+							);
+						},
+					},
 					{
 						name: 'Papers from',
 						desc:
