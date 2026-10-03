@@ -351,6 +351,42 @@ describe('applyPaperFrontmatter', () => {
 	});
 
 
+	it('keeps an alias you gave the paper, and adds the citation key after it', () => {
+		const fm: Record<string, unknown> = { aliases: ['Care paper'] };
+		applyPaperFrontmatter(fm, managed(), null, 'zotero-key');
+		expect(fm.aliases).toEqual(['Care paper', 'vanderlindMendingQuietArchive2026']);
+	});
+
+	it('keeps your aliases when the note is already named for its key', () => {
+		// The case that used to delete them: no key alias is needed, so the list
+		// was written as empty, and an empty list is removed.
+		const fm: Record<string, unknown> = { aliases: ['Care paper'] };
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'vanderlindMendingQuietArchive2026'), null, 'zotero-key');
+		expect(fm.aliases).toEqual(['Care paper']);
+	});
+
+	it('keeps a single alias written as text', () => {
+		const named: Record<string, unknown> = { aliases: 'Care paper' };
+		applyPaperFrontmatter(named, paperFrontmatter(item, ref, 'vanderlindMendingQuietArchive2026'), null, 'zotero-key');
+		expect(named.aliases).toBe('Care paper');
+
+		const renamed: Record<string, unknown> = { aliases: 'Care paper' };
+		applyPaperFrontmatter(renamed, managed(), null, 'zotero-key');
+		expect(renamed.aliases).toEqual(['Care paper', 'vanderlindMendingQuietArchive2026']);
+	});
+
+	it('does not add the citation key twice', () => {
+		const fm: Record<string, unknown> = { aliases: ['vanderlindMendingQuietArchive2026', 'Care paper'] };
+		applyPaperFrontmatter(fm, managed(), null, 'zotero-key');
+		expect(fm.aliases).toEqual(['vanderlindMendingQuietArchive2026', 'Care paper']);
+	});
+
+	it('writes no aliases where none are needed and there were none', () => {
+		const fm: Record<string, unknown> = {};
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, 'vanderlindMendingQuietArchive2026'), null, 'zotero-key');
+		expect('aliases' in fm).toBe(false);
+	});
+
 	it('is stable: syncing twice changes nothing the second time', () => {
 		const once = lived();
 		applyPaperFrontmatter(once, managed(), null, 'zotero-key');
@@ -449,6 +485,12 @@ describe('managedDiffers', () => {
 
 	it('sees a title changed in Zotero', () => {
 		expect(managedDiffers({ ...synced(), title: 'something else' }, managed(), 'zotero-key')).toBe(true);
+	});
+
+	it('is false for a note with aliases of your own, so opening it writes nothing', () => {
+		const yours = synced();
+		yours.aliases = ['Care paper', ...(yours.aliases as string[])];
+		expect(managedDiffers(yours, managed(), 'zotero-key')).toBe(false);
 	});
 
 	it('sees an alias list that has changed', () => {
@@ -553,5 +595,62 @@ describe('inRegion', () => {
 
 	it('is true from marker to marker and nowhere else', () => {
 		expect([0, 1, 2, 3, 4, 5].map((line) => inRegion(body, line))).toEqual([false, false, true, true, true, false]);
+	});
+});
+
+/**
+ * A note made by another plugin, given an item key and then opened, which is
+ * what a sync does to it. The shape is Zotero Integration's: its own
+ * frontmatter, its own annotations section, and no region of ours.
+ */
+describe('syncing a note another plugin made', () => {
+	const body = [
+		'# Mending quiet archive practices',
+		'',
+		'> [!info] Metadata',
+		'> **Journal**: Archival Science',
+		'',
+		'## My notes',
+		'',
+		'The care argument is the one to use in chapter 2.',
+		'',
+		'## Annotations (imported 2025-01-02)',
+		'',
+		'> "Care is not inherently good." (p. 842)',
+		'',
+	].join('\n');
+
+	const frontmatter = (): Record<string, unknown> => ({
+		title: 'Mending quiet archive practices: a care perspective',
+		aliases: ['Care paper'],
+		authors: ['[[Ida Van Der Lind]]', '[[Bram De Veld]]'],
+		year: 2026,
+		citekey: 'vanderlindMendingQuietArchive2026',
+		tags: ['literature'],
+		journal: 'Archival Science',
+		'zotero-key': '5UPN73EU',
+	});
+
+	it('keeps every byte of the body, and puts the region after it', () => {
+		const out = replaceRegion(body, renderAnnotations([annotation()]));
+		expect(out.startsWith(body.trimEnd())).toBe(true);
+		expect(out.indexOf(REGION_START)).toBeGreaterThan(out.indexOf('(imported 2025-01-02)'));
+	});
+
+	it('keeps the frontmatter it does not manage, and the aliases', () => {
+		const fm = frontmatter();
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, '@vanderlindMendingQuietArchive2026'), null, 'zotero-key');
+		expect(fm.tags).toEqual(['literature']);
+		expect(fm.journal).toBe('Archival Science');
+		expect(fm.aliases).toEqual(['Care paper', 'vanderlindMendingQuietArchive2026']);
+	});
+
+	it('replaces the title and authors with what Zotero has', () => {
+		// Pinned, because this is what linking an old note costs: the values are
+		// the plugin's from here on, and the confirmation says so beforehand.
+		const fm = frontmatter();
+		applyPaperFrontmatter(fm, paperFrontmatter(item, ref, '@vanderlindMendingQuietArchive2026'), null, 'zotero-key');
+		expect(fm.title).toBe('Mending quiet archive practices');
+		expect(fm.authors).toBe('Ida Van Der Lind, Bram De Veld');
 	});
 });

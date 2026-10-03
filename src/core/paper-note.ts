@@ -244,9 +244,10 @@ export function paperLinks(ref: ItemRef, attachmentKey: string | null): string {
 export function managedDiffers(current: Record<string, unknown> | undefined, managed: PaperFrontmatter, keyField: string): boolean {
 	const before = current ?? {};
 
-	// What the keys would be afterwards, worked out on a throwaway object so
-	// that asking the question cannot answer it.
-	const after: Record<string, unknown> = {};
+	// What the keys would be afterwards, worked out on a copy so that asking
+	// the question cannot answer it. A copy of the note's own rather than an
+	// empty object, because the aliases afterwards depend on the aliases before.
+	const after: Record<string, unknown> = { ...before };
 	applyPaperFrontmatter(after, managed, null, keyField);
 
 	const same = (key: string) => JSON.stringify(before[key]) === JSON.stringify(after[key]);
@@ -260,8 +261,9 @@ export function managedDiffers(current: Record<string, unknown> | undefined, man
  *
  * This is the frontmatter half of the ownership boundary, and it lives here
  * rather than in the command because it is the part that can destroy something.
- * Managed keys are written or removed; every other key is left exactly as it
- * was found, including the reading decision.
+ * Managed keys are written or removed, except aliases, which are only added to;
+ * every other key is left exactly as it was found, including the reading
+ * decision.
  *
  * `arriving` is the state a brand new note is stamped with, and null says
  * this is a sync rather than a creation. A parameter rather than something
@@ -286,6 +288,10 @@ export function applyPaperFrontmatter(
 	tags: StatusTags = NO_STATUS_TAGS,
 ): void {
 	for (const key of MANAGED_KEYS) {
+		if (key === 'aliases') {
+			addAliases(frontmatter, managed.aliases);
+			continue;
+		}
 		const value = managed[key];
 		// An absent citation key leaves nothing behind rather than a null, which
 		// would read as "known to be nothing".
@@ -307,6 +313,25 @@ export function applyPaperFrontmatter(
 	}
 
 	sortKeys(frontmatter);
+}
+
+/**
+ * Add the aliases a paper needs to the ones it has, and take none away.
+ *
+ * The one managed key that is shared. Aliases are how a note is found by
+ * another name, and people give a paper names of their own, so replacing the
+ * list deleted every one of them the next time the note was opened. What this
+ * costs is a citation key Better BibTeX has since changed staying on as an
+ * alias, which still finds the right paper.
+ *
+ * A single alias can be written as text rather than a list, and is left as text
+ * unless something has to be added to it.
+ */
+function addAliases(frontmatter: Record<string, unknown>, wanted: string[]): void {
+	const current = frontmatter.aliases;
+	const list: unknown[] = current === undefined || current === null ? [] : Array.isArray(current) ? current : [current];
+	const missing = wanted.filter((alias) => !list.includes(alias));
+	if (missing.length > 0) frontmatter.aliases = [...list, ...missing];
 }
 
 /**

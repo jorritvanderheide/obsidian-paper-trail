@@ -11,13 +11,13 @@ property** (`zotero-key` by default). Not its folder, its tags or its template.
 
 ## Keys a refresh from Zotero writes
 
-Overwritten from Zotero whenever they differ (`MANAGED_KEYS` in
-`src/core/paper-note.ts`):
+Overwritten from Zotero whenever they differ, except `aliases`, which is only
+added to (`MANAGED_KEYS` in `src/core/paper-note.ts`):
 
 | Key | Value |
 | --- | --- |
 | `title` | Zotero's short title, or its full title when there is none |
-| `aliases` | The citation key, only when the note is not already named for it |
+| `aliases` | The citation key, added only when the note is not already named for it. Aliases you add are kept |
 | `authors` | Author names, comma separated |
 | `year` | The year, or empty |
 | `citekey` | Better BibTeX's citation key, or empty without it |
