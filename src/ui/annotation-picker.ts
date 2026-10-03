@@ -38,10 +38,13 @@ class AnnotationPicker extends FuzzySuggestModal<PickedPassage> {
 	// byline under it, each with its own highlights.
 	renderSuggestion({ item, match }: FuzzyMatch<PickedPassage>, el: HTMLElement): void {
 		const cut = item.text.length + 1;
-		renderMatches(el.createDiv(), item.text, match.matches.filter(([start]) => start < item.text.length));
+		const inText = match.matches
+			.filter(([start]) => start < item.text.length)
+			.map(([start, end]): [number, number] => [start, Math.min(end, item.text.length)]);
+		renderMatches(el.createDiv(), item.text, inText);
 
 		const byline = el.createEl('small', { cls: 'paper-trail-picker-byline' });
-		const inName = match.matches.filter(([start]) => start >= cut).map(([start, end]): [number, number] => [start - cut, end - cut]);
+		const inName = match.matches.filter(([, end]) => end > cut).map(([start, end]): [number, number] => [Math.max(start, cut) - cut, end - cut]);
 		renderMatches(byline, item.file.basename, inName);
 		if (item.page) byline.appendText(` · p. ${item.page}`);
 	}

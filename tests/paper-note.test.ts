@@ -551,7 +551,7 @@ describe('syncedPassages', () => {
 describe('inRegion', () => {
 	const body = ['# Paper', '', '<!--paper-trail-->', '## Annotations', '<!--/paper-trail-->', 'after'].join('\n');
 
-	it('is true between the markers and nowhere else', () => {
-		expect([0, 1, 2, 3, 4, 5].map((line) => inRegion(body, line))).toEqual([false, false, false, true, false, false]);
+	it('is true from marker to marker and nowhere else', () => {
+		expect([0, 1, 2, 3, 4, 5].map((line) => inRegion(body, line))).toEqual([false, false, true, true, true, false]);
 	});
 });

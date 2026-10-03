@@ -174,12 +174,15 @@ export function syncedPassages(body: string): SyncedPassage[] {
 /**
  * Where the cursor is, by line, against the region: inside it, text typed is
  * overwritten by the next sync.
+ *
+ * The marker lines count as inside. What follows the opening marker on its
+ * line, or comes before the closing one, is replaced along with the rest.
  */
 export function inRegion(body: string, line: number): boolean {
 	const lines = body.split('\n');
 	const start = lines.findIndex((text) => text.includes(REGION_START));
 	const end = lines.findIndex((text) => text.includes(REGION_END));
-	return start !== -1 && end !== -1 && start < line && line < end;
+	return start !== -1 && end !== -1 && start <= line && line <= end;
 }
 
 /**

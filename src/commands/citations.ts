@@ -203,7 +203,11 @@ export async function insertAnnotation(context: Context): Promise<void> {
 		new Notice("There's no open note to put it in.");
 		return;
 	}
-	const cursor = editor.getCursor();
-	const line = editor.getLine(cursor.line);
-	editor.replaceSelection(quotation(chosen.text, chosen.file.basename, chosen.page, line.slice(0, cursor.ch), line.slice(cursor.ch)));
+	// Either side of the selection rather than of the cursor: a selection is
+	// replaced, so what stays on the line is what is before and after it.
+	const from = editor.getCursor('from');
+	const to = editor.getCursor('to');
+	const before = editor.getLine(from.line).slice(0, from.ch);
+	const after = editor.getLine(to.line).slice(to.ch);
+	editor.replaceSelection(quotation(chosen.text, chosen.file.basename, chosen.page, before, after));
 }
