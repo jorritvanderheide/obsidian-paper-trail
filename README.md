@@ -334,6 +334,7 @@ annotations:
 
 ## Annotations
 
+> [!quote|zotero-yellow]
 > a passage you highlighted in Zotero (p. 4) ^zt-JKLM2345
 
 a note you wrote on it
@@ -366,6 +367,12 @@ one is anchored by its Zotero key, so a link to a single passage keeps working
 after a refresh. A passage that runs across a column or a page arrives as one
 line. If you underline terms and keep highlights for passages, turn off
 **Include underlines** and only the underlines you commented on come through.
+
+Each passage keeps the colour you gave it in Zotero. It's written as a quote
+callout, `> [!quote|zotero-red]`, so you can search a colour by name, and
+without Paper Trail it's still an ordinary quote callout. Annotations that came
+inside the PDF, in a colour Zotero's reader doesn't offer, show up as a plain
+quote.
 
 ### 7.3 The template
 

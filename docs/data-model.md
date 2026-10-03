@@ -74,6 +74,15 @@ them is the user's. It holds the `## Annotations` section, one block per Zotero
 annotation, each ending in a block ID derived from the annotation's key
 (`^zt-<key>`) so a link to it survives refreshes.
 
+A passage in one of the eight colours of Zotero's reader is a quote callout
+with the colour's name as its metadata, `> [!quote|zotero-yellow]`, and
+`styles.css` draws each in its colour with the title hidden. The names are
+`ANNOTATION_COLORS` in `src/core/zotero.ts`, and a test checks that
+`styles.css` has a rule for each. A passage in any other colour is a plain
+quote. Changing the format rewrites the region the next time a note is opened,
+which is safe because the region is derived, as long as the block ID stays the
+same.
+
 ## Headings
 
 The Claim and Assessment headings (names from settings) are written in above the

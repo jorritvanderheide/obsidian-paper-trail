@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	abstractOf,
@@ -16,6 +17,8 @@ import {
 	annotations,
 	passage,
 	pdfBox,
+	colorName,
+	ANNOTATION_COLORS,
 	itemYear,
 	noteName,
 	parseItemRef,
@@ -348,6 +351,7 @@ describe('annotations', () => {
 				comment: 'cf. Okafor',
 				page: '842',
 				sortIndex: '00001|000000|00000',
+				color: null,
 			},
 		]);
 	});
@@ -411,8 +415,8 @@ describe('annotations', () => {
  * Taken from the local API, so the shape is checked against Zotero rather than
  * against its documentation. The two disagree about `/children`.
  *
- * The real response also carries `annotationColor: "#ffd400"`, which is not
- * declared on `ApiItem` and not read: nothing renders a colour.
+ * Its position is left out: nothing here reads it unless the sort index is
+ * missing its offset.
  */
 describe('annotations, against a real one', () => {
 	const real: ApiItem = {
@@ -420,6 +424,7 @@ describe('annotations, against a real one', () => {
 		data: {
 			itemType: 'annotation',
 			annotationType: 'highlight',
+			annotationColor: '#ffd400',
 			annotationText: 'The keeping of household records is central to archival policy, with the index card positioned as a key technology',
 			annotationComment: '',
 			annotationPageLabel: '840',
@@ -435,6 +440,7 @@ describe('annotations, against a real one', () => {
 				comment: '',
 				page: '840',
 				sortIndex: '00000|000566|00410',
+				color: 'yellow',
 			},
 		]);
 	});
@@ -503,6 +509,29 @@ describe('annotations Zotero gave no offset', () => {
 	it('leaves an annotation without rectangles where its sort index puts it', () => {
 		const ink: ApiItem = { key: 'ink', data: { itemType: 'annotation', annotationComment: 'drawn', annotationSortIndex: '00002|000000|00000', annotationPosition: '{"pageIndex":2,"paths":[[1,2,3,4]]}' } };
 		expect(order([at('placed', '00002|000100|00100', [60, 690, 200, 700]), ink])).toEqual(['ink', 'placed']);
+	});
+});
+
+describe('colorName', () => {
+	it('names every colour Zotero offers', () => {
+		for (const [hex, name] of Object.entries(ANNOTATION_COLORS)) expect(colorName(hex)).toBe(name);
+	});
+
+	it('reads the hex in either case', () => {
+		expect(colorName('#FF6666')).toBe('red');
+	});
+
+	it('has its colour drawn by styles.css, so the two lists stay in step', () => {
+		const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+		for (const [hex, name] of Object.entries(ANNOTATION_COLORS)) {
+			expect(css).toContain(`[data-callout-metadata='zotero-${name}'] {\n\t--callout-color: ${hex};`);
+		}
+	});
+
+	it('gives no name to a colour that came with the PDF', () => {
+		expect(colorName('#facd5a')).toBeNull();
+		expect(colorName(undefined)).toBeNull();
+		expect(colorName('')).toBeNull();
 	});
 });
 

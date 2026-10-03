@@ -109,6 +109,13 @@ Check these in order:
 - **Are they underlines?** With **Include underlines** off, an underline only
   comes through if you commented on it.
 
+### Why is an annotation a plain quote instead of coloured?
+
+Its colour isn't one of the eight in Zotero's reader. That happens with
+annotations that were already in the PDF when you added it, which keep the
+colour of whatever program made them. Paper Trail doesn't guess the nearest
+colour, so it shows them as a plain quote.
+
 ### Can I edit the annotations in the note?
 
 You can, but your edits are replaced at the next refresh: everything between

@@ -525,3 +525,60 @@
 	font-style: italic;
 	pointer-events: none;
 }
+
+/*
+ * An annotation in the colour it has in Zotero.
+ *
+ * `renderAnnotation` writes a passage as `> [!quote|zotero-<name>]`, and this
+ * is the other half: the eight colours of Zotero's palette, by the names
+ * `ANNOTATION_COLORS` in `src/core/zotero.ts` gives them. Keep the two lists in
+ * step. Scoped to the quote type and the `zotero-` metadata, so nobody else's
+ * callouts change.
+ *
+ * The title goes, because a title saying "Quote" over every passage is noise,
+ * and so do the margins it was spacing out. Without the plugin the same
+ * markdown is an ordinary quote callout.
+ */
+.callout[data-callout='quote'][data-callout-metadata^='zotero-'] > .callout-title {
+	display: none;
+}
+
+.callout[data-callout='quote'][data-callout-metadata^='zotero-'] > .callout-content > :first-child {
+	margin-top: 0;
+}
+
+.callout[data-callout='quote'][data-callout-metadata^='zotero-'] > .callout-content > :last-child {
+	margin-bottom: 0;
+}
+
+.callout[data-callout='quote'][data-callout-metadata='zotero-yellow'] {
+	--callout-color: #ffd400;
+}
+
+.callout[data-callout='quote'][data-callout-metadata='zotero-red'] {
+	--callout-color: #ff6666;
+}
+
+.callout[data-callout='quote'][data-callout-metadata='zotero-green'] {
+	--callout-color: #5fb236;
+}
+
+.callout[data-callout='quote'][data-callout-metadata='zotero-blue'] {
+	--callout-color: #2ea8e5;
+}
+
+.callout[data-callout='quote'][data-callout-metadata='zotero-purple'] {
+	--callout-color: #a28ae5;
+}
+
+.callout[data-callout='quote'][data-callout-metadata='zotero-magenta'] {
+	--callout-color: #e56eee;
+}
+
+.callout[data-callout='quote'][data-callout-metadata='zotero-orange'] {
+	--callout-color: #f19837;
+}
+
+.callout[data-callout='quote'][data-callout-metadata='zotero-gray'] {
+	--callout-color: #aaaaaa;
+}

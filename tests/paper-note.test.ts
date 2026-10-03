@@ -41,6 +41,7 @@ const annotation = (over: Partial<Annotation> = {}): Annotation => ({
 	comment: '',
 	page: '842',
 	sortIndex: '00000|000566|00410',
+	color: null,
 	...over,
 });
 
@@ -134,6 +135,28 @@ describe('renderAnnotation', () => {
 
 	it('gives the same id every time, so links survive a re-sync', () => {
 		expect(renderAnnotation(annotation())).toBe(renderAnnotation(annotation()));
+	});
+});
+
+describe('renderAnnotation, in colour', () => {
+	it('is a quote callout named for the colour, with the id where it was', () => {
+		expect(renderAnnotation(annotation({ color: 'red' }))).toBe(
+			'> [!quote|zotero-red]\n> Care is not inherently good. (p. 842) ^zt-2SQ873XZ',
+		);
+	});
+
+	it('keeps the comment outside the callout', () => {
+		expect(renderAnnotation(annotation({ color: 'yellow', comment: 'cf. Okafor' }))).toBe(
+			'> [!quote|zotero-yellow]\n> Care is not inherently good. (p. 842) ^zt-2SQ873XZ\n\ncf. Okafor',
+		);
+	});
+
+	it('is a plain quote for a colour Zotero does not offer', () => {
+		expect(renderAnnotation(annotation({ color: null }))).toBe('> Care is not inherently good. (p. 842) ^zt-2SQ873XZ');
+	});
+
+	it('gives a note with no passage no callout, whatever its colour', () => {
+		expect(renderAnnotation(annotation({ text: '', comment: 'a thought', color: 'blue' }))).toBe('a thought');
 	});
 });
 

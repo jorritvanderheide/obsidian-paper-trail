@@ -112,11 +112,19 @@ export function paperFrontmatter(item: ApiItem, ref: ItemRef, basename: string):
 	};
 }
 
-/** One annotation as markdown, with an id derived from its key. */
+/**
+ * One annotation as markdown, with an id derived from its key.
+ *
+ * A passage in one of Zotero's colours is a quote callout with the colour as
+ * its metadata, which `styles.css` draws in that colour with no title. Without
+ * the plugin it is still Obsidian's own quote callout. Any other colour is a
+ * plain quote, as every passage was before colours were shown.
+ */
 export function renderAnnotation(annotation: Annotation): string {
 	const lines: string[] = [];
 	if (annotation.text) {
 		const page = annotation.page ? ` (p. ${annotation.page})` : '';
+		if (annotation.color) lines.push(`> [!quote|zotero-${annotation.color}]`);
 		// One line, because `passage` made it one when it was read. The id is
 		// derived, not generated, so it survives every re-sync and a link to one
 		// passage keeps resolving.
