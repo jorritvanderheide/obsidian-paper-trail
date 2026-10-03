@@ -23,7 +23,7 @@
 // key a second time.
 import { MarkdownView, Notice } from 'obsidian';
 import { pickItem } from '../ui/item-picker';
-import { pickPassage, type PickedPassage } from '../ui/annotation-picker';
+import { pickPaper, pickPassage, type AnnotatedPaper } from '../ui/annotation-picker';
 import { inRegion, isPaper, syncedPassages } from '../core/paper-note';
 import { prompt } from '../ui/prompt';
 import { pickCitation } from '../source';
@@ -162,9 +162,11 @@ export async function addPage(context: Context): Promise<void> {
 /**
  * Quote a passage you annotated, with the citation to its page.
  *
- * The passages come out of the paper notes, as the last sync wrote them, and
- * the most recently changed paper first, which is usually the one you are
- * writing about. The quote is a copy: it is yours to cut down once it is in.
+ * The paper first, then the passage. The passages come out of the paper notes,
+ * as the last sync wrote them, and the papers are offered most recently
+ * changed first, which is usually the one you are writing about. Only papers
+ * with something to quote are offered. The quote is a copy: it is yours to cut
+ * down once it is in.
  */
 export async function insertAnnotation(context: Context): Promise<void> {
 	const app = context.app;
@@ -180,20 +182,25 @@ export async function insertAnnotation(context: Context): Promise<void> {
 		return;
 	}
 
-	const papers = app.vault
-		.getMarkdownFiles()
-		.filter((file) => isPaper(app.metadataCache.getFileCache(file)?.frontmatter, context.settings.keyField))
-		.sort((a, b) => b.stat.mtime - a.stat.mtime);
-	const passages: PickedPassage[] = [];
-	for (const file of papers) {
-		for (const passage of syncedPassages(await app.vault.cachedRead(file))) passages.push({ ...passage, file });
+	const papers: AnnotatedPaper[] = [];
+	const files = app.vault.getMarkdownFiles().sort((a, b) => b.stat.mtime - a.stat.mtime);
+	for (const file of files) {
+		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
+		if (!isPaper(frontmatter, context.settings.keyField)) continue;
+		const passages = syncedPassages(await app.vault.cachedRead(file));
+		if (passages.length === 0) continue;
+		const title = typeof frontmatter.title === 'string' && frontmatter.title.trim() ? frontmatter.title.trim() : file.basename;
+		const byline = [frontmatter.authors, frontmatter.year].filter((part) => typeof part === 'string' || typeof part === 'number').join(', ');
+		papers.push({ file, title, byline, passages });
 	}
-	if (passages.length === 0) {
+	if (papers.length === 0) {
 		new Notice("There are no annotations in your paper notes yet. Open a paper's note with Zotero running to bring them in.");
 		return;
 	}
 
-	const chosen = await pickPassage(app, passages);
+	const paper = await pickPaper(app, papers);
+	if (!paper) return;
+	const chosen = await pickPassage(app, paper);
 	if (!chosen) return;
 
 	// Fetched after the picker closes, for the same reason as a citation: the
@@ -209,5 +216,5 @@ export async function insertAnnotation(context: Context): Promise<void> {
 	const to = editor.getCursor('to');
 	const before = editor.getLine(from.line).slice(0, from.ch);
 	const after = editor.getLine(to.line).slice(to.ch);
-	editor.replaceSelection(quotation(chosen.text, chosen.file.basename, chosen.page, before, after));
+	editor.replaceSelection(quotation(chosen.text, paper.file.basename, chosen.page, before, after));
 }

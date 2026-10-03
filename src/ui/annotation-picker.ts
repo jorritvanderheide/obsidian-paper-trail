@@ -1,57 +1,46 @@
-// Pick a passage you annotated, to quote it.
+// Pick a passage you annotated, to quote it: the paper first, then the passage.
 //
 // From the paper notes rather than from Zotero: these are the papers you have
 // decided about, it works with Zotero closed, and the note is what the
-// citation links to. Fuzzy over the passage and the paper's name together, so
-// "okafor care" finds Okafor's line about care.
-import { FuzzySuggestModal, renderMatches, type App, type FuzzyMatch, type TFile } from 'obsidian';
+// citation links to. Two lists rather than one, because the paper is usually
+// what you already know, and a passage is easier to find among one paper's
+// than among all of them.
+import { FuzzySuggestModal, type App, type FuzzyMatch, type TFile } from 'obsidian';
 import type { SyncedPassage } from '../core/paper-note';
 
-export interface PickedPassage extends SyncedPassage {
+/** A paper note and the passages synced into it. */
+export interface AnnotatedPaper {
 	file: TFile;
+	title: string;
+	/** Authors and year, as the note's properties have them. */
+	byline: string;
+	passages: SyncedPassage[];
 }
 
-class AnnotationPicker extends FuzzySuggestModal<PickedPassage> {
-	private result: PickedPassage | null = null;
+/**
+ * A fuzzy list that resolves once it is closed, to what was chosen or null.
+ *
+ * The choice is recorded and read on close, inside a timeout, because
+ * `onChooseItem` can run after `close()`, as in the item picker.
+ */
+abstract class Picker<T> extends FuzzySuggestModal<T> {
+	private result: T | null = null;
 
 	constructor(
 		app: App,
-		private readonly passages: PickedPassage[],
-		private readonly done: (picked: PickedPassage | null) => void,
+		private readonly items: T[],
+		private readonly done: (picked: T | null) => void,
 	) {
 		super(app);
-		this.setPlaceholder('Search your annotations, or the paper they are from');
 		this.emptyStateText = 'Nothing matches.';
-		this.setInstructions([{ command: '↵', purpose: 'insert as a quote' }]);
 	}
 
-	getItems(): PickedPassage[] {
-		return this.passages;
+	getItems(): T[] {
+		return this.items;
 	}
 
-	getItemText(passage: PickedPassage): string {
-		return `${passage.text} ${passage.file.basename}`;
-	}
-
-	// The searched text is the passage and the name run together, so the matches
-	// are split at the join: the passage on the first line, the name in the
-	// byline under it, each with its own highlights.
-	renderSuggestion({ item, match }: FuzzyMatch<PickedPassage>, el: HTMLElement): void {
-		const cut = item.text.length + 1;
-		const inText = match.matches
-			.filter(([start]) => start < item.text.length)
-			.map(([start, end]): [number, number] => [start, Math.min(end, item.text.length)]);
-		renderMatches(el.createDiv(), item.text, inText);
-
-		const byline = el.createEl('small', { cls: 'paper-trail-picker-byline' });
-		const inName = match.matches.filter(([, end]) => end > cut).map(([start, end]): [number, number] => [Math.max(start, cut) - cut, end - cut]);
-		renderMatches(byline, item.file.basename, inName);
-		if (item.page) byline.appendText(` · p. ${item.page}`);
-	}
-
-	// Records only, as in the item picker: this can run after close().
-	onChooseItem(passage: PickedPassage): void {
-		this.result = passage;
+	onChooseItem(item: T): void {
+		this.result = item;
 	}
 
 	onClose(): void {
@@ -59,7 +48,48 @@ class AnnotationPicker extends FuzzySuggestModal<PickedPassage> {
 	}
 }
 
+class PaperPicker extends Picker<AnnotatedPaper> {
+	constructor(app: App, papers: AnnotatedPaper[], done: (picked: AnnotatedPaper | null) => void) {
+		super(app, papers, done);
+		this.setPlaceholder('Which paper are you quoting?');
+		this.setInstructions([{ command: '↵', purpose: 'show its annotations' }]);
+	}
+
+	getItemText(paper: AnnotatedPaper): string {
+		return `${paper.title} ${paper.byline} ${paper.file.basename}`;
+	}
+
+	renderSuggestion({ item }: FuzzyMatch<AnnotatedPaper>, el: HTMLElement): void {
+		el.createDiv({ text: item.title });
+		const count = `${item.passages.length} ${item.passages.length === 1 ? 'annotation' : 'annotations'}`;
+		const byline = [item.byline, item.file.basename, count].filter(Boolean).join(' · ');
+		el.createEl('small', { cls: 'paper-trail-picker-byline', text: byline });
+	}
+}
+
+class PassagePicker extends Picker<SyncedPassage> {
+	constructor(app: App, paper: AnnotatedPaper, done: (picked: SyncedPassage | null) => void) {
+		super(app, paper.passages, done);
+		this.setPlaceholder(`Search the annotations in ${paper.file.basename}`);
+		this.setInstructions([{ command: '↵', purpose: 'insert as a quote' }]);
+	}
+
+	getItemText(passage: SyncedPassage): string {
+		return passage.text;
+	}
+
+	renderSuggestion(match: FuzzyMatch<SyncedPassage>, el: HTMLElement): void {
+		super.renderSuggestion(match, el);
+		if (match.item.page) el.createEl('small', { cls: 'paper-trail-picker-byline', text: `p. ${match.item.page}` });
+	}
+}
+
+/** Resolves to the chosen paper, or null when the picker was dismissed. */
+export function pickPaper(app: App, papers: AnnotatedPaper[]): Promise<AnnotatedPaper | null> {
+	return new Promise((resolve) => new PaperPicker(app, papers, resolve).open());
+}
+
 /** Resolves to the chosen passage, or null when the picker was dismissed. */
-export function pickPassage(app: App, passages: PickedPassage[]): Promise<PickedPassage | null> {
-	return new Promise((resolve) => new AnnotationPicker(app, passages, resolve).open());
+export function pickPassage(app: App, paper: AnnotatedPaper): Promise<SyncedPassage | null> {
+	return new Promise((resolve) => new PassagePicker(app, paper, resolve).open());
 }

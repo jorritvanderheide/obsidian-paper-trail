@@ -481,8 +481,9 @@ paper: it opens it, shows a preview on hover, and counts in its backlinks.
 
 ### 8.3 Quoting an annotation
 
-**Insert annotation** lets you search the passages in your paper notes, by their
-text or by the paper's name, and writes the one you pick as a quote with a
+**Insert annotation** first asks which paper you're quoting, then shows that
+paper's annotations to search. Only papers with annotations are listed, the
+most recently changed first. It writes the passage you pick as a quote with a
 citation to its page:
 
 ```markdown
