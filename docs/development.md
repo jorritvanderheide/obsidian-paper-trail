@@ -20,8 +20,10 @@ npm run lint    # eslint, with the Obsidian plugin's rules
 npm run build   # type check and production build
 ```
 
-CI runs all three on Node 20, 22 and 24 for every push
-(`.github/workflows/lint.yml`).
+CI runs all three, on Node 24, for every push to `main` and every pull
+request, and again before every release (`.github/workflows/ci.yml`). It also
+runs `nix flake check`, which builds the plugin with Nix: after a change to
+`package-lock.json`, update `npmDepsHash` in `flake.nix`, as its comment says.
 
 ## Tests
 
