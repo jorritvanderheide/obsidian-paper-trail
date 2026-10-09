@@ -122,12 +122,14 @@ If you want to work on the plugin, or build something on top of its notes:
   decisions are allowed to live, and how Zotero and the vault come together in
   the queue.
 - [**Data model**](docs/data-model.md) - Every frontmatter key, the reading
-  vocabulary, the managed region, and what counts as a breaking change.
+  vocabulary, and the managed region.
 - [**Zotero**](docs/zotero.md) - Which parts of the local API are used, and the
   quirks that give you an empty list without an error.
 - [**Citations**](docs/citations.md) - The link forms Paper Trail writes, and
   how they line up with Due Credit, which reads them.
 - [**Development**](docs/development.md) - Setup, tests, checks and releases.
+- [**Compatibility**](docs/compatibility.md) - What a release may and may not
+  change, so your settings, hotkeys and notes keep working.
 
 <br/>
 

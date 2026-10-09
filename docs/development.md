@@ -50,8 +50,9 @@ Anything that could lose a user's text wants a test before it wants a feature.
 5. **Publish the draft.** Obsidian's community directory installs from GitHub
    releases, and a tag alone is not one.
 
-Before releasing anything that renames or removes a stored key, value or marker,
-see [Compatibility](data-model.md#compatibility).
+Before releasing a change, read [Compatibility](compatibility.md). It says
+what a release may change in settings, notes, commands and citations, and what
+a breaking change needs.
 
 ## Updating an action
 

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS, SETTINGS_VERSION, loadSettings, retireStatusTag, workflowOf } from '../src/core/settings';
 
@@ -101,6 +102,56 @@ describe('migrating from version 1', () => {
 		const loaded = loadSettings({ version: 1, collection: 'THESIS00', triage: true }) as unknown as Record<string, unknown>;
 		expect('collection' in loaded).toBe(false);
 		expect('triage' in loaded).toBe(false);
+	});
+});
+
+/**
+ * `data.json` as released versions saved it, made by each version's own
+ * `loadSettings`: 1.0.0 as every install saved it on first load, and 1.3.0 and
+ * 1.7.0 with settings changed. 1.0.0 to 1.2.0 saved the same keys, 1.3.0 added
+ * `passes`, and 1.6.0 added `underlines`, so 1.4.0 to 1.7.0 look like one of
+ * these.
+ *
+ * Whenever the stored shape changes, add a fixture saved by the last release
+ * before the change, named after it, and a test of what it becomes.
+ */
+describe('settings saved by released versions', () => {
+	const saved = (version: string): unknown =>
+		JSON.parse(readFileSync(new URL(`./fixtures/settings/${version}.json`, import.meta.url), 'utf8'));
+
+	it('loads 1.0.0, keeping the template folder it was installed with', () => {
+		expect(loadSettings(saved('1.0.0'))).toEqual({
+			...DEFAULT_SETTINGS,
+			// A default changed later reaches only new vaults, since this was saved.
+			templateFolder: 'Templates',
+		});
+	});
+
+	it('loads 1.3.0, with what was changed in it', () => {
+		expect(loadSettings(saved('1.3.0'))).toEqual({
+			...DEFAULT_SETTINGS,
+			passes: 'claim',
+			papersFolder: 'Papers',
+			statusTag: 'status',
+			retiredStatusTags: ['literature'],
+		});
+	});
+
+	it('loads 1.7.0, turning its one collection and triage switch into the one source', () => {
+		expect(loadSettings(saved('1.7.0'))).toEqual({
+			...DEFAULT_SETTINGS,
+			sources: [{ group: null, collection: 'THESIS00', triage: true }],
+			underlines: false,
+			claimHeading: 'Summary',
+			claimPrompt: 'What is the one thing to remember?',
+		});
+	});
+
+	it('loads each the same again once saved in the current shape', () => {
+		for (const version of ['1.0.0', '1.3.0', '1.7.0']) {
+			const once = loadSettings(saved(version));
+			expect(loadSettings(JSON.parse(JSON.stringify(once)))).toEqual(once);
+		}
 	});
 });
 

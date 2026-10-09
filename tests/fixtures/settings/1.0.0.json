@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "keyField": "zotero-key",
+  "statusPill": true,
+  "quietNotices": false,
+  "triage": false,
+  "collection": "",
+  "papersFolder": "Literature",
+  "statusTag": "",
+  "retiredStatusTags": [],
+  "templateFolder": "Templates",
+  "claimHeading": "Claim",
+  "assessmentHeading": "Assessment",
+  "claimPrompt": "What does this paper argue, and what does it sit with or against? One or two sentences of your own; Insert citation makes the link.",
+  "assessmentPrompt": "Where does it strain? What is it assuming? What is the evidence actually doing?"
+}

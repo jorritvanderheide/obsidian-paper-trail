@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "keyField": "zotero-key",
+  "statusPill": true,
+  "quietNotices": false,
+  "triage": true,
+  "passes": "both",
+  "collection": "THESIS00",
+  "underlines": false,
+  "papersFolder": "Literature",
+  "statusTag": "",
+  "retiredStatusTags": [],
+  "templateFolder": "Templates/Paper Trail",
+  "claimHeading": "Summary",
+  "assessmentHeading": "Assessment",
+  "claimPrompt": "What is the one thing to remember?",
+  "assessmentPrompt": "Where doesn't it hold up? What does it take for granted? What does the evidence actually show?"
+}

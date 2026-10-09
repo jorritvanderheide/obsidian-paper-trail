@@ -116,11 +116,4 @@ file is overwritten, and a file at that path without it is refused.
 
 ## Compatibility
 
-1.0.0 shipped on 2026-09-23, and notes written by a released version exist in
-other people's vaults. So:
-
-- **Renaming or removing** a frontmatter key, a `reading` or `reading-progress`
-  value, or the region markers is a breaking change and needs a migration.
-- **Adding** a new optional key is not.
-- Settings carry `SETTINGS_VERSION` in `src/core/settings.ts` for migrating
-  their own shape.
+What a release may change in any of this is in [Compatibility](compatibility.md).
