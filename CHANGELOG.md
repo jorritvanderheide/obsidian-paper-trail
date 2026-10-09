@@ -1,0 +1,123 @@
+# Changelog
+
+What changed in each release of Paper Trail, newest first. What counts as
+breaking is in [Compatibility](docs/compatibility.md).
+
+## Unreleased
+
+- **Papers from** takes several sources, each with its own subcollections and triage, grouped under their library.
+
+## 1.7.0
+
+- New command **Link existing notes to Zotero**: turns literature notes from Zotero Integration or the Citations plugin into paper notes, matched by citation key (from a `citekey` property, or a note named for its key, with or without an `@`). It tells you how many notes it found and which properties will be replaced with what Zotero has before it changes anything, and only adds the item key. The linked papers show up in Triage. Needs Better BibTeX.
+- Right-click an annotation in a paper note and choose **Show in Zotero** to open the PDF at that annotation. Works in reading view and in the editor.
+- Settings now show at the top of the Zotero section whether Zotero is answering and whether Better BibTeX is installed, with a button to check again.
+- Fixed: opening a paper note no longer removes aliases you added to it yourself. Paper Trail now only adds the citation key alias, and keeps the rest.
+
+## 1.6.0
+
+- Annotations now show in the colour you gave them in Zotero. Each passage is written as a quote callout, like `> [!quote|zotero-yellow]`, so you can also search for a colour by name. Annotations that came inside the PDF, in a colour Zotero's reader doesn't offer, stay a plain quote.
+- New command **Insert annotation**: pick a paper, then one of its annotations, and it's inserted as a quote with a citation to its page.
+- New setting **Include underlines**, under Zotero. Turn it off if you underline terms and highlight passages: only underlines you commented on still come through.
+- Annotations made in Zotero's Reading Mode now show up in the right place on their page, rather than at the top of it.
+- Each paper note is rewritten once, the first time you open it after updating, to add the colours. Nothing you wrote outside the annotations section is touched.
+
+## 1.5.1
+
+- How releases are built, and how to check the file you installed, is now under "Network and file disclosure" in the README. Safety and quality points to it.
+- The FAQ asks "Does it work on mobile?", the same way the other plugins' FAQs do.
+- The development docs describe trying a build in a vault the same way as the other plugins.
+
+## 1.5.0
+
+- Friendlier wording throughout the interface: commands, notices, the reading-status chooser and the settings tab.
+- New default prompts under the Claim and Assessment headings. If you never changed a prompt, you get the new wording automatically. A prompt you wrote yourself, or cleared, is kept as it is.
+- A shorter plugin description: "Work through your Zotero library as a reading queue, and keep a record of what you decided."
+- Removed the funding link from the manifest.
+- The README has been restructured and now has screenshots, and there's a new FAQ.
+- Added issue forms and a security policy.
+
+## 1.4.1
+
+- Placeholders in the paper template (Paper.md) now ignore case and spaces inside the braces, the way Loose Ends reads its own. {{title}}, {{ Title }} and {{TITLE}} are all the same placeholder. Your existing Paper.md keeps working without any edits.
+- The template that ships with the plugin now uses the lowercase names {{title}} and {{links}}. This only affects a Paper.md written from now on. A template already in your vault is left as it is.
+
+## 1.4.0
+
+- Better BibTeX’s dialog inserts links now. It used to insert pandoc text like `[@key, p. 4]`, which does nothing in Obsidian. It now inserts [[key|key, p. 4]], a link that opens the paper, shows it on hover and counts in its backlinks.
+- Prefix, suffix and author suppression are in the link label. For example `[[key|see key, p. 4, emphasis added]]`, or `[[key|-key, p. 4]]`  to leave the author out. Several sources are joined with `; `.
+- Add a page in the picker with Tab. In Insert citation, press Tab instead of Enter and type the page. `4` becomes `p. 4`; `ch. 3` or `§ 2` go in as typed.
+- New command: Add page to citation. It adds a page to the link at or just before the cursor, including links made with Obsidian’s own `[[`, so you don’t type the key twice. A page already there is replaced, and a label you wrote keeps its words. It has no hotkey until you set one.
+- Citations link to the paper’s note by its name. When a paper has a note, the link goes to that note, so it still works if Better BibTeX changed the key after the note was created.
+- Exporting moves to Due Credit. The pandoc filter is no longer in this repository. Due Credit, a companion plugin, exports notes and reads every form Paper Trail writes. The README now points there.
+
+## 1.3.0
+
+- Added a Written passes setting: claim and assessment, claim only, or none.
+- The queue now redraws as soon as you change a setting.
+- New installs keep the paper template in Templates/Paper Trail.
+- The README shows how to build your own views over the reading fields with Bases or Dataview.
+
+## 1.2.0
+
+- Search the queue. A search button in the sidebar toolbar opens a box that narrows the pane to papers matching every word you type.
+- Right-click menu on queue rows now leads with what the row’s buttons do (for example Reading finished and Open in Zotero), followed by the reading statuses that would move the paper. Papers in Deferred and Filed get the statuses only.
+
+## 1.1.0
+
+### Paper Trail 1.1.0
+
+**A deferral comes back**
+
+- When you defer a paper, you now pick when to look again: after reading another unread paper, in 2 weeks, in a month, in 3 months, in 6 months, or no date.
+- Deferring uses the same chooser as the reading status, and each option shows the date it comes back on.
+- Waiting on another paper fills in the condition for you ("After I have read …"). If you pick a date without typing a condition, you're asked for one afterwards.
+- When the date passes, or the paper it waits on has been read or dropped, the paper returns to the stage it left (Reading or Claim). It has a faint clock before its title and your condition in its tooltip, and **Next** can offer it.
+- Coming back writes nothing to the note. It stays deferred until you decide something: read it, defer it again, or drop it.
+- Two new optional frontmatter keys, `reading-until` and `reading-after`. Papers deferred in 1.0.0 stay parked exactly as they were, and nothing needs migrating.
+
+**Improvements**
+
+- Hovering the status pill on a deferred or dropped paper shows the reason you gave.
+- Right-clicking a row lists the reading statuses directly, only the ones that would move that paper.
+- Promoted ("worth a third pass") is only offered for papers you've read.
+- Putting a paper back on the list while its note is open switches the note back to editing view.
+- **Quieter notifications** now hides everything except failures and warnings.
+- New paper notes have a blank line between the frontmatter and the title. If your vault already has a `Paper.md` template, it isn't changed: add the line yourself, or delete the file and it comes back with it.
+
+**Fixes**
+
+- Dates are recorded in your local time zone. Before, a decision made near midnight could be stamped with the wrong day.
+- The status pill keeps its width in themes that make title-bar buttons square, such as Border.
+- The count on an empty section no longer brightens when you hover it.
+
+## 1.0.0
+
+### Paper Trail 1.0.0
+
+The first release. Paper Trail turns your Zotero library into a reading queue in Obsidian. You read in Zotero, where your annotations go; Paper Trail keeps track of what you owe each paper, writes its note with your annotations in it, and keeps a record of what you ruled out and why.
+
+### What it does
+
+- **A reading queue in the sidebar.** Reading, Claim and Assessment, after S. Keshav's three passes, with Deferred and Filed below for the papers nothing is outstanding for. Everything you save to Zotero turns up in Reading, and nothing is written to your vault until you decide something about a paper. Right-click any paper to change its status.
+- **Read in Zotero, decide in Obsidian.** Clicking a paper opens its PDF in Zotero's reader. When you finish, say what came of it: worth summarising, worth a third pass, worth another hour but not now, or not worth finishing.
+- **One note per paper, with your annotations in it.** Highlights, underlines and page notes sync from Zotero into a region the plugin owns, and refresh whenever you open the note with Zotero running. A passage that crosses a column or a page comes through as one line, and each keeps a block link that survives refreshes.
+- **Write what it argues.** Finishing a paper puts the cursor under its Claim heading, with a faint prompt on the line: one or two sentences in your own words, and what the paper sits with or against. Papers you promote get an Assessment as well. A tick ends each pass.
+- **A record you can hand in.** Every drop and deferral asks why, and the reason stays in the paper's frontmatter. **Export excluded papers** turns them into a markdown table of every paper you dropped or deferred, ready for a methods section or an appendix.
+- **Citations as links.** **Insert citation** writes `[[citekey]]`, which opens the paper, shows up in its backlinks, and becomes a real citation through the pandoc filter in the repository.
+- **Next** opens the most perishable thing you owe: a claim before an assessment, and both before a new reading.
+- **Optional triage.** Turn on **Triage before reading** to decide on each paper from its title, venue, year and abstract before it reaches Reading.
+
+### Requirements
+
+- Zotero 7, running, with *Allow other applications on this computer to communicate with Zotero* enabled under Settings → Advanced.
+- Better BibTeX, optional. With it, notes are named for the citation key and **Insert citation** works.
+- Obsidian 1.13 or later, on desktop.
+
+### Installation
+
+Download `main.js`, `manifest.json` and `styles.css` below into `.obsidian/plugins/paper-trail/` in your vault, then enable **Paper Trail** under Settings → Community plugins. On first load it opens the queue and checks that Zotero is answering.
+
+### What it writes
+
+A refresh from Zotero touches only the plugin's own frontmatter keys and the annotations region. Your decisions write the reading-status fields, a status tag if you name a namespace for one, and a Claim or Assessment heading when a paper comes to owe one. It never rewrites your prose, never edits a note that isn't a paper beyond what you ask it to insert, and talks to nothing but Zotero on your own machine.
