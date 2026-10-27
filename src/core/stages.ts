@@ -482,7 +482,9 @@ export function decidedWords(note: Pick<NoteState, 'state' | 'decided' | 'reason
  * without saying it.
  */
 export function statusWords(note: Pick<NoteState, 'state' | 'decided' | 'reason'>, workflow: Workflow): string {
-	return note.reason ? decidedWords(note) : `${label(note.state)}. ${landing(note.state, workflow)}`;
+	// The landing alone, which opens with the word already: put in front of it
+	// as well, the pill said "Summarised. Summarised. Nothing left to do."
+	return note.reason ? decidedWords(note) : landing(note.state, workflow);
 }
 
 /** Oldest first within each stage, so the pile drains in the order it arrived. */

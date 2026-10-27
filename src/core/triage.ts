@@ -188,10 +188,20 @@ export const PASS_PROGRESS: Record<'claim' | 'assessment', Progress> = {
  * Only the two that take a paper off the list ask. A deferral is the one worth
  * insisting on: unlike a drop it is a promise to come back, and a promise with
  * no condition attached is how the queue quietly becomes a graveyard.
+ *
+ * Worded for how far the paper has got, as the chooser's lines are. Asking
+ * why a paper you have summarised is not worth reading is asking about a
+ * reading that happened: what a drop means there is leaving it out.
  */
-export function asks(reading: Reading): { question: string; cta: string } | null {
-	if (reading === 'dropped') return { question: "Why isn't this worth reading?", cta: 'Drop' };
-	if (reading === 'deferred') return { question: 'What has to happen before this is worth another hour?', cta: 'Defer' };
+export function asks(reading: Reading, progress: Progress | null = null): { question: string; cta: string } | null {
+	const read = progress !== null;
+	if (reading === 'dropped') {
+		return read ? { question: 'Why are you leaving it out?', cta: 'Leave it out' } : { question: "Why isn't this worth reading?", cta: 'Drop' };
+	}
+	if (reading === 'deferred') {
+		const question = read ? 'What has to happen before you come back to this?' : 'What has to happen before this is worth another hour?';
+		return { question, cta: 'Defer' };
+	}
 	return null;
 }
 
@@ -273,7 +283,7 @@ const LANDINGS: Record<string, string> = {
 	Read: 'Read, and waiting for a claim.',
 	Summarised: 'Summarised. Nothing left to do.',
 	Promoted: 'Promoted. It needs a claim, then an assessment.',
-	Assessing: 'Summarised. It needs an assessment next.',
+	Assessing: 'Assessing. The claim is done, so it needs an assessment next.',
 	Assessed: 'Assessed. Nothing left to do.',
 	Deferred: 'Deferred, with your condition saved on the note.',
 	Dropped: 'Dropped, and off the list.',
@@ -288,13 +298,17 @@ const LANDINGS: Record<string, string> = {
  * hidden, waiting on a dialog nothing in your workflow opens. What you meant was almost always
  * Queued, and offering both is offering the wrong one beside the right one.
  *
+ * And only for a paper you have not read. Triage decides whether a paper is
+ * worth reading, which for one you have read is answered, and a paper sent
+ * there with its progress on came straight back to Filed when you queued it.
+ *
  * Promoted only once the paper has been read. Worth a third pass is the
  * verdict of a second one, which is where Keshav puts it and where finishing a
  * reading asks it. On a paper you have not read it is a guess, and it would
  * leave the paper in Reading all the same.
  */
 export function offered(reading: Reading, workflow: Workflow, progress: Progress | null): boolean {
-	if (reading === 'untriaged') return workflow.triage;
+	if (reading === 'untriaged') return workflow.triage && progress === null;
 	// And only in a vault that writes assessments, since an assessment is what
 	// promoting a paper asks of it.
 	if (reading === 'promoted') return workflow.passes === 'both' && progress !== null;
@@ -509,16 +523,128 @@ export function lookAgainLine(preset: LookAgain, today: string): string {
  *
  * Two meanings, so two options, and this one says which. It clears progress
  * and nothing else: the claim and the assessment are prose, and stay in the
- * note to be read against on the way back through.
+ * note to be read against on the way back through. The label says so, because
+ * "read it again" on a note full of your writing reads like starting over.
  *
  * Offered only to a paper that has progress to clear.
  */
 export const READ_AGAIN = {
 	reading: 'queued',
 	progress: null,
-	label: 'Queued: read it again',
+	label: 'Read it again, keeping what you wrote',
 	icon: 'rotate-ccw',
 } as const;
+
+/**
+ * One line of the status chooser: what it writes, what it says, and its icon.
+ *
+ * `progress` is read the way `Triage` reads it: left alone when absent,
+ * written when given, and cleared by null.
+ */
+export interface Choice {
+	reading: Reading;
+	progress?: Progress | null;
+	label: string;
+	icon: string;
+}
+
+/** Where a line of the chooser leaves a paper that is at `now`. */
+export function landsAt(now: State, choice: Pick<Choice, 'reading' | 'progress'>): State {
+	return { reading: choice.reading, progress: choice.progress === undefined ? now.progress : choice.progress };
+}
+
+/**
+ * How each judgement reads on a paper nobody has read: the state first and
+ * what it means after it, because there the five are what they say, decisions
+ * about whether the paper is worth your time.
+ */
+const UNREAD_LABELS: Record<Reading, string> = {
+	untriaged: 'Untriaged: triage it again',
+	queued: 'Queued: worth an hour',
+	promoted: 'Promoted: worth a third pass',
+	deferred: 'Deferred: come back to it later',
+	dropped: 'Dropped: not worth reading',
+};
+
+/**
+ * How a judgement reads, for a paper this far along.
+ *
+ * Once a paper has been read the same five mean something else, and the
+ * words they had before reading said the wrong thing. "Queued: worth an hour"
+ * on a paper owing an assessment skips the assessment; "Dropped: not worth
+ * reading" on one you summarised leaves it out of your work. So a read paper
+ * gets what the line does, and the line under it still names where it lands.
+ */
+function judgementLabel(reading: Reading, now: State): string {
+	if (now.progress === null) return UNREAD_LABELS[reading];
+	// Off the list, or sent back to Triage under an older version: queueing it
+	// again returns it to where it was.
+	const parked = now.reading !== 'queued' && now.reading !== 'promoted';
+	if (reading === 'queued') return parked ? 'Pick it back up' : 'Skip the assessment';
+	if (reading === 'promoted') return parked ? 'Pick it back up and assess it' : 'Assess it too';
+	if (reading === 'deferred') return 'Come back to it later';
+	if (reading === 'dropped') return 'Leave it out';
+	return UNREAD_LABELS[reading];
+}
+
+/**
+ * Taking back the last tick, for a pass ticked off before it was done.
+ *
+ * One step back, which is the only progress the chooser writes other than
+ * clearing it: a judgement leaves progress alone, and before this the one way
+ * to reopen a claim was to send the whole paper back to be read. The heading
+ * and what is under it stay, so a reopened pass has its words waiting.
+ *
+ * Only on a paper still on the list. A dropped or deferred one is picked back
+ * up first, and then it is one of these.
+ *
+ * Reopening an assessment promotes the paper as well, since an assessment is
+ * what promoting asks for: a paper queued after an assessment would otherwise
+ * be reopened into a state that owes nothing. A claim is reopened only where
+ * it would then be owed, which a queued paper is not in a vault that writes no
+ * passes.
+ */
+function reopened(now: State, workflow: Workflow): Choice | null {
+	if (now.reading !== 'queued' && now.reading !== 'promoted') return null;
+	if (now.progress === 'assessed') return { reading: 'promoted', progress: 'summarised', label: 'Reopen the assessment', icon: 'undo-2' };
+	if (now.progress === 'summarised' && (workflow.passes !== 'none' || now.reading === 'promoted')) {
+		return { reading: now.reading, progress: 'read', label: 'Reopen the claim', icon: 'undo-2' };
+	}
+	return null;
+}
+
+/**
+ * The status chooser's lines for a paper at `now`, in order.
+ *
+ * The five judgements in `READING_ORDER`, less any not worth offering here,
+ * with the two lines that move progress after Promoted: reopening the last
+ * pass, and reading the paper again.
+ *
+ * Built from `READING_ORDER` rather than written out, so a new state is in the
+ * list wherever it is in the order, and a compile error until it is labelled.
+ *
+ * Only lines that would move the paper, and only one line per place it could
+ * land. On a paper dropped after its assessment, Pick it back up and Pick it
+ * back up and assess it both land on Assessed, and two lines that do the same
+ * thing are one line saying it twice.
+ */
+export function choices(now: State, workflow: Workflow, due = false): Choice[] {
+	const judged = (reading: Reading): Choice | null =>
+		offered(reading, workflow, now.progress) ? { reading, label: judgementLabel(reading, now), icon: judgementIcon(reading) } : null;
+	const progressed = [reopened(now, workflow), now.progress === null ? null : { ...READ_AGAIN }];
+	const candidates = READING_ORDER.flatMap((reading) => (reading === 'promoted' ? [judged(reading), ...progressed] : [judged(reading)]));
+
+	const seen = new Set<string>();
+	return candidates.filter((choice): choice is Choice => {
+		if (choice === null) return false;
+		const lands = landsAt(now, choice);
+		if (!moves(now, lands, due)) return false;
+		const word = label(lands);
+		if (seen.has(word)) return false;
+		seen.add(word);
+		return true;
+	});
+}
 
 /** Frontmatter `tags` as a list, whatever shape it was written in. */
 export function readTags(value: unknown): string[] {

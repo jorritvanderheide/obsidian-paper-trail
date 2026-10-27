@@ -46,8 +46,11 @@ Zotero never touches them.
 | `reading-after` | On a deferral, the Zotero key of the paper it waits for. Removed by any other decision |
 
 `reading` and `reading-progress` are two different kinds of fact: a judgement
-about the paper, and a report about you. A judgement leaves progress alone. The
-one decision that clears progress is sending a read paper back to be read again.
+about the paper, and a report about you. A judgement leaves progress alone. Two
+choices in the status chooser move progress back: sending a read paper back to
+be read again clears it, and reopening a claim or an assessment takes it back
+one step (`summarised` to `read`, `assessed` to `summarised`, the latter also
+setting `reading` to `promoted`).
 
 A `reading` value Paper Trail does not know reads as `untriaged`.
 

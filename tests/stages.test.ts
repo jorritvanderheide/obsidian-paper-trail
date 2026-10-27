@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CachedMetadata } from 'obsidian';
-import { PASS_PROGRESS, PASSES, PROGRESS_ORDER, READING_ORDER, type Passes, type Progress, type Reading, type State, type Workflow } from '../src/core/triage';
+import { label, PASS_PROGRESS, PASSES, PROGRESS_ORDER, READING_ORDER, type Passes, type Progress, type Reading, type State, type Workflow } from '../src/core/triage';
 import {
 	byStage,
 	decidedWords,
@@ -1102,8 +1102,20 @@ describe('statusWords', () => {
 
 	it('says where a paper with no reason stands', () => {
 		expect(statusWords(paper({ state: { reading: 'queued', progress: null }, decided: '2026-09-20' }), FULL)).toBe(
-			'Queued. Queued, and waiting to be read.',
+			'Queued, and waiting to be read.',
 		);
+	});
+
+	// The landing opens with the word, so putting the word in front said it twice.
+	it('says each word once', () => {
+		for (const reading of READING_ORDER) {
+			for (const progress of [null, ...PROGRESS_ORDER]) {
+				const state = { reading, progress };
+				const words = statusWords(paper({ state }), FULL);
+				expect(words.startsWith(`${label(state)}.`) || words.startsWith(`${label(state)},`), words).toBe(true);
+				expect(words.indexOf(label(state), 1), words).toBe(-1);
+			}
+		}
 	});
 });
 

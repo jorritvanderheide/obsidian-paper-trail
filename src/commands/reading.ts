@@ -16,19 +16,17 @@ import { messageOf, say } from '../ui/notify';
 import { TriageModal, type Brief } from '../ui/triage-modal';
 import {
 	applyTriage,
+	choices,
 	asks,
 	arrivalReading,
 	deferredLanding,
 	firstPass,
-	judgementIcon,
 	label,
+	landsAt,
 	landing,
 	lookAgain,
-	moves,
-	offered,
-	READ_AGAIN,
-	READING_ORDER,
 	stateOf,
+	type Choice,
 	type Progress,
 	type Reading,
 	type State,
@@ -133,46 +131,6 @@ async function fitNote(context: Context, file: TFile, before: State, state: Stat
 }
 
 /**
- * How each judgement reads in the list.
- *
- * Five, and every one a decision about the paper rather than a report about
- * you. The list used to hold nine, because the field held both axes: picking
- * from it meant answering "what do I want to do with this" and "what have I
- * done" from the same menu, and two pairs of labels differed only in a clause
- * at the end. What you have done is not chosen here; it is ticked off on the
- * row that owes it.
- *
- * The state first and what it means after it, unlike the second-pass chooser,
- * which asks what came of a reading. Here you are correcting a record rather
- * than making a decision about reading, so the state is what leads.
- */
-const CHOICE_LABELS: Record<Reading, string> = {
-	untriaged: 'Untriaged: triage it again',
-	queued: 'Queued: worth an hour',
-	promoted: 'Promoted: worth a third pass',
-	deferred: 'Deferred: come back to it later',
-	dropped: 'Dropped: not worth reading',
-};
-
-/** One line of the chooser. `progress` and `icon` are set only by `READ_AGAIN`. */
-export interface Choice {
-	reading: Reading;
-	label: string;
-	progress?: null;
-	icon?: string;
-}
-
-/**
- * Built from `READING_ORDER` rather than written out, so the list cannot come
- * to disagree with the pane by someone adding a state in the wrong place. The
- * record shape also means a new state is a compile error until it is labelled.
- */
-const CHOICES: Choice[] = READING_ORDER.map((reading) => ({
-	reading,
-	label: CHOICE_LABELS[reading],
-}));
-
-/**
  * Set the reading state by hand, including back to states no button offers.
  * The routes through the block cover the common path; this is how a paper gets
  * out of a state you put it in by mistake.
@@ -193,20 +151,19 @@ export async function setReading(context: Context, target?: TFile): Promise<void
 	await chooseReading(context, { kind: 'note', file }, file.basename);
 }
 
-/** A judgement worth offering one paper: its line, its icon, and where it would leave the paper. */
+/** A line worth offering one paper, and where it would leave the paper. */
 export interface Offer {
 	choice: Choice;
-	icon: string;
 	lands: State;
 }
 
 /**
- * The judgements that would move a paper, and where it is now.
+ * The lines that would move a paper, and where it is now.
  *
  * Every one that would move it, including the ones no button offers, because
  * the reason to reach for these is to correct a record rather than to make a
  * decision. Shared by the chooser and a queue row's menu, so the two offer the
- * same things.
+ * same things. Which lines, and in what words, is `choices`'s to say.
  */
 export function offersFor(context: Context, target: TriageTarget): { now: State; offers: Offer[] } {
 	// Where the paper is now. A paper with no note is wherever the queue shows
@@ -217,28 +174,7 @@ export function offersFor(context: Context, target: TriageTarget): { now: State;
 	// A deferral that has come back can be deferred again, which is how you say
 	// "not yet", though the word on it would not change.
 	const due = note?.due ?? false;
-	// Where each option lands. A judgement leaves progress alone, so it rides
-	// along; `READ_AGAIN` is the one option that clears it.
-	const after = (entry: Choice): State => ({
-		reading: entry.reading,
-		progress: entry.progress === null ? null : now.progress,
-	});
-
-	// Beside Queued, and only for a paper that has been read, which is the one
-	// case where Queued on its own could not send it back to be read.
-	const candidates =
-		now.progress === null ? CHOICES : CHOICES.flatMap((entry) => (entry.reading === 'queued' ? [entry, READ_AGAIN] : [entry]));
-	const offers = candidates
-		.filter((entry) => offered(entry.reading, workflowOf(context.settings), now.progress) && moves(now, after(entry), due))
-		.map((entry) => ({
-			choice: entry,
-			// The icon is the judgement being offered, and where it lands is said
-			// beside it. Drawing the landing as the icon as well put the Assessed
-			// mark on both Queued and Promoted for a paper already assessed, which
-			// read as two wrong icons rather than as one fact said three times.
-			icon: entry.icon ?? judgementIcon(entry.reading),
-			lands: after(entry),
-		}));
+	const offers = choices(now, workflowOf(context.settings), due).map((choice) => ({ choice, lands: landsAt(now, choice) }));
 	return { now, offers };
 }
 
@@ -268,7 +204,7 @@ export async function chooseReading(context: Context, target: TriageTarget, name
 		// the line that would have said so was the one line that did nothing.
 		`Reading status of ${name} · ${label(now)}`,
 		(entry) => landing(entry.lands, workflowOf(context.settings)),
-		(entry) => entry.icon,
+		(entry) => entry.choice.icon,
 	);
 	if (offer) await takeOffer(context, target, name, offer.choice);
 }
@@ -331,7 +267,10 @@ export async function decideOn(
 	reading: Reading,
 	progress?: Progress | null,
 ): Promise<Written | null> {
-	const question = asks(reading);
+	// Asked in the words for how far the paper has got: a drop of a paper you
+	// have summarised is leaving it out, not judging it unread.
+	const progressNow = target.kind === 'note' ? paperNote(context, target.file).state.progress : null;
+	const question = asks(reading, progressNow);
 
 	let reason: string | null = null;
 	let until: string | null = null;

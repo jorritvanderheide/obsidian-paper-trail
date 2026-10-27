@@ -6,6 +6,10 @@ breaking is in [Compatibility](docs/compatibility.md).
 ## Unreleased
 
 - **Papers from** takes several sources, each with its own subcollections and triage, grouped under their library.
+- **Set reading status** on a paper you've read now says what each choice does: **Assess it too**, **Skip the assessment**, **Read it again, keeping what you wrote**, **Come back to it later** and **Leave it out**, instead of the words meant for a paper you haven't read yet. Dropping or deferring it asks in matching words too.
+- New in **Set reading status**: **Reopen the claim** and **Reopen the assessment**, for a pass you ticked off too early. Your writing stays where it is.
+- **Untriaged** is no longer offered for a paper you've already read. Sending it back to Triage did nothing useful.
+- Fixed: hovering the status pill no longer says the status twice, as in "Summarised. Summarised. Nothing left to do."
 
 ## 1.7.0
 

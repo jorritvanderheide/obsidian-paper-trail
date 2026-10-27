@@ -308,8 +308,10 @@ Right-click a row, or a paper's note in the file explorer, and you get the same
 menu: first what the row's buttons do, such as **Reading finished** and **Open
 in Zotero**, then the reading statuses you can move the paper to. **Set reading
 status** offers the same statuses from the command palette and from the pill at
-the top of every paper, and tells you where each choice will put it. You can
-also send a paper you've already read back to be read again, and everything
+the top of every paper, and tells you where each choice will put it. On a paper
+you've already read, the choices say what they do: assess it too, skip the
+assessment, reopen a claim or assessment you ticked off too early, read it
+again, come back to it later, or leave it out. Whatever you pick, everything
 you wrote stays.
 
 Paper Trail never blocks you: there's no fixed order, and no stage stays locked
@@ -603,7 +605,7 @@ Hotkeys.
 **Papers**
 
 - `Paper Trail: Set reading status` - Queue, promote, defer or drop the open
-  paper, or send it back to be read again.
+  paper, reopen a claim or assessment, or send it back to be read again.
 - `Paper Trail: Refresh paper from Zotero` - Refreshes the open paper right away
   and lets you know. Opening a paper already does this quietly.
 - `Paper Trail: Link existing notes to Zotero` - Turns literature notes from

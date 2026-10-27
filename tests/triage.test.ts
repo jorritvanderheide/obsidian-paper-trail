@@ -4,6 +4,8 @@ import {
 	applyTriage,
 	arrivalReading,
 	asks,
+	choices,
+	landsAt,
 	iconOf,
 	judgementIcon,
 	label,
@@ -169,6 +171,14 @@ describe('asks', () => {
 	it('gives each question its own button, so neither says "OK"', () => {
 		expect(asks('dropped')?.cta).toBe('Drop');
 		expect(asks('deferred')?.cta).toBe('Defer');
+	});
+
+	// A paper you have summarised has been read, so "not worth reading" asks
+	// about a reading that happened.
+	it('asks about a paper you have read in words that fit it', () => {
+		expect(asks('dropped', 'summarised')?.question).toBe('Why are you leaving it out?');
+		expect(asks('deferred', 'assessed')?.question).not.toContain('another hour');
+		expect(asks('dropped', null)?.question).toBe("Why isn't this worth reading?");
 	});
 });
 
@@ -734,6 +744,93 @@ describe('moves', () => {
 	});
 });
 
+
+/**
+ * The status chooser on a paper you have written up. Its lines used to be the
+ * five judgements in the words they have before reading, so on a summarised
+ * paper Dropped said "not worth reading", and on one owing an assessment
+ * "Queued: worth an hour" skipped the assessment.
+ */
+describe('choices', () => {
+	const labels = (now: State, workflow: Workflow = FULL) => choices(now, workflow).map((choice) => choice.label);
+	const lands = (now: State, wanted: string) => {
+		const choice = choices(now, FULL).find((entry) => entry.label === wanted);
+		return choice ? landsAt(now, choice) : null;
+	};
+
+	it('words a summarised paper by what each line does', () => {
+		expect(labels({ reading: 'queued', progress: 'summarised' })).toEqual([
+			'Assess it too',
+			'Reopen the claim',
+			READ_AGAIN.label,
+			'Come back to it later',
+			'Leave it out',
+		]);
+	});
+
+	it('offers skipping the assessment on a paper that owes one', () => {
+		const assessing: State = { reading: 'promoted', progress: 'summarised' };
+		expect(labels(assessing)[0]).toBe('Skip the assessment');
+		expect(lands(assessing, 'Skip the assessment')).toEqual({ reading: 'queued', progress: 'summarised' });
+	});
+
+	// Ticking a pass off too early had no way back short of reading the paper again.
+	it('reopens the claim one step back, keeping the judgement', () => {
+		expect(lands({ reading: 'queued', progress: 'summarised' }, 'Reopen the claim')).toEqual({ reading: 'queued', progress: 'read' });
+		expect(lands({ reading: 'promoted', progress: 'summarised' }, 'Reopen the claim')).toEqual({ reading: 'promoted', progress: 'read' });
+	});
+
+	it('reopens the assessment, promoting a paper that had been queued since', () => {
+		expect(labels({ reading: 'promoted', progress: 'assessed' })[0]).toBe('Reopen the assessment');
+		expect(lands({ reading: 'queued', progress: 'assessed' }, 'Reopen the assessment')).toEqual({ reading: 'promoted', progress: 'summarised' });
+	});
+
+	it('does not reopen a pass on a paper off the list', () => {
+		for (const reading of ['deferred', 'dropped'] as const) {
+			expect(labels({ reading, progress: 'summarised' }).some((line) => line.startsWith('Reopen')), reading).toBe(false);
+		}
+	});
+
+	// Where no claim is written, a reopened claim would be owed by nothing.
+	it('does not reopen a claim nothing would ask for', () => {
+		expect(labels({ reading: 'queued', progress: 'summarised' }, { triage: false, passes: 'none' })).not.toContain('Reopen the claim');
+	});
+
+	it('keeps the words a paper nobody has read has always had', () => {
+		expect(labels({ reading: 'queued', progress: null }, wf(true))).toEqual([
+			'Untriaged: triage it again',
+			'Deferred: come back to it later',
+			'Dropped: not worth reading',
+		]);
+	});
+
+	it('does not send a paper you have read back to triage', () => {
+		for (const progress of PROGRESS_ORDER) {
+			expect(choices({ reading: 'queued', progress }, wf(true)).map((choice) => choice.reading), progress).not.toContain('untriaged');
+		}
+	});
+
+	it('offers a dropped paper you had written up one way back to each place', () => {
+		expect(labels({ reading: 'dropped', progress: 'assessed' })).toEqual(['Pick it back up', READ_AGAIN.label, 'Come back to it later']);
+	});
+
+	it('defers a deferral that has come back again', () => {
+		expect(choices({ reading: 'deferred', progress: 'summarised' }, FULL, true).map((choice) => choice.reading)).toContain('deferred');
+	});
+
+	it('never offers a line that leaves the paper where it is, or two that land alike', () => {
+		for (const workflow of [FULL, wf(false), { triage: true, passes: 'claim' }, { triage: false, passes: 'none' }] as Workflow[]) {
+			for (const reading of READING_ORDER) {
+				for (const progress of [null, ...PROGRESS_ORDER]) {
+					const now = { reading, progress };
+					const landed = choices(now, workflow).map((choice) => label(landsAt(now, choice)));
+					expect(landed, `${reading}/${progress}`).not.toContain(label(now));
+					expect(new Set(landed).size, `${reading}/${progress}`).toBe(landed.length);
+				}
+			}
+		}
+	});
+});
 describe('offered', () => {
 	// With triage off, Triage is a section nothing in the workflow opens, so
 	// sending a paper there parks it somewhere hidden.

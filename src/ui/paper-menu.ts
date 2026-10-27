@@ -58,7 +58,7 @@ export function paperMenu(menu: Menu, context: Context, row: Row): boolean {
 		menu.addItem((item) =>
 			item
 				.setTitle(offer.choice.label)
-				.setIcon(offer.icon)
+				.setIcon(offer.choice.icon)
 				.onClick(() => void takeOffer(context, target, rowTitle(row), offer.choice)),
 		);
 	}
