@@ -3,9 +3,12 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
-## Unreleased
+## 1.8.0
 
 - **Papers from** takes several sources, each with its own subcollections and triage, grouped under their library.
+- Zotero group libraries: add a group, or a collection in it, under **Papers from** and its papers come into the queue. A paper that's in your library and a group's shows up once. A group paper's note gets every annotation on its PDF, the group's as well as yours.
+- New setting **Include subcollections**, on by default: a collection under **Papers from** also brings in the collections under it.
+- **Insert citation** also searches the group libraries under **Papers from**.
 - **Set reading status** on a paper you've read now says what each choice does: **Assess it too**, **Skip the assessment**, **Read it again, keeping what you wrote**, **Come back to it later** and **Leave it out**, instead of the words meant for a paper you haven't read yet. Dropping or deferring it asks in matching words too.
 - New in **Set reading status**: **Reopen the claim** and **Reopen the assessment**, for a pass you ticked off too early. Your writing stays where it is.
 - **Untriaged** is no longer offered for a paper you've already read. Sending it back to Triage did nothing useful.
