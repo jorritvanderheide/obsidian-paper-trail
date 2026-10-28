@@ -174,16 +174,14 @@ to the annotation in Zotero, which does come through.
 
 ## Citations
 
-### "… has no citation key. Install Better BibTeX in Zotero"
+### Where did Insert citation go?
 
-**Insert citation** needs a citation key, and Zotero only gives papers one when
-[Better BibTeX](https://retorque.re/zotero-better-bibtex/) is installed.
-Without it, you can still link to a paper note with Obsidian's own `[[`.
-
-### "Couldn't reach Better BibTeX. Is it installed in Zotero?"
-
-Shift+Enter in the citation picker opens Better BibTeX's own dialog, which only
-exists when Better BibTeX is installed in Zotero.
+To [Due Credit](https://community.obsidian.md/plugins/due-credit), in Paper
+Trail 2.0.0, with **Add page to citation**. Due Credit cites, and Paper Trail
+reads, so each works on its own. Its **Insert citation** picks from your
+bibliography, the `.bib` Better BibTeX exports, so whatever you pick it can
+cite. Bind its commands to the hotkeys you had for Paper Trail's. Without Due
+Credit, type the link yourself: `[[citekey]]`.
 
 ### How do I export my citations to Word or PDF?
 

@@ -1,6 +1,6 @@
 import { debounce, Plugin } from 'obsidian';
 import { next, opening } from './commands/workflow';
-import { addPage, insertAnnotation, insertCitation } from './commands/citations';
+import { insertAnnotation } from './commands/annotations';
 import { adoptNotes, refreshPaper, syncOnOpen } from './commands/papers';
 import { writeReport } from './commands/report';
 import { setReading } from './commands/reading';
@@ -81,8 +81,6 @@ export default class PaperTrail extends Plugin {
 		this.command('link-notes', 'Link existing notes to Zotero', () => adoptNotes(this));
 		this.command('excluded', 'Export excluded papers', () => writeReport(this));
 		this.command('set-reading', 'Set reading status', () => setReading(this));
-		this.command('insert-citation', 'Insert citation', () => insertCitation(this));
-		this.command('add-page', 'Add page to citation', () => addPage(this));
 		this.command('insert-annotation', 'Insert annotation', () => insertAnnotation(this));
 
 		// The pane first, then the dialog over it, so closing the dialog leaves

@@ -45,9 +45,9 @@ section.
    use Paper Trail.
 2. **Install Better BibTeX (optional)** from
    [retorque.re/zotero-better-bibtex](https://retorque.re/zotero-better-bibtex/).
-   With it, notes are named after the citation key and **Insert citation** has
-   a key to insert. Without it, notes are named after author, title and year,
-   and everything else works the same.
+   With it, notes are named after the citation key, which is what a citation
+   links to. Without it, notes are named after author, title and year, and
+   everything else works the same.
 3. **Install Paper Trail** in Obsidian: go to Settings → Community plugins →
    Browse, search for "Paper Trail", then install and enable it. You can also
    open [its page in the plugin directory](https://community.obsidian.md/plugins/paper-trail).
@@ -177,12 +177,9 @@ If you want to work on the plugin, or build something on top of its notes:
 
 ### 5.4 Citations
 
-- **Insert citation** - Pick a paper from your Zotero library and get
-  `[[citekey]]`.
-- **Page numbers without retyping** - Press Tab in the picker, or use **Add page
-  to citation** on a link you already wrote.
-- **Better BibTeX's dialog** - Prefixes, citations without the author, and
-  several sources at once, all written as links.
+- **A citation is a link** - `[[citekey]]` links to the paper's note, and
+  [Due Credit](#121-due-credit) exports it as a citation. Its **Insert
+  citation** picks a paper from your bibliography and writes the link.
 - **Insert annotation** - Quote a passage you highlighted, with a citation to
   its page.
 - **Backlinks as a citation graph** - Every citation is a link, so the
@@ -441,7 +438,7 @@ what it argues with or against. And it asks at the one moment when the second
 question is easy to answer, right after you've put the paper's claim into words
 and still remember that it contradicts something you read in March.
 
-**Insert citation** writes the link, and that link does three jobs at once. It's
+A link by citation key does three jobs at once. It's
 a wikilink to the citation key, so `against [[okafor2019sampling]]` in a claim
 reads as a citation, exports as one through pandoc, and adds this paper to
 Okafor's backlinks. Which papers respond to which is exactly what you'll want
@@ -451,47 +448,20 @@ to know about your own literature, and the backlinks pane shows you.
 
 ## 8 Citations
 
-### 8.1 Inserting a citation
+### 8.1 Citing a paper
 
-**Insert citation** lets you pick an item from your Zotero library, or from a
-group under **Papers from**, and writes `[[citekey]]`. It needs Better BibTeX, which is what gives an item its citation
-key. To add a page, press Tab instead of Enter: `4` becomes page 4, and
-anything else, like `ch. 3` or `§ 2`, is used as you typed it. If the paper
-has a note, the link points to the note by its name, so it keeps working even
-if Better BibTeX changed the key after the note was made.
+A citation is a link to the paper by its citation key: `[[okafor2019sampling]]`.
+With Better BibTeX, notes are named after their key, so the link opens the
+paper's note, shows it on hover, and counts in its backlinks. Typing `[[` finds
+papers by key rather than by title.
 
-Without Better BibTeX there's no citation key, and you don't need one: notes are
-named after author, title and year, so Obsidian's own `[[` finds them by what
-you'd naturally type. With Better BibTeX, notes are named after their key, so
-`[[` finds papers by key rather than by title, and **Insert citation** fills
-that gap.
+Paper Trail doesn't insert citations itself. That's
+[Due Credit](#121-due-credit)'s: its **Insert citation** picks a paper from
+your bibliography, the `.bib` Better BibTeX exports, and writes the link, to
+the paper's note when it has one. Its **Add page to citation** adds a page to a
+link you typed yourself. Both moved there from Paper Trail in 2.0.0.
 
-![Typing /cit in a note offers Insert citation and Add page to citation, next to the export commands of Due Credit](https://raw.githubusercontent.com/jorritvanderheide/obsidian-paper-trail/main/images/insert-citation.png)
-
-For a link you typed yourself with `[[`, use **Add page to citation**. Put the
-cursor on the link or right after it, and it asks for the page and rewrites the
-link, so you never have to type the key twice. A label you wrote is kept, with
-the page added after a comma: `[[a|Marsh]]` becomes `[[a|Marsh, p. 4]]`.
-
-### 8.2 Better BibTeX's dialog
-
-In the picker, Shift+Enter opens Better BibTeX's own dialog, for a
-prefix, a citation without the author, or several sources at once. What you
-pick there is written as links too, with everything around the key in the
-label, the same way pandoc would write it:
-
-| You pick | Paper Trail writes |
-| --- | --- |
-| a paper | `[[a]]` |
-| page 4 | `[[a\|a, p. 4]]` |
-| "see", page 4 | `[[a\|see a, p. 4]]` |
-| without the author, page 4 | `[[a\|-a, p. 4]]` |
-| two papers | `[[a\|a, p. 4]]; [[b]]` |
-
-The page goes in the label, after the `|`, so the link still points at the
-paper: it opens it, shows a preview on hover, and counts in its backlinks.
-
-### 8.3 Quoting an annotation
+### 8.2 Quoting an annotation
 
 **Insert annotation** first asks which paper you're quoting, then shows that
 paper's annotations to search. Only papers with annotations are listed, the
@@ -510,7 +480,7 @@ annotations that were synced the last time you opened each paper's note. It
 won't insert into a paper's annotations section, because that's rewritten on
 every sync.
 
-### 8.4 Exporting
+### 8.3 Exporting
 
 Paper Trail doesn't run pandoc itself. Exporting is what
 [Due Credit](https://community.obsidian.md/plugins/due-credit) does: it runs
@@ -614,10 +584,6 @@ Hotkeys.
 
 **Citations**
 
-- `Paper Trail: Insert citation` - Inserts `[[citekey]]` for an item from your
-  Zotero library. Press Tab to add a page.
-- `Paper Trail: Add page to citation` - Adds a page to the `[[citekey]]` at the
-  cursor.
 - `Paper Trail: Insert annotation` - Inserts a passage from one of your paper
   notes as a quote, with a citation to its page.
 
@@ -673,12 +639,15 @@ doesn't need either of them, but they fit together nicely.
 [Due Credit](https://community.obsidian.md/plugins/due-credit) exports a note
 to Word, PDF, Markdown or LaTeX with pandoc, and turns your `[[citekey]]` links
 into real citations, with a reference list in the citation style you choose. It
-understands every form **Insert citation** writes. It cites a link to a paper
+also inserts them: its **Insert citation** picks a paper from your
+bibliography and links to the paper's note, so every place you cite a paper
+turns up in its backlinks. It cites a link to a paper
 note by that note's `citekey`, so a note whose key Better BibTeX has changed
 since still cites the right paper. Its README lists what exports as what.
 
-If you install one companion, make it this one: Paper Trail helps you write the
-citations in your chapter, and Due Credit gets the chapter out of your vault.
+If you install one companion, make it this one: Paper Trail helps you read the
+papers, and Due Credit helps you cite them and gets the chapter out of your
+vault.
 
 ### 12.2 Tag Along
 
@@ -710,11 +679,9 @@ and doesn't send anything anywhere.
 
 ### 13.2 Better BibTeX
 
-- **Requests:** `http://127.0.0.1:23119/better-bibtex/cayw?format=json` opens
-  Better BibTeX's citation dialog, and `.../cayw?probe=true` only asks whether
-  Better BibTeX is installed, without opening anything.
-- **When:** The dialog only when you open it from **Insert citation**. The
-  check when you open Paper Trail's settings.
+- **Requests:** `http://127.0.0.1:23119/better-bibtex/cayw?probe=true` only
+  asks whether Better BibTeX is installed, without opening anything.
+- **When:** When you open Paper Trail's settings.
 
 ### 13.3 Zotero links
 

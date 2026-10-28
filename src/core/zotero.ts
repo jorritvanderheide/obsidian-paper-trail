@@ -35,19 +35,6 @@ export function refOf(item: ApiItem): ItemRef {
 	return { key: item.key, groupID: type === 'group' && typeof id === 'number' ? id : null };
 }
 
-/**
- * The most recently added items across several libraries, newest first.
- *
- * Each library answers with its own newest, so the lists are merged on when
- * Zotero got each item rather than one library put after another.
- */
-export function newestFirst(lists: ApiItem[][], limit: number): ApiItem[] {
-	return lists
-		.flat()
-		.sort((a, b) => (b.data.dateAdded ?? '').localeCompare(a.data.dateAdded ?? ''))
-		.slice(0, limit);
-}
-
 /** Path prefix of the library in the Zotero API. */
 export function libraryPath(ref: ItemRef): string {
 	return ref.groupID === null ? 'users/0' : `groups/${ref.groupID}`;
@@ -270,250 +257,21 @@ export function noteName(item: ApiItem): string {
 }
 
 /**
- * One source as Better BibTeX's cite-as-you-write dialog hands it back with
- * `format=json`, and only the fields read here.
- *
- * `label` is a CSL locator type, `page` or `chapter`, and Better BibTeX fills
- * in `page` when a locator was typed without one. A Zotero note picked in the
- * dialog comes back too, with no citation key. `uri` is Zotero's for the
- * item, which is how its note is found.
- */
-export interface CitedSource {
-	citationKey?: string;
-	locator?: string;
-	label?: string;
-	prefix?: string;
-	suffix?: string;
-	/** The author is named in the sentence, so the citation leaves them out. */
-	suppressAuthor?: boolean;
-	uri?: string;
-}
-
-/**
- * The item a Zotero URI names, as `zotero-key` stores it:
- * `http://zotero.org/users/local/abc/items/ABCD1234` is ABCD1234, and
- * `http://zotero.org/groups/5/items/ABCD1234` is ABCD1234 in group 5.
- */
-export function itemRefOfUri(uri: string): ItemRef | null {
-	const match = /\/(?:groups\/(\d+)|users\/(?:local\/)?[^/]+)\/items\/([A-Z0-9]{8})$/.exec(uri.trim());
-	if (!match?.[2] || !KEY.test(match[2])) return null;
-	return { key: match[2], groupID: match[1] ? Number(match[1]) : null };
-}
-
-/** Better BibTeX's abbreviations, so a locator reads as its pandoc citation did. */
-export const LOCATOR_LABELS: Record<string, string> = {
-	article: 'art.',
-	chapter: 'ch.',
-	subchapter: 'subch.',
-	column: 'col.',
-	figure: 'fig.',
-	line: 'l.',
-	note: 'n.',
-	issue: 'no.',
-	opus: 'op.',
-	page: 'p.',
-	paragraph: 'para.',
-	subparagraph: 'subpara.',
-	part: 'pt.',
-	rule: 'r.',
-	section: 'sec.',
-	subsection: 'subsec.',
-	'sub-verbo': 'sv.',
-	schedule: 'sch.',
-	title: 'tit.',
-	verse: 'vrs.',
-	volume: 'vol.',
-};
-
-/**
- * Every term that starts a locator: all of Better BibTeX's abbreviations, the
- * plurals, and the full words someone might type. Due Credit's pandoc filter
- * reads a locator by the same words and keeps its own copy of this list, since
- * it is Lua and cannot import this one. A change to either is a change to both:
- * a term only this side knows is a page the export drops.
- */
-export const LOCATOR_TERMS = new Set(
-	`p. pp. page pages
-	ch. chap. chapter subch. subchapter
-	sec. section subsec. subsection
-	para. paragraph subpara. subparagraph
-	fig. figure col. column l. ll. line
-	n. note vol. volume no. issue
-	art. article op. opus pt. part r. rule
-	vrs. verse sv. sch. schedule tit. title
-	book folio`.split(/\s+/),
-);
-
-/** Whether the text reads as a locator: a number, `§`, or a locator term first. */
-function isLocator(text: string): boolean {
-	const ref = text.trim();
-	if (/^\d/.test(ref) || ref.startsWith('§')) return true;
-	const term = /^\p{L}+\.?/u.exec(ref)?.[0];
-	return term !== undefined && LOCATOR_TERMS.has(term.toLowerCase());
-}
-
-/**
- * A citation as a link to the paper, rather than as pandoc syntax.
- *
- * `[@key]` is inert in Obsidian: the right thing to hand a bibliography
- * processor and nothing at all to the vault. A wikilink is both. It resolves,
- * because a paper is named for its citation key; it opens the paper; it shows
- * the paper on hover, status and all; and every place you cited something
- * turns up in that paper's backlinks, which is the question a thesis actually
- * asks of its own corpus.
- *
- * The target is the paper's note when there is one, by its name, which is the
- * citation key unless Better BibTeX changed the key after the note was named.
- * Linking to the name is what makes it resolve either way; Due Credit, which
- * exports, points a link to a paper note at its key. Without a note the target
- * is the key, which exports but does not resolve until the paper has a note.
- *
- * Everything else goes in the label, around the name, the way pandoc writes it
- * around the key: `[[a|see a, p. 4, emphasis added]]` is
- * `[see @a, p. 4, emphasis added]`, and a `-` against the name leaves the
- * author out, as it does before `@a`: `[[a|-a, p. 4]]` is `[-@a, p. 4]`.
- * That is the form the filter reads. Not a page after `#`: Obsidian takes
- * `[[a#p. 4]]` for a heading, and hovering it says the section is not in the
- * note instead of showing the paper.
- *
- * `noteOf` names a source's note, or says it has none.
- */
-export function citation(sources: CitedSource[], noteOf: (source: CitedSource) => string | null = () => null): string {
-	return sources
-		.flatMap((source) => {
-			const key = source.citationKey?.trim();
-			if (!key) return [];
-			const locator = source.locator?.trim();
-			const label = source.label ? (LOCATOR_LABELS[source.label] ?? source.label) : '';
-			const at = locator ? [label, locator].filter(Boolean).join(' ') : '';
-			return [citationLink(noteOf(source) ?? key, at, source.prefix, source.suffix, source.suppressAuthor === true)];
-		})
-		.join('; ');
-}
-
-/**
- * One link: `[[a]]` when there is nothing to say around the name, and
- * otherwise `[[a|prefix a, locator suffix]]`, with `-a` when the author is
- * left out. A suffix that starts with punctuation, ", emphasis added", closes
- * up to what comes before it.
- */
-function citationLink(target: string, at: string, prefix = '', suffix = '', withoutAuthor = false): string {
-	const before = prefix.trim();
-	const after = suffix.trim();
-	if (!at && !before && !after && !withoutAuthor) return `[[${target}]]`;
-	let label = [before, withoutAuthor ? `-${target}` : target].filter(Boolean).join(' ');
-	if (at) label += `, ${at}`;
-	if (after) label += /^[,.;:)]/.test(after) ? after : ` ${after}`;
-	return `[[${target}|${label}]]`;
-}
-
-/**
- * What someone typed for a page, as a locator. A bare number is a page, "4"
- * or "12-14", because that is nearly always what it is; anything else, "ch. 3"
- * or "§ 2", is already a locator and stays as typed.
- */
-export function typedLocator(typed: string): string {
-	const text = typed.trim();
-	return /^\d/.test(text) ? `p. ${text}` : text;
-}
-
-/** A citation to one paper, by its note's name or its key, with the page someone typed. */
-export function pageCitation(target: string, typed: string): string {
-	return citationLink(target, typedLocator(typed));
-}
-
-/**
- * A passage quoted, with the citation that says where it is from.
+ * A passage quoted, with the citation that says where it is from: the paper
+ * by its note's name, with the page in the label, `[[a|a, p. 12]]`, a form
+ * Due Credit reads. Inserting any other citation is Due Credit's.
  *
  * The page is a page label from Zotero, so it is always a page: "iv" gets its
- * "p." as much as "7" does, where `pageCitation` would leave a typed "iv" as
- * a locator of its own that the export does not know.
+ * "p." as much as "7" does.
  *
  * Written as its own paragraph, with blank lines between it and whatever the
  * cursor was in the middle of, because a quote that starts halfway along a line
  * of prose is not a quote.
  */
 export function quotation(text: string, target: string, page: string | null, before: string, after: string): string {
-	const cited = page ? pageCitation(target, `p. ${page}`) : `[[${target}]]`;
+	const cited = page?.trim() ? `[[${target}|${target}, p. ${page.trim()}]]` : `[[${target}]]`;
 	const quote = `> ${text} ${cited}`;
 	return (before.trim() ? '\n\n' : '') + quote + (after.trim() ? '\n\n' : '');
-}
-
-/** A wikilink in a line of text, and where it sits. */
-export interface LinkSpan {
-	from: number;
-	to: number;
-	target: string;
-	label: string | null;
-}
-
-/**
- * The wikilink the cursor is on, or has just finished typing.
- *
- * Just after `]]` counts, because that is where the cursor is when Obsidian's
- * own `[[` suggester has written the link, and moving back into it first is
- * the step this is here to save. An embed is not a citation, so `![[` is left.
- */
-export function linkAt(line: string, ch: number): LinkSpan | null {
-	for (const match of line.matchAll(/(!?)\[\[([^[\]|]+)(?:\|([^[\]]*))?\]\]/g)) {
-		const from = match.index;
-		const to = from + match[0].length;
-		if (ch < from || ch > to) continue;
-		if (match[1] || match[2] === undefined) return null;
-		return { from, to, target: match[2], label: match[3] ?? null };
-	}
-	return null;
-}
-
-/** The name a link cites by: its target without a folder or a heading. */
-export function linkName(link: LinkSpan): string {
-	const target = link.target.replace(/#.*$/, '').trim();
-	return target.split('/').pop() ?? target;
-}
-
-/**
- * Where a label repeats the name as a word, the way the filter's `spelled`
- * finds it: the index just past it, or -1. A `-` against the name, which
- * leaves the author out, still counts as the name standing alone.
- */
-function pastName(label: string, name: string): number {
-	for (let at = label.indexOf(name); at !== -1; at = label.indexOf(name, at + 1)) {
-		const end = at + name.length;
-		const start = label[at - 1] === '-' ? at - 1 : at;
-		const before = start === 0 || /\s/.test(label[start - 1] ?? '');
-		const after = end === label.length || /[\s,;]/.test(label[end] ?? '');
-		if (before && after) return end;
-	}
-	return -1;
-}
-
-/**
- * The link rewritten to cite a page, read the way the filter reads it.
- *
- * A label that repeats the name keeps everything around it and has its page
- * replaced: `[[a|see a, p. 3, emphasis added]]` becomes `see a, p. 4, emphasis
- * added`. Any other label is yours, so it stays and the page goes after a
- * comma, which the filter reads too: `[[a|Marsh]]` becomes `Marsh, p. 4`, and
- * a page it had is replaced. Without a label the name is it. A heading after
- * `#` goes, because a citation with a page is not a link to a section.
- */
-export function withPage(link: LinkSpan, typed: string): string {
-	const target = link.target.replace(/#.*$/, '').trim();
-	const name = linkName(link);
-	const label = link.label ?? name;
-	const at = typedLocator(typed);
-
-	const end = pastName(label, name);
-	if (end !== -1) {
-		// A page already after the name goes, with any bare numbers that continue
-		// it, "pp. 4, 6"; what follows that is the suffix, and stays.
-		const rest = label.slice(end).replace(/^,\s*([^,]*)((?:,\s*\d[^,]*)*)/, (whole: string, first: string) => (isLocator(first) ? '' : whole));
-		return `[[${target}|${label.slice(0, end)}, ${at}${rest}]]`;
-	}
-
-	const comma = label.indexOf(',');
-	const own = comma !== -1 && isLocator(label.slice(comma + 1)) ? label.slice(0, comma) : label;
-	return `[[${target}|${own.trim()}, ${at}]]`;
 }
 
 /**
@@ -538,7 +296,7 @@ export interface Annotation {
 /**
  * The eight colours Zotero's reader offers, by the names it gives them.
  *
- * Kept by hand, like `LOCATOR_TERMS`, and the same list is in `styles.css`:
+ * Kept by hand, and the same list is in `styles.css`:
  * a colour added here and not there is drawn as a plain quote callout.
  */
 export const ANNOTATION_COLORS = {

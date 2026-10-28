@@ -15,12 +15,9 @@ All of them are in `src/source.ts`. Paths are under `/api/`, and
 | `<library>/items/top?since=<v>` | What changed since library version `v`, paged. The catch-up on focus, per library under **Papers from** |
 | `<library>/collections` | Collection names and nesting, for **Papers from** and subcollections. Only when a source names a collection, and again when the library version moves |
 | `users/0/groups` | The groups you are in, for **Papers from**, and to notice one you have left. Once a session, and when the settings tab opens |
-| `<library>/items/top?q=<query>` | **Insert citation** search, in your library and each group under **Papers from** |
-| `<library>/items/top?sort=dateAdded&direction=desc` | **Insert citation** before anything is typed |
 | `<library>/items/<key>` | One item's metadata, for writing a note. Also an annotation's, whose `parentItem` is the attachment **Show in Zotero** opens |
 | `<library>/items/<key>/children` | An item's attachments |
 | `<library>/items/<attachment>/children?itemType=annotation` | An attachment's annotations |
-| `/better-bibtex/cayw?format=json` | Better BibTeX's citation dialog. No timeout, since it waits on the user |
 | `/better-bibtex/cayw?probe=true` | Whether Better BibTeX is installed, for the settings tab. Answers `ready` or `starting` and opens nothing; Zotero answers 404 without Better BibTeX |
 
 Zotero puts the library version and the result count on every response
@@ -88,8 +85,8 @@ Zotero*, in Zotero's Settings → Advanced.
 ## Better BibTeX
 
 Optional. With it, a note is named for the citation key; without it, for
-author, title and year. **Insert citation** needs it, since without it there is
-no key to insert. Nothing else changes.
+author, title and year. Nothing else changes. Due Credit's **Insert citation**
+reads keys from the `.bib` Better BibTeX exports, not from here.
 
 ## Not to depend on
 

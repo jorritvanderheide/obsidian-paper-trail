@@ -91,7 +91,7 @@ export function paperFrontmatter(item: ApiItem, ref: ItemRef, basename: string):
 		// characters long, and the ones that inserted cleanly could not be found
 		// that way at all.
 		//
-		// Removing it makes typing `[[` and running Insert citation produce the
+		// Removing it makes typing `[[` and running Due Credit's Insert citation produce the
 		// same text, which is worth more than fuzzy-matching the back half of a
 		// title. The title is still on the note, in `title` and in its heading,
 		// and still found by search.
@@ -100,7 +100,7 @@ export function paperFrontmatter(item: ApiItem, ref: ItemRef, basename: string):
 			// because it was made before Better BibTeX was installed or Better
 			// BibTeX changed the key since. This lets `[[` find it by the key. It
 			// does not make `[[key]]` resolve, since Obsidian resolves a link by
-			// name and path only; Insert citation links to the name instead.
+			// name and path only; Due Credit's Insert citation links to the name instead.
 			// Aliasing a file to its own name would list it twice in the
 			// suggester, so this asks first.
 			key && key !== basename ? [key] : [],

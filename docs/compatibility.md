@@ -89,8 +89,10 @@ are in [Zotero](zotero.md).
 - **The plugin ID** `paper-trail` never changes. It's the plugin's folder,
   where `data.json` lives, and the start of every command ID.
 - **Command IDs** are `paper-trail:open-queue`, `insert-block`, `next`,
-  `refresh-paper`, `link-notes`, `excluded`, `set-reading`, `insert-citation`,
-  `add-page` and `insert-annotation` (`src/main.ts`). People bind hotkeys to
+  `refresh-paper`, `link-notes`, `excluded`, `set-reading` and
+  `insert-annotation` (`src/main.ts`). `insert-citation` and `add-page` went
+  to Due Credit in 2.0.0, as `due-credit:insert-citation` and
+  `due-credit:add-page`. People bind hotkeys to
   them, so renaming or removing one is breaking. A command's name may change.
 - **The queue's view type** `paper-trail-queue` is saved in the workspace
   layout. Renaming it breaks the pane people have open.
@@ -100,14 +102,11 @@ are in [Zotero](zotero.md).
 
 ## Due Credit
 
-The citation forms are an agreement with Due Credit, described in
-[Citations](citations.md).
+The one citation form Paper Trail writes, in **Insert annotation**, is an
+agreement with Due Credit, described in [Citations](citations.md).
 
 - **A new form is read there first.** Due Credit is released before Paper
-  Trail writes it ([Changing a form](citations.md#changing-a-form)).
-- **The locator words** are in `LOCATOR_TERMS` in `src/core/zotero.ts` and in
-  Due Credit's filter, kept in step by hand. A word only one side knows is a
-  page the export drops, so change both.
+  Trail writes it ([Changing the form](citations.md#changing-the-form)).
 - **`citekey`** is the property Due Credit cites a paper note by, by default.
   Renaming it breaks the citations of every paper.
 

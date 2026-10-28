@@ -13,10 +13,7 @@ const {
 	libraryState,
 	itemMetadata,
 	lastContact,
-	pickCitation,
 	probeBetterBibtex,
-	recentItems,
-	searchItems,
 	SourceError,
 } = await import('../src/source');
 
@@ -56,73 +53,6 @@ describe('itemMetadata', () => {
 		getJson.mockResolvedValue({ status: 200, json: { key: 'PARENT23', data: {} } });
 		await itemMetadata(parent);
 		expect(getJson).toHaveBeenCalledWith('/api/users/0/items/PARENT23');
-	});
-});
-
-
-describe('browsing the library', () => {
-	it('asks for the newest items first, which is what an empty picker shows', async () => {
-		getJson.mockResolvedValue(answer([]));
-		await recentItems(15);
-		const path = getJson.mock.calls[0]?.[0] ?? '';
-		expect(path).toContain('sort=dateAdded');
-		expect(path).toContain('direction=desc');
-		expect(path).toContain('limit=15');
-	});
-
-	it('asks only for top-level items, so attachments and annotations never appear', async () => {
-		getJson.mockResolvedValue(answer([]));
-		await recentItems(15);
-		await searchItems('heat pump');
-		for (const call of getJson.mock.calls) expect(call[0]).toContain('/items/top');
-	});
-
-	it('escapes what was typed, so a query with an ampersand still searches', async () => {
-		getJson.mockResolvedValue(answer([]));
-		await searchItems('comfort & convenience');
-		expect(getJson.mock.calls[0]?.[0]).toContain('q=comfort%20%26%20convenience');
-	});
-
-	it('explains an unreachable Zotero rather than throwing a socket error', async () => {
-		getJson.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(recentItems(15)).rejects.toBeInstanceOf(SourceError);
-	});
-});
-
-/**
- * The escape hatch behind the picker: Better BibTeX's own dialog, for the
- * citations a bare key cannot express.
- */
-describe('pickCitation', () => {
-	it('returns what the dialog gave back', async () => {
-		// Trimmed from a real answer: each source also carries the whole item.
-		const body = '[{"id":12,"locator":"45","suppressAuthor":false,"prefix":"","suffix":"","label":"page","citationKey":"vanderlindMendingQuietArchive2026"}]\n';
-		getText.mockResolvedValue({ status: 200, body });
-		expect(await pickCitation()).toEqual([
-			expect.objectContaining({ citationKey: 'vanderlindMendingQuietArchive2026', locator: '45', label: 'page' }),
-		]);
-	});
-
-	it('runs without a timeout, because the dialog waits on a person', async () => {
-		getText.mockResolvedValue({ status: 200, body: '[]' });
-		await pickCitation();
-		// The five seconds that suit a database read would cancel it under them.
-		expect(getText).toHaveBeenCalledWith('/better-bibtex/cayw?format=json', 0);
-	});
-
-	it('reads an empty answer as a cancelled dialog, not a failure', async () => {
-		getText.mockResolvedValue({ status: 200, body: '  \n' });
-		expect(await pickCitation()).toBeNull();
-	});
-
-	it('says what is missing when Better BibTeX is not there', async () => {
-		getText.mockResolvedValue({ status: 404, body: 'No endpoint found' });
-		await expect(pickCitation()).rejects.toThrow(/Better BibTeX/);
-	});
-
-	it('explains an unreachable Zotero rather than throwing a socket error', async () => {
-		getText.mockRejectedValue(new Error('ECONNREFUSED'));
-		await expect(pickCitation()).rejects.toBeInstanceOf(SourceError);
 	});
 });
 

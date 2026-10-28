@@ -3,6 +3,24 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+**Breaking:** citing moves to Due Credit, and Paper Trail is for reading.
+
+- **Insert citation** and **Add page to citation** are now
+  [Due Credit](https://community.obsidian.md/plugins/due-credit)'s, from 1.4.0.
+  Install it, and bind its commands (`due-credit:insert-citation`,
+  `due-credit:add-page`) to the hotkeys you had for Paper Trail's. Its picker
+  reads your bibliography, the `.bib` Better BibTeX exports, instead of
+  Zotero, so whatever you pick it can cite. Without Due Credit, type the link
+  yourself: `[[citekey]]`.
+- **Better BibTeX's dialog** (Shift+Enter in the picker) is gone with it. For a
+  prefix, or to leave out the author, type them in the link's label, as
+  `[[a|see -a, p. 4]]`.
+- **Insert annotation** stays, and so does everything else.
+- The Claim heading's question no longer names Insert citation. If you never
+  changed it, you get the new wording.
+
 ## 1.8.0
 
 - **Papers from** takes several sources, each with its own subcollections and triage, grouped under their library.

@@ -4,14 +4,6 @@ import {
 	abstractOf,
 	venueOf,
 	attachmentKeys,
-	citation,
-	itemRefOfUri,
-	LOCATOR_LABELS,
-	LOCATOR_TERMS,
-	linkAt,
-	pageCitation,
-	typedLocator,
-	withPage,
 	libraryPath,
 	authorNames,
 	annotations,
@@ -24,7 +16,6 @@ import {
 	noteName,
 	parseItemRef,
 	refOf,
-	newestFirst,
 	storedKey,
 	readerUrl,
 	annotationUrl,
@@ -40,16 +31,6 @@ describe('storedKey', () => {
 		for (const ref of [{ key: 'ABCD2345', groupID: null }, { key: 'ABCD2345', groupID: 12 }]) {
 			expect(parseItemRef(storedKey(ref))).toEqual(ref);
 		}
-	});
-});
-
-describe('newestFirst', () => {
-	const added = (key: string, dateAdded: string) => ({ key, data: { dateAdded } });
-
-	it('merges the libraries on when Zotero got each item, and keeps the newest', () => {
-		const mine = [added('MINE2', '2026-03-01'), added('MINE1', '2026-01-01')];
-		const lab = [added('LAB2', '2026-04-01'), added('LAB1', '2026-02-01')];
-		expect(newestFirst([mine, lab], 3).map((item) => item.key)).toEqual(['LAB2', 'MINE2', 'LAB1']);
 	});
 });
 
@@ -209,183 +190,6 @@ describe('noteName', () => {
 
 	it('copes with nothing to work from', () => {
 		expect(noteName({ key: 'X', data: {} })).toBe('unknown-untitled');
-	});
-});
-
-describe('citation', () => {
-	it('links a bare key', () => {
-		expect(citation([{ citationKey: 'okaforAuthenticity2025' }])).toBe('[[okaforAuthenticity2025]]');
-	});
-
-	it('puts a page in the label, where you read it and the filter reads it', () => {
-		expect(citation([{ citationKey: 'okaforAuthenticity2025', locator: '4', label: 'page' }])).toBe(
-			'[[okaforAuthenticity2025|okaforAuthenticity2025, p. 4]]',
-		);
-	});
-
-	it('abbreviates other locators as Better BibTeX does', () => {
-		expect(citation([{ citationKey: 'a', locator: '3', label: 'chapter' }])).toBe('[[a|a, ch. 3]]');
-	});
-
-	it('keeps a label it has no abbreviation for', () => {
-		expect(citation([{ citationKey: 'a', locator: '3', label: 'folio' }])).toBe('[[a|a, folio 3]]');
-	});
-
-	it('writes a locator without a label as it is', () => {
-		expect(citation([{ citationKey: 'a', locator: '12', label: '' }])).toBe('[[a|a, 12]]');
-	});
-
-	it('ignores a label with no locator', () => {
-		// Better BibTeX sends the label field either way.
-		expect(citation([{ citationKey: 'a', locator: '', label: 'page' }])).toBe('[[a]]');
-	});
-
-	it('puts a prefix and a suffix in the label around the name, as pandoc puts them around the key', () => {
-		const cited = citation([{ citationKey: 'a', locator: '4', label: 'page', prefix: 'see', suffix: 'emphasis added' }]);
-		expect(cited).toBe('[[a|see a, p. 4 emphasis added]]');
-	});
-
-	it('closes up to a suffix that starts with punctuation', () => {
-		const cited = citation([{ citationKey: 'a', locator: '4', label: 'page', suffix: ', emphasis added' }]);
-		expect(cited).toBe('[[a|a, p. 4, emphasis added]]');
-	});
-
-	it('writes a label for a prefix alone', () => {
-		expect(citation([{ citationKey: 'a', prefix: 'see' }])).toBe('[[a|see a]]');
-	});
-
-	it('leaves the author out with a - against the name, as pandoc does before the key', () => {
-		expect(citation([{ citationKey: 'a', locator: '4', label: 'page', suppressAuthor: true }])).toBe('[[a|-a, p. 4]]');
-		expect(citation([{ citationKey: 'a', prefix: 'see', suppressAuthor: true }])).toBe('[[a|see -a]]');
-	});
-
-	it('writes a label for leaving the author out alone', () => {
-		expect(citation([{ citationKey: 'a', suppressAuthor: true }])).toBe('[[a|-a]]');
-	});
-
-	it("leaves the author out of a citation to the paper's note by its name", () => {
-		const cited = citation([{ citationKey: 'newKey2025', locator: '4', label: 'page', suppressAuthor: true }], () => 'oldKey2025');
-		expect(cited).toBe('[[oldKey2025|-oldKey2025, p. 4]]');
-	});
-
-	it("links to the paper's note by its name, which Better BibTeX may have left behind", () => {
-		const cited = citation([{ citationKey: 'newKey2025', locator: '4', label: 'page' }], () => 'oldKey2025');
-		expect(cited).toBe('[[oldKey2025|oldKey2025, p. 4]]');
-	});
-
-	it('writes only abbreviations it reads back as locators', () => {
-		for (const label of Object.values(LOCATOR_LABELS)) expect(LOCATOR_TERMS).toContain(label);
-	});
-
-	it('separates several sources with a semicolon', () => {
-		const cited = citation([{ citationKey: 'a', locator: '4', label: 'page' }, { citationKey: 'b' }]);
-		expect(cited).toBe('[[a|a, p. 4]]; [[b]]');
-	});
-
-	it('leaves out a Zotero note, which has no key to link', () => {
-		expect(citation([{ citationKey: '' }, { citationKey: 'b' }])).toBe('[[b]]');
-		expect(citation([{ citationKey: '' }])).toBe('');
-	});
-});
-
-describe('itemRefOfUri', () => {
-	it('reads an item in the personal library', () => {
-		expect(itemRefOfUri('http://zotero.org/users/local/abcdEFGH/items/ABCD2345')).toEqual({ key: 'ABCD2345', groupID: null });
-		expect(itemRefOfUri('http://zotero.org/users/123456/items/ABCD2345')).toEqual({ key: 'ABCD2345', groupID: null });
-	});
-
-	it('reads an item in a group', () => {
-		expect(itemRefOfUri('http://zotero.org/groups/5/items/ABCD2345')).toEqual({ key: 'ABCD2345', groupID: 5 });
-	});
-
-	it('reads nothing else', () => {
-		expect(itemRefOfUri('http://zotero.org/users/local/x/collections/ABCD2345')).toBeNull();
-		expect(itemRefOfUri('')).toBeNull();
-	});
-});
-
-describe('typedLocator', () => {
-	it('reads a bare number as a page', () => {
-		expect(typedLocator('4')).toBe('p. 4');
-		expect(typedLocator(' 12-14 ')).toBe('p. 12-14');
-	});
-
-	it('keeps anything else as typed', () => {
-		expect(typedLocator('ch. 3')).toBe('ch. 3');
-		expect(typedLocator('§ 2')).toBe('§ 2');
-		expect(typedLocator('pp. 4, 6')).toBe('pp. 4, 6');
-	});
-});
-
-describe('pageCitation', () => {
-	it('writes the page into the label', () => {
-		expect(pageCitation('okaforAuthenticity2025', '4')).toBe('[[okaforAuthenticity2025|okaforAuthenticity2025, p. 4]]');
-	});
-});
-
-describe('linkAt', () => {
-	const line = 'as argued in [[okafor]] and [[marsh|Marsh]].';
-
-	it('finds the link the cursor is inside', () => {
-		expect(linkAt(line, 17)).toEqual({ from: 13, to: 23, target: 'okafor', label: null });
-	});
-
-	it('finds the link the cursor has just passed, where [[ leaves it', () => {
-		expect(linkAt(line, 23)?.target).toBe('okafor');
-	});
-
-	it('reads the label', () => {
-		expect(linkAt(line, 35)).toMatchObject({ target: 'marsh', label: 'Marsh' });
-	});
-
-	it('finds nothing away from a link', () => {
-		expect(linkAt(line, 5)).toBeNull();
-	});
-
-	it('leaves an embed alone', () => {
-		expect(linkAt('![[figure.png]]', 5)).toBeNull();
-	});
-});
-
-describe('withPage', () => {
-	const at = (text: string) => linkAt(text, 2)!;
-
-	it('names the link by its key', () => {
-		expect(withPage(at('[[a]]'), '4')).toBe('[[a|a, p. 4]]');
-	});
-
-	it('replaces a page rather than adding a second', () => {
-		expect(withPage(at('[[a|a, p. 3]]'), '4')).toBe('[[a|a, p. 4]]');
-	});
-
-	it('keeps a label of your own', () => {
-		expect(withPage(at('[[a|Marsh]]'), 'ch. 3')).toBe('[[a|Marsh, ch. 3]]');
-		expect(withPage(at('[[a|Marsh, p. 3]]'), '4')).toBe('[[a|Marsh, p. 4]]');
-		expect(withPage(at('[[a|Marsh, pp. 3, 6]]'), '4')).toBe('[[a|Marsh, p. 4]]');
-	});
-
-	it('keeps what surrounds the name in a label that repeats it', () => {
-		expect(withPage(at('[[a|see a]]'), '4')).toBe('[[a|see a, p. 4]]');
-		expect(withPage(at('[[a|see a, p. 3, emphasis added]]'), '4')).toBe('[[a|see a, p. 4, emphasis added]]');
-		expect(withPage(at('[[a|a, pp. 3, 6, emphasis added]]'), '4')).toBe('[[a|a, p. 4, emphasis added]]');
-		expect(withPage(at('[[a|a emphasis added]]'), '4')).toBe('[[a|a, p. 4 emphasis added]]');
-	});
-
-	it('keeps a citation that leaves the author out as it is, around its new page', () => {
-		expect(withPage(at('[[a|-a]]'), '4')).toBe('[[a|-a, p. 4]]');
-		expect(withPage(at('[[a|see -a, p. 3, emphasis added]]'), '4')).toBe('[[a|see -a, p. 4, emphasis added]]');
-	});
-
-	it('does not take a word that only starts with the name for it', () => {
-		expect(withPage(at('[[a|about]]'), '4')).toBe('[[a|about, p. 4]]');
-	});
-
-	it('drops a heading, because a page is not a section', () => {
-		expect(withPage(at('[[a#Claim]]'), '4')).toBe('[[a|a, p. 4]]');
-	});
-
-	it('keeps a folder in the target but not in the label', () => {
-		expect(withPage(at('[[Literature/a]]'), '4')).toBe('[[Literature/a|a, p. 4]]');
 	});
 });
 

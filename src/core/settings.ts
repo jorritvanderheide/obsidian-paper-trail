@@ -216,11 +216,12 @@ export const DEFAULT_SETTINGS: Settings = {
 	// between papers, and having just said what a paper claims is exactly when
 	// you know whether it contradicts something you read in March.
 	//
-	// It names Insert citation because the link is not a thing you would guess
+	// It says how to link because the link is not a thing you would guess
 	// your way to. With Better BibTeX a note is named for its citation key, so
-	// typing `[[` finds papers by key and not by the title you remember.
+	// typing `[[` finds papers by key and not by the title you remember. Due
+	// Credit's Insert citation writes the same link from a picker.
 	claimPrompt:
-		'What does this paper argue, and which other work does it agree or disagree with? One or two sentences, in your own words. Insert citation makes the link.',
+		'What does this paper argue, and which other work does it agree or disagree with? One or two sentences, in your own words, linking that work by its citation key.',
 	assessmentPrompt: "Where doesn't it hold up? What does it take for granted? What does the evidence actually show?",
 };
 
@@ -237,6 +238,8 @@ const RETIRED_PROMPTS: Record<'claimPrompt' | 'assessmentPrompt', readonly strin
 	// 1.0.0 to 1.4.1.
 	claimPrompt: [
 		'What does this paper argue, and what does it sit with or against? One or two sentences of your own; Insert citation makes the link.',
+		// 1.5.0 to 1.8.0, when Insert citation was Paper Trail's.
+		'What does this paper argue, and which other work does it agree or disagree with? One or two sentences, in your own words. Insert citation makes the link.',
 	],
 	assessmentPrompt: ['Where does it strain? What is it assuming? What is the evidence actually doing?'],
 };

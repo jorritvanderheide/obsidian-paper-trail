@@ -31,7 +31,7 @@ export function connectionStatus(contact: Contact, betterBibtex: BetterBibtex): 
 		case 'starting':
 			return 'Zotero is answering. Better BibTeX is still starting, so check again in a moment.';
 		case 'missing':
-			return "Zotero is answering. Better BibTeX isn't installed, so papers are named for author, title and year, and Insert citation won't work.";
+			return "Zotero is answering. Better BibTeX isn't installed, so papers are named for author, title and year.";
 		case null:
 			return 'Zotero is answering.';
 	}

@@ -13,7 +13,6 @@ import {
 	libraryPath,
 	type ApiItem,
 	type Annotation,
-	type CitedSource,
 	type ItemRef,
 } from './core/zotero';
 import type { ApiCollection } from './core/collections';
@@ -23,7 +22,6 @@ import { getJson, getText, type Headers } from './http';
 
 /** A failure to show the user as is. */
 export class SourceError extends Error {}
-
 
 /**
  * These are read in a sidebar banner about as wide as a sentence, so they are
@@ -86,22 +84,6 @@ async function answered<T>(path: string): Promise<{ body: T; headers: Headers }>
 	return { body: response.json as T, headers: response.headers };
 }
 
-export function searchItems(query: string, group: number | null = null): Promise<ApiItem[]> {
-	return api<ApiItem[]>(`${libraryOf(group)}/items/top?q=${encodeURIComponent(query)}&limit=25`);
-}
-
-/**
- * The most recently added items, newest first.
- *
- * For a picker with nothing typed in it. Almost every paper you want a note for
- * is one you saved from the browser a few minutes ago, so an empty box is worth
- * more as a list of those than as an instruction to start typing the title of
- * something you are already looking at.
- */
-export function recentItems(limit: number, group: number | null = null): Promise<ApiItem[]> {
-	return api<ApiItem[]>(`${libraryOf(group)}/items/top?sort=dateAdded&direction=desc&limit=${limit}`);
-}
-
 /** The groups this Zotero is in, for the source picker and to notice one you have left. */
 export function allGroups(): Promise<ApiGroup[]> {
 	return api<ApiGroup[]>('users/0/groups');
@@ -132,8 +114,6 @@ export function itemChildren(ref: ItemRef): Promise<ApiItem[]> {
 	return api<ApiItem[]>(`${libraryPath(ref)}/items/${ref.key}/children`);
 }
 
-const BBT_MISSING = "Couldn't reach Better BibTeX. Is it installed in Zotero?";
-
 /**
  * Whether Better BibTeX is installed, without opening anything.
  *
@@ -153,37 +133,6 @@ export async function probeBetterBibtex(): Promise<BetterBibtex> {
 	if (response.status !== 200) return null;
 	return response.body.trim() === 'starting' ? 'starting' : 'ready';
 }
-
-/**
- * Better BibTeX's cite-as-you-write picker. One GET opens Zotero's own citation
- * dialog and returns what was chosen, as JSON: the key, locator, prefix and
- * suffix of each source. `citation` in core/zotero.ts writes it as a link.
- *
- * Kept as the escape hatch behind the picker here, not as the way in. It raises
- * Zotero over whatever you were writing, which is the thing to avoid, but it is
- * the only way to get locators, prefixes and several sources in one citation,
- * and reimplementing that dialog would be worse than borrowing it.
- *
- * The request blocks until the dialog is answered, which may be a minute of
- * someone searching their library, so it runs without a timeout. The five
- * seconds that suit a database read would cancel the dialog under them.
- */
-export async function pickCitation(): Promise<CitedSource[] | null> {
-	let response;
-	try {
-		response = await getText('/better-bibtex/cayw?format=json', 0);
-	} catch (error) {
-		console.error('paper-trail: cite-as-you-write request failed', error);
-		throw new SourceError(BBT_MISSING);
-	}
-	if (response.status === 404) throw new SourceError(BBT_MISSING);
-	if (response.status >= 400) throw new SourceError(`Better BibTeX answered with an error (HTTP ${response.status}).`);
-
-	// Cancelling the dialog is an empty body, not an error.
-	const body = response.body.trim();
-	return body ? (JSON.parse(body) as CitedSource[]) : null;
-}
-
 
 /**
  * A library's path: your own, or a group's.
