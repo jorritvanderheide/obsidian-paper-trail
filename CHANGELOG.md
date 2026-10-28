@@ -3,7 +3,7 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
-## Unreleased
+## 2.0.0
 
 **Breaking:** citing moves to Due Credit, and Paper Trail is for reading.
 
