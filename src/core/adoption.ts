@@ -144,7 +144,7 @@ export function adoptionSummary(plan: AdoptionPlan, keyField: string): string[] 
 			`${count(adopt.length, 'note', 'notes')} in your vault ${many ? 'are about papers' : 'is about a paper'} in your Zotero library. Paper Trail adds a ${keyField} property to ${many ? 'each one' : 'it'}, which makes it a paper's note.`,
 		);
 		out.push(
-			"The next time you open one, its title, authors, year, citekey and zotero properties are filled in from Zotero, and its annotations are added at the end. Nothing else in the note changes, so annotations another plugin put in it stay where they are, for you to keep or delete.",
+			"The next time you open one, its title, authors, year, citekey and zotero properties are filled in from Zotero, and its annotations are added at the end. Nothing else in the note changes. Annotations another plugin put in it stay where they are, and it's up to you what to do with them.",
 		);
 
 		const replacing = adopt.filter((entry) => entry.replaced.length > 0);

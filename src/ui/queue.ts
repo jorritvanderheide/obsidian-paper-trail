@@ -267,7 +267,7 @@ function searchBox(header: HTMLElement, context: Context, kept: HTMLElement | nu
 	}
 
 	const box = header.createDiv({ cls: 'paper-trail-search' });
-	const search = new SearchComponent(box).setPlaceholder('Search papers...');
+	const search = new SearchComponent(box).setPlaceholder('Search papers…');
 
 	// A redraw reads every note in the vault, so it waits for a pause in the
 	// typing rather than following each key. Not while a word is still being

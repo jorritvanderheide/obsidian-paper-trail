@@ -5,7 +5,7 @@ body:
     - type: markdown
       attributes:
           value: |
-              Thanks for taking the time to report this. Before you start, have a quick look at the [FAQ](https://github.com/jorritvanderheide/obsidian-paper-trail/blob/main/FAQ.md): the most common surprises, like Zotero not answering or empty annotations, are explained there.
+              Thanks for taking the time to report this. Before you start, have a quick look at the [FAQ](https://github.com/jorritvanderheide/obsidian-paper-trail/blob/main/FAQ.md). It explains the most common surprises, like Zotero not answering or empty annotations.
 
               Found a security problem? Please don't report it here. Use [private reporting](https://github.com/jorritvanderheide/obsidian-paper-trail/security/advisories/new) instead.
 
@@ -72,24 +72,24 @@ body:
       validations:
           required: true
 
-    - type: dropdown
+    - type: input
       id: scope
       attributes:
           label: Papers from
-          description: The first setting under Zotero in Paper Trail's settings.
-          options:
-              - Whole library
-              - One collection
+          description: What's listed under Papers from, in Paper Trail's settings.
+          placeholder: My library, or two collections in a group library, ...
       validations:
           required: true
 
     - type: dropdown
       id: triage
       attributes:
-          label: Triage before reading
+          label: Triage first
+          description: The switch on each source under Papers from.
           options:
-              - 'Off'
-              - 'On'
+              - Off for every source
+              - On for some sources
+              - On for every source
       validations:
           required: true
 

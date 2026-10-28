@@ -215,7 +215,7 @@ const NOT_AN_ABSTRACT = [/^semantic scholar extracted view of\b/i];
  * The abstract, or null when what Zotero holds is not one.
  *
  * Null rather than the string, because the two read differently in the dialog:
- * "Zotero has no abstract for this item" is a fact about the record you can
+ * "Zotero doesn't have an abstract for this paper" is a fact about the record you can
  * act on, and a paper with no abstract is still assessable from its title and
  * venue. A fake one is a sentence that answers nothing and looks like it
  * answered.

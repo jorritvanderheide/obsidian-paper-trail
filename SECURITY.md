@@ -13,8 +13,8 @@ through GitHub instead:
 https://github.com/jorritvanderheide/obsidian-paper-trail/security/advisories/new
 
 Include the Paper Trail, Obsidian and Zotero versions, your operating system,
-and the steps to reproduce it. Reports are looked at before anything about them
-is made public.
+and the steps to reproduce it. I'll look into your report before anything about
+it is made public.
 
 ## What counts
 
@@ -26,4 +26,4 @@ or run code that came from a paper's metadata or annotations is a security
 problem.
 
 A bug that changes or loses text in your notes is serious too, but it isn't
-secret: please report that as a normal issue, so others can see it.
+secret. Please report it as a normal issue, so others can see it.

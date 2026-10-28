@@ -5,7 +5,7 @@ body:
     - type: markdown
       attributes:
           value: |
-              Thanks for sharing your idea. Paper Trail is deliberately opinionated: its stages and reading statuses are fixed, and you can switch stages off but not add new ones. So it helps most to hear what you're trying to get done, more than how you'd build it.
+              Thanks for sharing your idea. Paper Trail's stages and reading statuses are fixed on purpose. You can switch a stage off, but you can't add new ones. That's why it helps most to hear what you're trying to get done, more than how you'd build it.
 
     - type: textarea
       id: goal

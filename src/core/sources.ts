@@ -153,7 +153,7 @@ export function sourceProblem(sources: Source[], contents: Contents[], groups: A
 
 	// Only once the list of groups is in, since before that nothing is known.
 	if (groups !== null && sources.some((source) => source.group !== null && !groups.some((group) => group.id === source.group))) {
-		return "A group under Papers from isn't in Zotero anymore, or you've left it, so no papers come from it. Remove it in the settings.";
+		return "A group under Papers from isn't in Zotero anymore, or you've left it, so no papers come from it. Delete it from the list in the settings.";
 	}
 
 	const gone = sources.some((source) => {
@@ -161,7 +161,7 @@ export function sourceProblem(sources: Source[], contents: Contents[], groups: A
 		return library !== undefined && source.collection !== '' && !library.collections.some((entry) => entry.key === source.collection);
 	});
 	return gone
-		? "A collection under Papers from isn't in Zotero anymore, so no papers come from it. Remove it in the settings, or add the one you meant."
+		? "A collection under Papers from isn't in Zotero anymore, so no papers come from it. Delete it from the list in the settings, or add the one you meant."
 		: null;
 }
 

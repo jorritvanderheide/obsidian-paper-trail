@@ -14,19 +14,20 @@ Can't find your answer here? Please
 ### "Zotero is not answering. Is it running?"
 
 Paper Trail reads everything from Zotero while it runs, so Zotero has to be
-open. Start Zotero, then click back into Obsidian: the queue asks again whenever
+open. Start Zotero, then click back into Obsidian. The queue asks again whenever
 Obsidian gets focus.
 
 If Zotero is open and you still see this, something else may be using port
 23119, or security software may be blocking connections between programs on
 your computer.
 
-### "Zotero refused. Turn on its local API in Settings > Advanced."
+### "Zotero said no. Allow other applications in its Settings → Advanced."
 
-Zotero is running, but doesn't let other programs read your library yet. In
-Zotero, open Settings → Advanced and turn on *Allow other applications on this
-computer to communicate with Zotero*. This is off by default, and it needs
-Zotero 7 or later.
+Zotero doesn't let other programs read your library until you turn on *Allow
+other applications on this computer to communicate with Zotero*, in Zotero's
+Settings → Advanced. It's off by default, and you need Zotero 7 or later to
+have it. Once
+it's on, click back into Obsidian, and the queue asks Zotero again.
 
 ### Does it work on mobile?
 
@@ -39,7 +40,7 @@ Obsidian on your desktop.
 
 ### I read a paper, but it still has no note
 
-That's on purpose. Reading a paper doesn't write anything to your vault: the
+That's on purpose. Reading a paper doesn't write anything to your vault. The
 note is made when you decide what came of it. Tick the paper off in the queue
 and choose an answer, and the note is written then, with all your annotations
 in it.
@@ -63,15 +64,15 @@ A few things to check:
 ### "A collection under Papers from isn't in Zotero anymore"
 
 A collection you added under **Papers from** was deleted in Zotero. In Paper
-Trail's settings it's marked as not in Zotero: delete it from the list, or add
+Trail's settings it's marked as not in Zotero. Delete it from the list, or add
 the one you meant. The other sources keep working.
 
 ### "A group under Papers from isn't in Zotero anymore, or you've left it"
 
-Zotero doesn't list that group anymore: it was deleted, or you left it. In
-Paper Trail's settings it's marked as not in Zotero. Delete it from the list.
-Notes you already have for its papers keep working, and the other sources do
-too.
+Zotero doesn't list that group anymore, because it was deleted or you left
+it. In Paper Trail's settings it's marked as not in Zotero. Delete it from the
+list. Notes you already have for its papers keep working, and the other sources
+do too.
 
 ### The same paper is in my library and a group's
 
@@ -86,10 +87,10 @@ The list under **Papers from** is empty, so no papers come in from Zotero.
 Papers that already have a note still work. Add your library, or a collection
 in it, in Paper Trail's settings.
 
-### "… isn't a paper's note: it has no zotero-key property"
+### "… isn't a paper's note, because it has no zotero-key property"
 
-Paper Trail recognises a paper by one frontmatter property, which holds the
-Zotero item key. A note without it isn't a paper, wherever it is in your
+Paper Trail recognises a paper by one property, which holds the Zotero item
+key. A note without it isn't a paper, wherever it is in your
 vault. If your existing literature notes keep the key under another name, set
 **Item key property** to that name and they are recognised as they are.
 
@@ -121,10 +122,10 @@ the item key property with something else in it, isn't looked at.
 
 ### Can I change a paper's status by hand?
 
-Yes. Change `reading` in the frontmatter and the queue follows, because the note
-is the record. A value Paper Trail doesn't recognise counts as `untriaged`. Only
-a decision made in Paper Trail tidies up the fields around it, such as the
-reason and the dates.
+Yes. Change `reading` in the note's properties and the queue follows, because
+the note is the record. A value Paper Trail doesn't recognise counts as
+`untriaged`. Only a decision made in Paper Trail tidies up the fields around it,
+such as the reason and the dates.
 
 ### I renamed the Claim heading, and now a paper has two
 
@@ -167,7 +168,7 @@ colour, so it shows them as a plain quote.
 
 ### Can I edit the annotations in the note?
 
-You can, but your edits are replaced at the next refresh: everything between
+You can, but your edits are replaced at the next refresh. Everything between
 `<!--paper-trail-->` and `<!--/paper-trail-->` belongs to Paper Trail. Write
 your thoughts under the Claim or Assessment heading instead, or add a comment
 to the annotation in Zotero, which does come through.
@@ -176,11 +177,13 @@ to the annotation in Zotero, which does come through.
 
 ### Where did Insert citation go?
 
-To [Due Credit](https://community.obsidian.md/plugins/due-credit), in Paper
-Trail 2.0.0, with **Add page to citation**. Due Credit cites, and Paper Trail
-reads, so each works on its own. Its **Insert citation** picks from your
-bibliography, the `.bib` Better BibTeX exports, so whatever you pick it can
-cite. Bind its commands to the hotkeys you had for Paper Trail's. Without Due
+It moved to [Due Credit](https://community.obsidian.md/plugins/due-credit) in
+Paper Trail 2.0.0, along with **Add page to citation**. Due Credit is for
+citing and Paper Trail is for reading, and each works without the other. Due
+Credit's **Insert citation** picks from your bibliography (the `.bib` file
+Better BibTeX exports). That's the same file it cites from when it exports, so
+every paper you can pick is one it can cite. Bind its commands to the hotkeys
+you had for Paper Trail's. Without Due
 Credit, type the link yourself: `[[citekey]]`.
 
 ### How do I export my citations to Word or PDF?
@@ -191,16 +194,16 @@ Paper Trail doesn't export anything itself. Use
 
 ### My citation comes out with double parentheses
 
-Don't put your own parentheses around a citation: the export adds them. Write
-`as shown by [[a]]`, not `as shown by ([[a]])`.
+Don't put your own parentheses around a citation, because the export adds
+them. Write `as shown by [[a]]`, not `as shown by ([[a]])`.
 
 ## Settings
 
 ### Can I add my own stage or reading status?
 
-No, and that's on purpose. The stages and statuses are what makes the queue
-work: it knows what each one means and what to do next. You can switch Triage,
-Claim and Assessment off, and keep extra steps of your own in your own
+No, and that's on purpose. The stages and statuses are what make the queue
+work, because it knows what each one means and what to do next. You can switch
+Triage, Claim and Assessment off, and keep extra steps of your own in your own
 properties next to Paper Trail's. See
 [Your own views](README.md#93-your-own-views).
 

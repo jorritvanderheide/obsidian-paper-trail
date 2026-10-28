@@ -314,7 +314,7 @@ export class SettingsTab extends PluginSettingTab {
 				items: [
 					{
 						name: 'Include subcollections',
-						desc: 'A collection above also brings in the papers in the collections under it, the way a thesis collection holds one per chapter. A paper in more than one source belongs to the first one in the list. Nothing is copied, and papers outside them that already have a note keep working.',
+						desc: "Also bring in the papers from the collections inside each collection above, like a thesis collection with one collection per chapter. If a paper is in more than one source, it counts for the first one in the list. Papers that already have a note stay in the queue, even when they're outside every source.",
 						control: { type: 'toggle', key: 'subcollections' },
 					},
 					{
@@ -341,7 +341,7 @@ export class SettingsTab extends PluginSettingTab {
 					{
 						name: 'Status tag',
 						desc:
-							'Also write each paper’s reading status as a tag, to browse your papers by tag instead of by folder. "status" gives status/queued, status/dropped and so on. Leave it empty for no tag. The properties stay the real record either way.' +
+							'Also write each paper\'s reading status as a tag, so you can browse your papers by tag. With "status", you get status/queued, status/dropped and so on. Leave it empty for no tag. The tag is only a copy, and Paper Trail itself always goes by the properties.' +
 							this.statusTagStatus(),
 						control: { type: 'text', key: 'statusTag' },
 					},
@@ -359,7 +359,7 @@ export class SettingsTab extends PluginSettingTab {
 					{
 						name: 'Show reading status on papers',
 						desc:
-							'Show a paper’s status in the title bar while you edit, and at the top of the note in reading view. Click it to change the status. Turn it off if you keep the properties panel open, where you’d see the same word twice.',
+							"Show a paper's status in the title bar while you edit, and at the top of the note in reading view. Click it to change the status. Turn it off if you keep the properties panel open, where you'd see the same word twice.",
 						control: { type: 'toggle', key: 'statusPill' },
 					},
 					{
@@ -370,7 +370,7 @@ export class SettingsTab extends PluginSettingTab {
 					},
 					{
 						name: 'Written passes',
-						desc: "What you write after reading a paper. Claim and assessment: every paper you read gets a claim, and the ones you promote an assessment too. Claim only: there's no third pass. None: a paper is filed as read as soon as you've read it, for when you write by theme rather than by paper. Changing this doesn't change your notes: a paper you already promoted still needs its assessment, and read papers need a claim again if you switch claims back on.",
+						desc: "What you write after reading a paper. With claim and assessment, every paper you read gets a claim, and the ones you promote get an assessment too. With claim only, papers get a claim and there's no third pass. With none, a paper is filed as read as soon as you've read it, which suits you if you write by theme. Your notes stay as they are when you change this. A paper you already promoted still needs its assessment, and papers you've read go back to Claim if you switch claims back on.",
 						control: { type: 'dropdown', key: 'passes', options: PASS_OPTIONS },
 					},
 					{

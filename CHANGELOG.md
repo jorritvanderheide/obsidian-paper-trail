@@ -3,6 +3,21 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+- Plainer, friendlier wording in the README, the FAQ, the settings and the
+  messages.
+- When Zotero refuses to answer, the message now says what to allow, in
+  Zotero's own words: other applications, in its Settings → Advanced. It used
+  to say "local API", which Zotero's settings never mention.
+- When a note is in the way of a new paper note or the excluded papers report,
+  the message asks you to rename or move it, and no longer suggests deleting
+  it.
+- An error from Zotero now says to try again, and to restart Zotero if it
+  keeps happening.
+- The bug report form asks about **Papers from** and **Triage first** as they
+  have worked since 1.8.0.
+
 ## 2.0.0
 
 **Breaking:** citing moves to Due Credit, and Paper Trail is for reading.

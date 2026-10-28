@@ -52,8 +52,8 @@ export async function writeReport(context: Context): Promise<void> {
 	const existing = app.vault.getFileByPath(path);
 	if (existing && !isReport(app.metadataCache.getFileCache(existing)?.frontmatter)) {
 		throw new Error(
-			`There's already a note at ${path} that Paper Trail didn't write.\n` +
-				'Rename or delete it, and try again.',
+			`There's already a note at ${path} that Paper Trail didn't make, so it's left as it is.\n` +
+				'Rename or move that note, and try again.',
 		);
 	}
 

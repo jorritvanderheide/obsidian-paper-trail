@@ -86,7 +86,7 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 		// a message about a file existing and nothing about which paper or why.
 		throw new Error(
 			`There's already a note at ${path}, and it isn't this paper's.\n` +
-				'Rename or delete it, and try again.',
+				'Rename or move that note, and try again.',
 		);
 	}
 

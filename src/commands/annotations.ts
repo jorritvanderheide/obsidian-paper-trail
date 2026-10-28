@@ -31,7 +31,7 @@ export async function insertAnnotation(context: Context): Promise<void> {
 	// Inside the region, the quote would be gone at the next sync.
 	const inPaper = view.file !== null && isPaper(app.metadataCache.getFileCache(view.file)?.frontmatter, context.settings.keyField);
 	if (inPaper && inRegion(view.editor.getValue(), view.editor.getCursor().line)) {
-		new Notice("That's inside the annotations, which are rewritten on every sync. Put the cursor above them.");
+		new Notice("The cursor is in the annotations section, which is rewritten every time the note is refreshed from Zotero. Put the cursor above it, and try again.");
 		return;
 	}
 

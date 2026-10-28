@@ -407,7 +407,7 @@ export function firstPass(workflow: Workflow): FirstPassChoice[] {
 		{
 			reading: 'dropped',
 			label: 'Drop',
-			hint: "Not going further. You'll be asked why, so the reason is on record.",
+			hint: "Not worth reading. You'll be asked why, and your answer is kept in its note.",
 		},
 		{
 			reading: 'queued',

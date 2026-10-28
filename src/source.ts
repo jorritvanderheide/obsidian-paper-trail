@@ -32,12 +32,12 @@ export class SourceError extends Error {}
  * checkbox does not help you when nothing is there to have it. A refusal is the
  * opposite case, and the only one where the setting is the answer.
  *
- * Neither quotes the checkbox in full. It is sixty characters, and Settings >
- * Advanced has one thing in it about other applications. The exact wording is
- * in the README, which is where you read sentences.
+ * Neither quotes the checkbox in full. It is sixty characters, and Settings →
+ * Advanced has one thing in it about other applications, which the refusal
+ * names in Zotero's words. The exact label is in the README and the FAQ.
  */
 const UNREACHABLE = 'Zotero is not answering. Is it running?';
-const REFUSED = 'Zotero refused. Turn on its local API in Settings > Advanced.';
+const REFUSED = 'Zotero said no. Allow other applications in its Settings → Advanced.';
 
 let contact: Contact = null;
 
@@ -80,7 +80,7 @@ async function answered<T>(path: string): Promise<{ body: T; headers: Headers }>
 	contact = { reachable: true };
 
 	if (response.status === 404) throw new SourceError("Zotero doesn't have this item anymore.");
-	if (response.status >= 400) throw new SourceError(`Zotero answered with an error (HTTP ${response.status}).`);
+	if (response.status >= 400) throw new SourceError(`Zotero answered with an error (HTTP ${response.status}). Try again, and if it keeps happening, restart Zotero.`);
 	return { body: response.json as T, headers: response.headers };
 }
 

@@ -379,5 +379,5 @@ function addAliases(frontmatter: Record<string, unknown>, wanted: string[]): voi
  * sentence explaining a failed check is part of the check.
  */
 export function notAPaper(name: string, keyField: string): string {
-	return `${name} isn't a paper's note: it has no ${keyField} property.`;
+	return `${name} isn't a paper's note, because it has no ${keyField} property.`;
 }

@@ -107,7 +107,7 @@ export class TriageModal extends Modal {
 		if (problem) el.createEl('p', { cls: 'paper-trail-triage-problem', text: problem });
 
 		if (brief.abstract) el.createEl('p', { cls: 'paper-trail-triage-abstract', text: brief.abstract });
-		else el.createEl('p', { cls: 'paper-trail-triage-empty', text: 'Zotero has no abstract for this item.' });
+		else el.createEl('p', { cls: 'paper-trail-triage-empty', text: "Zotero doesn't have an abstract for this paper." });
 
 		this.decisions(el);
 	}

@@ -99,10 +99,10 @@ describe('lastContact', () => {
 	});
 
 	// Short enough to read in a sidebar banner, and pointing at where the switch
-	// is rather than quoting its sixty-character label.
+	// is, in Zotero's words, without quoting its sixty-character label.
 	it('says where to turn the API on when Zotero refuses the request', async () => {
 		getJson.mockResolvedValue({ status: 403, json: null, headers: { version: 0, total: 0 } });
-		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow(/Settings > Advanced/);
+		await expect(itemMetadata({ key: 'ABCD2345', groupID: null })).rejects.toThrow(/Settings → Advanced/);
 		const contact = lastContact();
 		expect(contact).toMatchObject({ reachable: false });
 	});

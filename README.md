@@ -48,9 +48,9 @@ section.
    With it, notes are named after the citation key, which is what a citation
    links to. Without it, notes are named after author, title and year, and
    everything else works the same.
-3. **Install Paper Trail** in Obsidian: go to Settings → Community plugins →
-   Browse, search for "Paper Trail", then install and enable it. You can also
-   open [its page in the plugin directory](https://community.obsidian.md/plugins/paper-trail).
+3. **Install Paper Trail.** In Obsidian, go to Settings → Community plugins →
+   Browse, search for "Paper Trail", and install and enable it. You can also
+   find it on [its page in the plugin directory](https://community.obsidian.md/plugins/paper-trail).
 
 Paper Trail needs Obsidian 1.13 or later, on desktop.
 
@@ -81,18 +81,19 @@ Not sure where to start? **Next** opens the task that will go stale first.
 
 ## 3 Safety and quality
 
-Paper Trail writes a fixed set of frontmatter keys, one marked region and two
-headings, and nothing else. Every other key and every word you wrote stay
-yours, and a refresh from Zotero can't touch them. There are tests to make sure
-it stays that way. [Section 13](#13-network-and-file-disclosure) lists
-exactly what it reads and writes.
+In a paper's note, Paper Trail only writes a fixed list of properties, the
+annotations section, and the Claim and Assessment headings. Every other
+property and every word you wrote are yours, and a refresh from Zotero leaves
+them alone. There are tests to make sure it stays that way.
+[Section 13](#13-network-and-file-disclosure) lists exactly what it reads and
+writes.
 
 It only talks to Zotero, on your own computer. It doesn't read files outside
 your vault and doesn't run any programs.
 
-Every push is tested, and every release is built in the open with a signed
-attestation, so you can check that the file you installed is the one that was
-built. [Section 13.5](#135-how-releases-are-built) says how.
+Every change is tested. Every release is built in public on GitHub, and you
+can check that the file you installed is the one GitHub built.
+[Section 13.5](#135-how-releases-are-built) shows how.
 
 <br/>
 
@@ -121,7 +122,7 @@ If you want to work on the plugin, or build something on top of its notes:
 - [**Architecture**](docs/architecture.md) - How the code is layered, where
   decisions are allowed to live, and how Zotero and the vault come together in
   the queue.
-- [**Data model**](docs/data-model.md) - Every frontmatter key, the reading
+- [**Data model**](docs/data-model.md) - Every property, the reading
   vocabulary, and the managed region.
 - [**Zotero**](docs/zotero.md) - Which parts of the local API are used, and the
   quirks that give you an empty list without an error.
@@ -139,9 +140,9 @@ If you want to work on the plugin, or build something on top of its notes:
 
 - **Four stages** - Triage, Reading, Claim and Assessment, based on S. Keshav's
   [*How to Read a Paper*](https://doi.org/10.1145/1273445.1273458).
-- **Computed, not stored** - Every paper in Zotero without a note shows up as a
-  row, so importing four hundred search results gives you four hundred rows and
-  no new files.
+- **A row for every paper** - Every paper under **Papers from** that doesn't
+  have a note yet shows up as a row. Import four hundred search results, and
+  you get four hundred rows without a single new file in your vault.
 - **Next** - Opens whatever will go stale first: a claim before an assessment,
   both before a new paper, and triage last.
 - **Deferrals that come back** - Park a paper until a date, or until you've
@@ -157,22 +158,22 @@ If you want to work on the plugin, or build something on top of its notes:
   reader.
 - **Nothing is written until you decide** - Reading a paper leaves your vault
   alone.
-- **In step with Zotero** - When you come back to Obsidian, Paper Trail asks
-  Zotero what changed, in a single request.
+- **New papers show up by themselves** - When you come back to Obsidian, the
+  queue picks up whatever you saved to Zotero in the meantime.
 - **One collection or the whole library** - Limit the queue to the collection
   for your thesis.
 
 ### 5.3 The note
 
 - **Synced annotations** - Highlights, underlines and comments are refreshed
-  when you open the note. Each one is anchored, so a link to a passage keeps
-  working.
+  when you open the note. Each one keeps the same anchor, so a link to a
+  passage still works after a refresh.
 - **Headings when you need them** - The Claim and Assessment headings are only
   added once a paper needs them.
 - **Prompts that stay out of your note** - The question under an empty heading
   is drawn in the editor and never written to the file.
-- **Status pill** - The paper's reading status in the title bar, with the reason
-  you gave when you hover over it.
+- **Reading status in the title bar** - Click it to change the status. On a
+  paper you dropped or deferred, hover over it to see the reason you gave.
 - **Your own template** - `Paper.md` is yours to edit.
 
 ### 5.4 Citations
@@ -182,13 +183,14 @@ If you want to work on the plugin, or build something on top of its notes:
   citation** picks a paper from your bibliography and writes the link.
 - **Insert annotation** - Quote a passage you highlighted, with a citation to
   its page.
-- **Backlinks as a citation graph** - Every citation is a link, so the
-  backlinks pane shows who cites whom.
+- **See where you cited a paper** - Every citation is a link, so a paper's
+  backlinks show every note that cites it, including the claims of other
+  papers.
 
 ### 5.5 The record
 
-- **Every decision kept** - What you decided, when, and why, in plain
-  frontmatter.
+- **Every decision kept** - What you decided about a paper is kept in its
+  note's properties, with the date and your reason.
 - **Excluded papers report** - Every paper you dropped or deferred, with the
   reason, as a markdown table for an appendix.
 - **Your own views** - The fields work with Bases and Dataview.
@@ -208,10 +210,10 @@ decide whether the next one is worth it.
 
 **Reading** holds the papers that are worth an hour and that you haven't read
 yet. Every paper under **Papers from** that doesn't have a note in your vault
-shows up here, unless you turned on triage for where it came from. The list is
-computed, not stored.
-Clicking a row opens the PDF in Zotero's reader, and reading doesn't write
-anything to your vault. When you're done, the tick asks what came of it:
+shows up here, unless you turned on triage for where it came from. Those rows
+come straight from Zotero, and no file is made for them until you decide
+something. Clicking a row opens the PDF in Zotero's reader, and reading doesn't
+write anything to your vault. When you're done, the tick asks what came of it:
 
 - *Worth summarising*: a second pass is enough.
 - *Worth a third pass*: the paper will also need an assessment.
@@ -238,37 +240,38 @@ paper is still fresh in your mind.
 ### 6.2 Switching stages off
 
 **Triage** is optional, and you switch it on per source under **Papers from**,
-with **Triage first**. Leave it off where you read abstracts in the browser and
-only save what you want to read: saving is then your decision, and papers
-arrive ready to read. Turn it on where papers arrive that you haven't made up
-your mind about, like a lab's shared reading list in a group library or a
-collection you fill from database searches. Each paper
-from there first shows up with its title, venue, year and abstract, and you
-choose one of three answers: drop it (and say why), queue it, or mark it as
-already read.
+with **Triage first**. Leave it off where you skim abstracts in your browser
+and only save what you mean to read. Then saving a paper was already the
+decision, and it goes straight to Reading. Turn it on where papers arrive that
+you haven't made up your mind about, like a lab's shared reading list in a
+group library or a collection you fill from database searches. Each paper from
+there first shows up with its title, venue, year and abstract, and you choose
+one of three answers: drop it (and say why), queue it, or mark it as already
+read.
 
 ![The triage dialog for How to Read a Paper, with its venue, year and abstract, and the answers Drop, Queue and Already read](https://raw.githubusercontent.com/jorritvanderheide/obsidian-paper-trail/main/images/triage.png)
 
 You can also switch off **Claim** and **Assessment**, under **Written passes**.
 With only the claim, there's no third pass to promote a paper to. With neither,
 *Worth summarising* becomes *Done with it*, and a paper you've read is filed as
-read. That suits you if you write by theme rather than paper by paper, and your
-annotations are all the note you need. Switching a pass off changes what Paper
-Trail offers you, not what's in your notes, so a paper you promoted before you
-turned assessments off still needs one.
+read. That suits you if you write by theme, and your annotations are all the
+note you need. Switching a pass off only changes what Paper Trail offers you.
+Your notes stay as they are, and a paper you promoted before you turned
+assessments off still needs its assessment.
 
-The stages and the reading vocabulary aren't settings, because they are what
-the plugin is: an opinionated workflow, not a rules engine that asks you to
-design one yourself. You can switch a stage off, but you can't add, rename or
-reorder them.
+The stages and the reading statuses themselves are fixed. Paper Trail is one
+particular way of working through your reading, and the queue can only tell
+you what to do next because it knows what each stage means. You can switch a
+stage off, but you can't add, rename or reorder them.
 
 ### 6.3 Deferred and Filed
 
 Below the stages are two sections for papers that don't need anything from you
-right now. **Deferred** holds the papers you parked, with the condition you set
-in each row's tooltip, so a promise to come back stays in sight, with a count.
-**Filed** holds everything else: dropped, read, summarised or assessed, newest
-first. Neither section counts as outstanding.
+right now. **Deferred** holds the papers you parked, with a count, so a paper
+you meant to come back to stays in sight. Hover over a row to see what you said
+had to happen first. **Filed** holds the papers you're done with, newest
+first, whether you dropped, read, summarised or assessed them. Neither section
+counts toward what's left to do.
 
 A deferred paper comes back by itself. When you defer a paper, you say what has
 to happen first and choose when to look at it again: once you've read another
@@ -328,7 +331,7 @@ already finished.
 
 Each paper gets one note, named after its Better BibTeX citation key, or after
 its author, title and year if you don't use Better BibTeX. Below the
-frontmatter, which holds what Zotero knows about the paper and what you decided
+properties, which hold what Zotero knows about the paper and what you decided
 about it, the note starts with a title, links to the item and the PDF, and your
 annotations:
 
@@ -370,10 +373,11 @@ pill to see the reason you gave.
 The annotations are every Zotero annotation that has text or a comment:
 highlights, underlines, and notes on a page. They're refreshed whenever you open
 the note while Zotero is running, and only written when something changed. Each
-one is anchored by its Zotero key, so a link to a single passage keeps working
-after a refresh. A passage that runs across a column or a page arrives as one
-line. If you underline terms and keep highlights for passages, turn off
-**Include underlines** and only the underlines you commented on come through.
+one gets an anchor made from its Zotero key, so a link to a single passage
+still works after a refresh. A passage that runs across a column or a page
+arrives as one line. If you underline terms and keep highlights for passages,
+turn off **Include underlines** and only the underlines you commented on come
+through.
 
 Each passage keeps the colour you gave it in Zotero. It's written as a quote
 callout, `> [!quote|zotero-red]`, so you can search a colour by name, and
@@ -397,52 +401,56 @@ instead of silently deleting a line.
 
 ### 7.4 What a note is for
 
-A literature note that only says what the paper says has already lost. The
-abstract says it better, it's in Zotero, and it's one click away. So the note
-has to be what the paper can't be: the smallest thing that can stand in for the
-paper in your own argument.
+A literature note that only repeats the paper doesn't give you much. The
+abstract already says it better, and it's one click away in Zotero. So a note
+has a different job. It should be the smallest thing that can stand in for the
+paper when you're making your own argument.
 
-That's a strict test. If you would still need to open the PDF to write your
-paragraph, the note has failed. Not to check a quote, because that's what the
-page anchors are for, but to remember what the paper was about and what you
-thought of it.
+Here's a simple way to check. Say you're writing a paragraph that cites the
+paper. If you'd have to open the PDF again to remember what it was about and
+what you thought of it, the note hasn't done its job yet. Opening it to check a
+quote is fine, and that's what the page numbers on your annotations are for.
 
-Over the years of a PhD, the problem isn't understanding, it's forgetting. Two
-years from now your own reading will feel like someone else's, and a note that
-only makes sense if you read the paper recently has expired.
+Most papers make sense when you read them. The trouble, over the years of a
+PhD, is that you forget them. Two years from now your own reading will feel
+like someone else's, and a note that only made sense while the paper was fresh
+won't help you much by then.
 
 That's why there are two separate headings. **Claim** is what the paper argues,
-in your own words. If you can't paraphrase it now, you won't be able to when
-you're writing either. Keep it to one or two sentences, because a page-long
-summary is something you have to reread, which is the same problem one level
-up. **Assessment** is where you argue with the paper: what doesn't hold up, what
-it takes for granted, what the evidence actually shows. You can't get that part
-anywhere else, and a note without any friction in it will only ever be cited as
-background, which is the cheapest kind of citation in a thesis.
+in your own words. If you can't put it in your own words now, you won't manage
+it later when you're writing either. Keep it to one or two sentences. A
+page-long summary is something you'd have to reread, and then you're back where
+you started. **Assessment** is where you argue with the paper: what doesn't hold
+up, what it takes for granted, and what the evidence really shows. Nobody else
+can write that part for you. A note with nothing in it to push against tends to
+get cited as background, and that's the kind of citation that does the least
+for a thesis.
 
 Keeping the two apart means that when you're writing, you always know whose
-idea you're looking at: the paper's, or yours. Mixing them up is more than a
-matter of tidiness.
+idea you're looking at, the paper's or yours. That matters for more than
+tidiness. Once they're mixed up, it's easy to present a paper's idea as your
+own without meaning to, or to cite a paper for something it never said.
 
-The numbers decide the rest. Four hundred papers at twenty minutes per note is
-over a hundred and thirty hours. So the twenty seconds on an abstract, the
-two-sentence limit, and asking for an assessment only on papers you promoted
-aren't minimalism for its own sake. They're the budget, and anything else a
-note might hold has to fit within it.
+The rest comes down to time. Four hundred papers at twenty minutes a note is
+over a hundred and thirty hours. That's why an abstract gets about twenty
+seconds in triage and a claim gets two sentences, and why only the papers you
+promote ask for an assessment. Whatever else you'd like a note to hold has to
+fit in those hours too.
 
-One thing is worth the price. A literature review isn't a list of papers, it's
-a claim about a field: who agrees with whom, what everyone takes for granted,
-where the gap is. Those are connections between papers, and that's where a
-contribution comes from. So the claim asks for both: what the paper argues, and
-what it argues with or against. And it asks at the one moment when the second
-question is easy to answer, right after you've put the paper's claim into words
-and still remember that it contradicts something you read in March.
+One thing is worth the time, though. A literature review is more than a list of
+papers. It makes a claim about a field: who agrees with whom, what everyone
+takes for granted, and where the gap is. Those are connections between papers,
+and that's where your own contribution comes from. So the claim asks for two
+things, what the paper argues and what it argues with or against. It asks right
+after you've put the paper's argument into words, because that's when the
+second question is easiest. You still remember that it contradicts something
+you read in March.
 
-A link by citation key does three jobs at once. It's
-a wikilink to the citation key, so `against [[okafor2019sampling]]` in a claim
-reads as a citation, exports as one through pandoc, and adds this paper to
-Okafor's backlinks. Which papers respond to which is exactly what you'll want
-to know about your own literature, and the backlinks pane shows you.
+Write `against [[okafor2019sampling]]` in a claim, and the link does three
+things. It reads as a citation, exports as one with Due Credit, and adds this
+paper to the backlinks of Okafor's note. Over time, the backlinks pane shows
+you which papers in your literature answer which, and that's exactly what
+you'll want to know when you write about them.
 
 <br/>
 
@@ -455,11 +463,11 @@ With Better BibTeX, notes are named after their key, so the link opens the
 paper's note, shows it on hover, and counts in its backlinks. Typing `[[` finds
 papers by key rather than by title.
 
-Paper Trail doesn't insert citations itself. That's
-[Due Credit](#121-due-credit)'s: its **Insert citation** picks a paper from
-your bibliography, the `.bib` Better BibTeX exports, and writes the link, to
-the paper's note when it has one. Its **Add page to citation** adds a page to a
-link you typed yourself. Both moved there from Paper Trail in 2.0.0.
+Paper Trail leaves inserting citations to [Due Credit](#121-due-credit). Its
+**Insert citation** lets you pick a paper from your bibliography (the `.bib`
+file Better BibTeX exports) and writes the link for you, to the paper's note if
+it has one. Its **Add page to citation** adds a page to a link you typed
+yourself. Both moved there from Paper Trail in 2.0.0.
 
 ### 8.2 Quoting an annotation
 
@@ -472,18 +480,18 @@ citation to its page:
 > In offline interactions, heuristics help individuals judge. [[a|a, p. 7]]
 ```
 
-The page and the block ID from the paper note are left out of the quote, and
-the page goes into the citation instead. The quote is a copy, so changes you
+The page number and the anchor from the paper note are left out of the quote,
+and the page goes into the citation instead. The quote is a copy, so changes you
 make to it stay in your note, and it doesn't change when you edit the
 annotation in Zotero. It works without Zotero running, but it only knows the
 annotations that were synced the last time you opened each paper's note. It
-won't insert into a paper's annotations section, because that's rewritten on
-every sync.
+won't insert into a paper's annotations section, because that section is
+rewritten every time the note is refreshed from Zotero.
 
 ### 8.3 Exporting
 
 Paper Trail doesn't run pandoc itself. Exporting is what
-[Due Credit](https://community.obsidian.md/plugins/due-credit) does: it runs
+[Due Credit](https://community.obsidian.md/plugins/due-credit) does. It runs
 pandoc on a note and turns these links into real citations in Word, PDF,
 Markdown or LaTeX. See [Works well with](#121-due-credit).
 
@@ -509,27 +517,26 @@ decided about it:
 | `reading-until` | for a deferral, the date it comes back |
 | `reading-after` | for a deferral, the Zotero key of the paper it's waiting for |
 
-These are two different kinds of fact. What a paper is worth is your judgement
-of the paper; how far you got is about you. Keeping them separate is why
+`reading` and `reading-progress` are kept apart on purpose. One is what you
+think of the paper, and the other is how far you've got with it. That's why
 dropping a paper you had already summarised doesn't undo the summary, and why
-picking it up again brings it back to where you left off instead of to the
-start. A refresh from Zotero never changes any of these fields.
+picking it up again brings it back to where you left off. A refresh from Zotero
+never changes any of these fields.
 
 ### 9.2 Excluded papers
 
-**Export excluded
-papers** writes `Excluded papers.md` to the root of your vault: every paper you
-dropped or deferred, oldest decision first, with its authors, year, date and
-reason, and a link back to each paper. It's plain markdown, ready for an
-appendix or a methods section, and it's rewritten every time you run the
-command. It only ever replaces a file it made itself, so if you have a note of
-your own with that name, it's left alone.
+**Export excluded papers** writes `Excluded papers.md` to the root of your
+vault: every paper you dropped or deferred, oldest decision first, with its
+authors, year, date and reason, and a link back to each paper. It's plain
+markdown, ready for an appendix or a methods section, and it's rewritten every
+time you run the command. It only ever replaces a file it made itself, so if
+you have a note of your own with that name, it's left alone.
 
 ### 9.3 Your own views
 
-The queue is one way to look at these fields, but not the only one. They're
-plain frontmatter, so anything that reads properties can show them differently,
-like Obsidian's Bases or Dataview. If your reading process has steps the queue
+The queue is one way to look at these fields. They're ordinary properties, so
+Obsidian's Bases, Dataview or anything else that reads properties can show them
+in its own way. If your reading process has steps the queue
 doesn't know about, add your own properties next to these and build the view
 you want on top of both.
 
@@ -554,16 +561,15 @@ so papers you've read but not yet summarised are
 You can also change `reading` by hand, or with another plugin, and the queue
 follows along, because the note is the record and the queue only reads it. A
 value Paper Trail doesn't recognise counts as `untriaged`, which puts the paper
-back in front of you. Only a decision made in Paper Trail tidies up the fields
-around it: the reason, the dates and the status tag stay as they are until the
-next one.
+back in front of you. The fields around it, like the reason, the dates and the
+status tag, stay as they are until you next make a decision in Paper Trail.
 
 <br/>
 
 ## 10 Commands
 
-None of the commands has a hotkey, so you can choose your own in Settings →
-Hotkeys.
+None of the commands come with a hotkey, so they won't clash with the ones
+you already use. You can set your own in Settings → Hotkeys.
 
 **Queue**
 
@@ -603,9 +609,9 @@ BibTeX is installed. Click the arrow to check again.
 
 | Setting | Default | |
 | --- | --- | --- |
-| **Papers from** | My library | Where the queue gets papers: your library, a group library, or collections in them, if your library holds more than the papers for this thesis. Add, remove and drag them into order. A paper in more than one belongs to the first. Papers outside them that already have a note keep working. |
+| **Papers from** | My library | Where the queue gets its papers. That can be your library, a group library, or collections in them, if your library holds more than the papers for this thesis. Add them, delete them, or drag them into order. If a paper is in more than one, it counts for the first. Papers that already have a note stay in the queue, even outside these. |
 | **Triage first** | Off, on for a group | On each source under **Papers from**: papers from there that you haven't decided about go to Triage before Reading. |
-| **Include subcollections** | On | A collection under **Papers from** also brings in the collections under it. |
+| **Include subcollections** | On | Also bring in the papers from the collections inside each collection under **Papers from**. |
 | **Include underlines** | On | Show underlines in a paper's annotations. Turn it off if you underline terms and highlight passages. An underline you've commented on still shows up. |
 
 **Vault**
@@ -614,13 +620,13 @@ BibTeX is installed. Click the arrow to check again.
 | --- | --- | --- |
 | **Template folder** | `Templates/Paper Trail` | Where `Paper.md` lives. See [The template](#73-the-template). |
 | **Papers folder** | `Literature` | Where the paper notes go, one per paper. |
-| **Status tag** | Empty | Also write each paper's status as a tag, such as `status/queued`. Leave it empty for no tag. |
+| **Status tag** | Empty | Also write each paper's status as a tag, such as `status/queued`. Leave it empty for no tag. The tag is only a copy, and Paper Trail itself goes by the properties. |
 
 **Papers**
 
 | Setting | Default | |
 | --- | --- | --- |
-| **Item key property** | `zotero-key` | The frontmatter property that holds the Zotero item key. If you already have literature notes, set it to the property they use and Paper Trail recognises them as they are. |
+| **Item key property** | `zotero-key` | The property that holds the Zotero item key. If you already have literature notes, set it to the property they use and Paper Trail recognises them as they are. If you change it later, notes with the old property aren't recognised anymore. |
 | **Show reading status on papers** | On | Show the status pill in the title bar, and at the top of a paper in reading view. |
 | **Quieter notifications** | Off | Only show failures and warnings. |
 | **Written passes** | Claim and assessment | What comes after reading: both passes, only the claim, or none, which files a paper as soon as you've read it. |
@@ -631,19 +637,19 @@ BibTeX is installed. Click the arrow to check again.
 
 ## 12 Works well with
 
-These plugins are by the same author. Each does one thing, and Paper Trail
-doesn't need either of them, but they fit together nicely.
+I made these too. Each one does one thing and works on its own, but they fit
+together nicely.
 
 ### 12.1 Due Credit
 
 [Due Credit](https://community.obsidian.md/plugins/due-credit) exports a note
 to Word, PDF, Markdown or LaTeX with pandoc, and turns your `[[citekey]]` links
 into real citations, with a reference list in the citation style you choose. It
-also inserts them: its **Insert citation** picks a paper from your
+also inserts them. Its **Insert citation** picks a paper from your
 bibliography and links to the paper's note, so every place you cite a paper
-turns up in its backlinks. It cites a link to a paper
-note by that note's `citekey`, so a note whose key Better BibTeX has changed
-since still cites the right paper. Its README lists what exports as what.
+turns up in its backlinks. When it exports, a link to a paper's note cites the
+key in that note's `citekey` property, so the link still cites the right paper
+after Better BibTeX changes the key. Its README lists what exports as what.
 
 If you install one companion, make it this one: Paper Trail helps you read the
 papers, and Due Credit helps you cite them and gets the chapter out of your
@@ -661,13 +667,13 @@ narrow it down by topic.
 
 ## 13 Network and file disclosure
 
-Paper Trail runs entirely on your computer. It never connects to the internet
-and doesn't send anything anywhere.
+Paper Trail runs entirely on your device. It never connects to the internet and
+doesn't send anything anywhere.
 
 ### 13.1 Zotero's local API
 
 - **Requests:** `http://127.0.0.1:23119/api/...` for items, collections and
-  annotations. These are read-only: Paper Trail never changes anything in
+  annotations. These are read-only. Paper Trail never changes anything in
   Zotero. It reads your own library, and only the group libraries you add under
   **Papers from**. It reads a whole library even when **Papers from** names a
   collection, and picks out the collection's papers itself.
@@ -711,13 +717,17 @@ and doesn't send anything anywhere.
 
 ### 13.5 How releases are built
 
-Every push is built, linted with [ESLint](https://eslint.org/) and the official
-[Obsidian ESLint plugin](https://github.com/obsidianmd/eslint-plugin), tested
-with [Vitest](https://vitest.dev/), and built with Nix as well. Releases are
-built by GitHub Actions from the tagged source, after the same checks and a
-check that the tag is the version in `manifest.json`, with every action pinned
-to an exact version, and come with a signed build provenance attestation, so
-you can check that the file you installed is the one that was built:
+Every change I push is built, checked with [ESLint](https://eslint.org/) and
+the official [Obsidian ESLint plugin](https://github.com/obsidianmd/eslint-plugin),
+and tested with [Vitest](https://vitest.dev/). Nix builds it a second time,
+on its own.
+
+Releases are built by GitHub Actions from the tagged code, after the same
+checks. A release only goes out when its tag matches the version in
+`manifest.json`, and every action it uses is pinned to an exact version. Each
+release comes with a signed attestation from GitHub, which records what it
+was built from. To check that the `main.js` you installed is the one GitHub
+built:
 
 ```sh
 gh attestation verify main.js --repo jorritvanderheide/obsidian-paper-trail
@@ -727,22 +737,22 @@ gh attestation verify main.js --repo jorritvanderheide/obsidian-paper-trail
 
 ## 14 Questions or issues?
 
-Have a look at the [FAQ](FAQ.md) first: it covers the most common surprises,
-like Zotero not answering or annotations that don't show up. If something still
-doesn't work, or you have an idea, please
+Have a look at the [FAQ](FAQ.md) first. It covers the things people run into
+most, like Zotero not answering or annotations that don't show up. If something
+still doesn't work, or you have an idea, please
 [open an issue](https://github.com/jorritvanderheide/obsidian-paper-trail/issues/new/choose).
-Found a security problem? Please report it privately, as described in the
-[security policy](SECURITY.md).
+Found a security problem? Please report it privately, the way the
+[security policy](SECURITY.md) explains.
 
-The source lives on [Codeberg](https://codeberg.org/BW20/obsidian-paper-trail)
-and is mirrored to [GitHub](https://github.com/jorritvanderheide/obsidian-paper-trail).
+The code lives on [Codeberg](https://codeberg.org/BW20/obsidian-paper-trail),
+with a copy on [GitHub](https://github.com/jorritvanderheide/obsidian-paper-trail).
 
 <br/>
 
 ## 15 Support
 
-Paper Trail is free. If you find it useful, you can support its development on
-Liberapay:
+Paper Trail is free. If it's useful to you and you'd like to give something
+back, you can do that on Liberapay:
 
 [![Donate](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/BW20)
 
