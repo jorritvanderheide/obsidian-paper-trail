@@ -28,6 +28,13 @@
           # Update with: nix run nixpkgs#prefetch-npm-deps -- package-lock.json
           npmDepsHash = "sha256-DmR+kjudohtxxjI5Km0eUIusapAXDrEM4INE755Kp0k=";
           nodejs = pkgs.nodejs_24;
+          # The tests run with the build, so nix flake check is the whole check.
+          doCheck = true;
+          checkPhase = ''
+            runHook preCheck
+            npm test
+            runHook postCheck
+          '';
           installPhase = ''
             mkdir -p $out
             cp main.js manifest.json styles.css $out/

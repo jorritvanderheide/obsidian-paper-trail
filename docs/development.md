@@ -16,14 +16,15 @@ plugin off and on again. Zotero 7 has to be running with its local API on.
 
 ```sh
 npm test        # vitest
-npm run lint    # eslint, with the Obsidian plugin's rules
+npm run lint    # eslint, with the Obsidian plugin's rules, failing on any warning
 npm run build   # type check and production build
 ```
 
 CI runs all three, on Node 24, for every push to `main` and every pull
 request, and again before every release (`.github/workflows/ci.yml`). It also
-runs `nix flake check`, which builds the plugin with Nix: after a change to
-`package-lock.json`, update `npmDepsHash` in `flake.nix`, as its comment says.
+runs `nix flake check`, which builds the plugin with Nix and runs its tests.
+After a change to `package-lock.json`, update `npmDepsHash` in `flake.nix`, as
+its comment says.
 
 ## Tests
 
