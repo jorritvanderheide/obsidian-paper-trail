@@ -97,6 +97,10 @@ quote. Changing the format rewrites the region the next time a note is opened,
 which is safe because the region is derived, as long as the block ID stays the
 same.
 
+A `%%` or `<!--` in a passage or a comment would open a comment that hides
+the rest of the note, so `inert` in `src/core/zotero.ts` writes its second
+character as an HTML entity, which Obsidian and pandoc show as the character.
+
 **Insert annotation** reads the quote lines back (`syncedPassages` in
 `src/core/paper-note.ts`): the passage, ` (p. <label>)` when there is a page,
 and the block ID. A change to that line in `renderAnnotation` is a change to

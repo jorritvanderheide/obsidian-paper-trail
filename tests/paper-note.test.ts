@@ -144,6 +144,12 @@ describe('renderAnnotation', () => {
 		);
 	});
 
+	it('writes a comment marker in a passage or a comment so it opens no comment', () => {
+		expect(renderAnnotation(annotation({ text: 'Up 10%% here.', comment: '<!-- cf. Okafor' }))).toBe(
+			'> Up 10%&#37; here. (p. 842) ^zt-2SQ873XZ\n\n&lt;!-- cf. Okafor',
+		);
+	});
+
 	it('renders a comment with no selected text', () => {
 		expect(renderAnnotation(annotation({ text: '', comment: 'a thought' }))).toBe('a thought');
 	});

@@ -6,7 +6,7 @@
 // else in the file belongs to whoever wrote it, and losing a word of that is
 // the one unforgivable failure for a plugin like this.
 import { applyStatusTag, NO_STATUS_TAGS, type Reading, type StatusTags } from './triage';
-import { authorNames, itemYear, readerUrl, storedKey, type ApiItem, type Annotation, type ItemRef } from './zotero';
+import { authorNames, inert, itemYear, readerUrl, storedKey, type ApiItem, type Annotation, type ItemRef } from './zotero';
 import { sortKeys } from './frontmatter';
 
 /**
@@ -161,11 +161,11 @@ export function renderAnnotation(annotation: Annotation): string {
 		// One line, because `passage` made it one when it was read. The id is
 		// derived, not generated, so it survives every re-sync and a link to one
 		// passage keeps resolving.
-		lines.push(`> ${annotation.text}${page} ^zt-${annotation.key}`);
+		lines.push(`> ${inert(annotation.text)}${page} ^zt-${annotation.key}`);
 	}
 	if (annotation.comment) {
 		if (lines.length > 0) lines.push('');
-		lines.push(annotation.comment);
+		lines.push(inert(annotation.comment));
 	}
 	return lines.join('\n');
 }

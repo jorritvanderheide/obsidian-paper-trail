@@ -9,6 +9,9 @@ breaking is in [Compatibility](docs/compatibility.md).
   the colon in `smith:2017`, gets a note. Paper Trail used to fail to make it.
   The note is named `smith-2017`, and its `citekey` property keeps the key as
   it is, so citations to it still find the paper.
+- A `%%` or `<!--` in a passage or a comment from Zotero no longer hides
+  everything after it in the note, in Obsidian and in an export. It's written
+  so it shows as itself.
 
 ## 2.0.2
 

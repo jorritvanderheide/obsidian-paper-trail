@@ -7,6 +7,7 @@ import {
 	libraryPath,
 	authorNames,
 	annotations,
+	inert,
 	passage,
 	pdfBox,
 	quotation,
@@ -533,7 +534,26 @@ describe('passage', () => {
 	});
 });
 
+describe('inert', () => {
+	// Either one opens a comment in Obsidian and in the export, which runs to the
+	// end of the note when nothing closes it.
+	it('breaks up a comment marker, which still reads as itself', () => {
+		expect(inert('a 100%% rise, <!-- not a comment')).toBe('a 100%&#37; rise, &lt;!-- not a comment');
+		expect(inert('%%%')).toBe('%&#37;%');
+		expect(inert('Care is not inherently good.')).toBe('Care is not inherently good.');
+	});
+
+	it('changes nothing the second time, so a passage read back out of a note is not broken up twice', () => {
+		const once = inert('%% and <!-- and %%%%');
+		expect(inert(once)).toBe(once);
+	});
+});
+
 describe('quotation', () => {
+	it('writes a comment marker in the passage so it opens no comment', () => {
+		expect(quotation('Up 10%% here.', 'a', null, '', '')).toBe('> Up 10%&#37; here. [[a]]');
+	});
+
 	it('quotes the passage and cites its page', () => {
 		expect(quotation('Care is not inherently good.', 'okafor2021', '842', '', '')).toBe(
 			'> Care is not inherently good. [[okafor2021|okafor2021, p. 842]]',
