@@ -85,8 +85,10 @@ Zotero*, in Zotero's Settings → Advanced.
 ## Better BibTeX
 
 Optional. With it, a note is named for the citation key; without it, for
-author, title and year. Nothing else changes. Due Credit's **Insert citation**
-reads keys from the `.bib` Better BibTeX exports, not from here.
+author, title and year, and has no `citekey`, so a citation to it in Due Credit
+or In the Open comes out as plain text. **Link existing notes to Zotero** needs
+it too, since it matches notes by key. Due Credit's **Insert citation** reads
+keys from the `.bib` Better BibTeX exports, not from here.
 
 ## Not to depend on
 

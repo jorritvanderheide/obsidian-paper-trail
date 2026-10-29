@@ -2,8 +2,8 @@
 
 A citation is a wikilink to the paper, never pandoc's `[@key]`.
 [Due Credit](https://github.com/jorritvanderheide/obsidian-due-credit) inserts
-them, with **Insert citation** and **Add page to citation**, which were Paper
-Trail's until 2.0.0, and reads them on export. Its
+them, with **Insert citation**, **Add page to citation** and **Toggle author in
+citation**, the first two Paper Trail's until 2.0.0, and reads them on export. Its
 [`docs/citations.md`](https://github.com/jorritvanderheide/obsidian-due-credit/blob/main/docs/citations.md)
 has every form it reads and writes.
 

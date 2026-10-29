@@ -3,8 +3,8 @@
 **Work through your Zotero library as a reading queue, and keep a record of what you decided.**
 
 Works well with [Due Credit](https://community.obsidian.md/plugins/due-credit),
-which exports a note to Word, PDF or LaTeX with its links turned into real
-citations, and [Tag Along](https://community.obsidian.md/plugins/tag-along),
+which exports a note to Word, PDF, Markdown or LaTeX with its links turned into
+real citations, and [Tag Along](https://community.obsidian.md/plugins/tag-along),
 which lets you browse your papers by reading status. See
 [Works well with](#12-works-well-with).
 
@@ -675,8 +675,8 @@ doesn't send anything anywhere.
 
 ### 13.1 Zotero's local API
 
-- **Requests:** `http://127.0.0.1:23119/api/...` for items, collections and
-  annotations. These are read-only. Paper Trail never changes anything in
+- **Requests:** `http://127.0.0.1:23119/api/...` for items, collections,
+  annotations and the group libraries you're in. These are read-only. Paper Trail never changes anything in
   Zotero. It reads your own library, and only the group libraries you add under
   **Papers from**. It reads a whole library even when **Papers from** names a
   collection, and picks out the collection's papers itself.

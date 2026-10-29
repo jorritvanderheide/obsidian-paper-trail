@@ -111,6 +111,9 @@ described in [Citations](citations.md).
   ([Changing the form](citations.md#changing-the-form)).
 - **`citekey`** is the property both cite a paper note by, by default.
   Renaming it breaks the citations of every paper.
+- **A note named for a key with an odd character** cites only on a core that
+  reads that key: a colon needs Due Credit 1.7.0 or In the Open 1.4.0, a slash
+  Due Credit 1.8.0 or In the Open 1.5.0. Paper Trail 2.1.0 makes such notes.
 
 ## Obsidian
 

@@ -19,6 +19,10 @@ breaking is in [Compatibility](docs/compatibility.md).
   but pandoc turned its `--` into a dash.
 - A note with Windows line endings keeps them when its annotations are
   refreshed. Paper Trail used to mix in its own.
+- Since 2.1.0, a paper whose key has a colon or a slash gets a note named with
+  a dash. Citations to it need Due Credit 1.7.0 or In the Open 1.4.0 for a
+  colon, and Due Credit 1.8.0 or In the Open 1.5.0 for a slash. Update those
+  too, or the citations come out as plain text.
 
 ## 2.1.0
 

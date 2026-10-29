@@ -26,7 +26,7 @@ added to (`MANAGED_KEYS` in `src/core/paper-note.ts`):
 | `aliases` | The citation key, added only when the note is not already named for it. Aliases you add are kept |
 | `authors` | Author names, comma separated |
 | `year` | The year, or empty |
-| `citekey` | Better BibTeX's citation key, or empty without it |
+| `citekey` | Better BibTeX's citation key. Without Better BibTeX the key is left out, not left empty |
 | `zotero` | `zotero://select/...` link to the item |
 | *item key property* | The Zotero item key, with `g` and the group's id after it for a paper in a group library (`ABCD1234g5`) |
 
