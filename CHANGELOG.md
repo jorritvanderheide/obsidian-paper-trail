@@ -3,6 +3,13 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+- A passage from Zotero that ends in a backslash, like `C:\temp\`, keeps it
+  in an export. Paper Trail writes it as `\\`, which Obsidian shows as one
+  backslash too, in the Annotations section and in **Insert annotation**.
+  Pandoc read a single one before the page or the citation as a space.
+
 ## 2.1.3
 
 - A note can no longer lose your writing because something in it looks like a

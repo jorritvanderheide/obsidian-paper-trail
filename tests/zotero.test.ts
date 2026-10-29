@@ -568,6 +568,12 @@ describe('quotation', () => {
 		expect(quotation('A web page.', 'okafor2021', null, '', '')).toBe('> A web page. [[okafor2021]]');
 	});
 
+	// Pandoc reads a backslash before a space as a space that doesn't break.
+	it('doubles a backslash at the end of the passage, so it shows before the citation', () => {
+		expect(quotation('Saved in C:\\temp\\', 'a', '7', '', '')).toBe('> Saved in C:\\temp\\\\ [[a|a, p. 7]]');
+		expect(quotation('Two \\\\', 'a', null, '', '')).toBe('> Two \\\\\\\\ [[a]]');
+	});
+
 	it('starts a paragraph of its own in the middle of a line', () => {
 		expect(quotation('Quote.', 'a', null, 'As Okafor says:', ' and so on')).toBe('\n\n> Quote. [[a]]\n\n');
 		expect(quotation('Quote.', 'a', null, '   ', '')).toBe('> Quote. [[a]]');

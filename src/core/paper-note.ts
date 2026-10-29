@@ -6,7 +6,7 @@
 // else in the file belongs to whoever wrote it, and losing a word of that is
 // the one unforgivable failure for a plugin like this.
 import { applyStatusTag, NO_STATUS_TAGS, type Reading, type StatusTags } from './triage';
-import { authorNames, inert, itemYear, readerUrl, storedKey, type ApiItem, type Annotation, type ItemRef } from './zotero';
+import { authorNames, endEscaped, endUnescaped, inert, itemYear, readerUrl, storedKey, type ApiItem, type Annotation, type ItemRef } from './zotero';
 import { sortKeys } from './frontmatter';
 
 /**
@@ -228,7 +228,7 @@ export function renderAnnotation(annotation: Annotation): string {
 		// One line, because `passage` made it one when it was read. The id is
 		// derived, not generated, so it survives every re-sync and a link to one
 		// passage keeps resolving.
-		lines.push(`> ${inert(annotation.text)}${page} ^zt-${annotation.key}`);
+		lines.push(`> ${endEscaped(inert(annotation.text))}${page} ^zt-${annotation.key}`);
 	}
 	if (annotation.comment) {
 		if (lines.length > 0) lines.push('');
@@ -266,7 +266,7 @@ export function syncedPassages(body: string): SyncedPassage[] {
 		.slice(region.start, region.end)
 		.flatMap((line) => {
 			const match = /^> (.+?)(?: \(p\. ([^)]+)\))? \^zt-([A-Za-z0-9]+)$/.exec(line.trimEnd());
-			return match ? [{ key: match[3] ?? '', text: match[1] ?? '', page: match[2] ?? null }] : [];
+			return match ? [{ key: match[3] ?? '', text: endUnescaped(match[1] ?? ''), page: match[2] ?? null }] : [];
 		});
 }
 

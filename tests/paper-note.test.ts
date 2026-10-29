@@ -695,6 +695,14 @@ describe('syncedPassages', () => {
 		]);
 	});
 
+	it('reads a passage ending in a backslash back as Zotero has it, and as an older sync wrote it', () => {
+		const region = renderAnnotations([annotation({ text: 'In C:\\temp\\' }), annotation({ key: 'B', text: 'Two \\\\', page: null })]);
+		expect(region).toContain('> In C:\\temp\\\\ (p. 842) ^zt-2SQ873XZ');
+		expect(syncedPassages(replaceRegion('# Paper', region)).map((passage) => passage.text)).toEqual(['In C:\\temp\\', 'Two \\\\']);
+		const older = replaceRegion('# Paper', '## Annotations\n\n> In C:\\temp\\ (p. 842) ^zt-2SQ873XZ');
+		expect(syncedPassages(older).map((passage) => passage.text)).toEqual(['In C:\\temp\\']);
+	});
+
 	it('is empty for a note without a region', () => {
 		expect(syncedPassages('> a quote (p. 1) ^zt-MINE0001')).toEqual([]);
 	});

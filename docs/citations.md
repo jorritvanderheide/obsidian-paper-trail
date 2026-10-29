@@ -17,7 +17,9 @@ in the label, around the name.
 ```
 
 The link target is the paper's note by its name, and an annotation without a
-page gets the bare link, `[[a]]`. Due Credit and In the Open cite a link to a
+page gets the bare link, `[[a]]`. A passage that ends in a backslash gets it
+doubled, `\\` (`endEscaped`), since pandoc reads a backslash before a space
+as a space that doesn't break. Due Credit and In the Open cite a link to a
 paper note by that note's `citekey` property, so it cites whatever the note is
 called:
 

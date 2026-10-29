@@ -276,7 +276,7 @@ export function noteName(item: ApiItem): string {
  */
 export function quotation(text: string, target: string, page: string | null, before: string, after: string): string {
 	const cited = page?.trim() ? `[[${target}|${target}, p. ${page.trim()}]]` : `[[${target}]]`;
-	const quote = `> ${inert(text)} ${cited}`;
+	const quote = `> ${endEscaped(inert(text))} ${cited}`;
 	return (before.trim() ? '\n\n' : '') + quote + (after.trim() ? '\n\n' : '');
 }
 
@@ -342,6 +342,26 @@ export function colorName(hex: string | undefined): AnnotationColor | null {
  */
 export function inert(text: string): string {
 	return text.replace(/%%/g, '%&#37;').replace(/<!--/g, '<!-&#45;');
+}
+
+/**
+ * A passage as it is written before a space on its line, the citation's or the
+ * page's: each backslash at its end doubled. Pandoc reads a backslash before a
+ * space as a space that doesn't break, so a passage ending `C:\temp\` lost its
+ * last one, and `\\` is one backslash in Obsidian and in an export alike.
+ * `endUnescaped` reads it back.
+ */
+export function endEscaped(text: string): string {
+	return text.replace(/\\+$/, (run) => run + run);
+}
+
+/**
+ * A passage read back out of a note, as `endEscaped` wrote it: an even run of
+ * backslashes at its end halved. An odd run was written before the doubling,
+ * and is left as it is.
+ */
+export function endUnescaped(text: string): string {
+	return text.replace(/\\+$/, (run) => (run.length % 2 === 0 ? run.slice(run.length / 2) : run));
 }
 
 /**
