@@ -101,8 +101,10 @@ which is safe because the region is derived, as long as the block ID stays the
 same.
 
 A `%%` or `<!--` in a passage or a comment would open a comment that hides
-the rest of the note, so `inert` in `src/core/zotero.ts` writes its second
-character as an HTML entity, which Obsidian and pandoc show as the character.
+the rest of the note, so `inert` in `src/core/zotero.ts` writes the second `%`
+or `-` as an HTML entity, which Obsidian and pandoc show as the character. Not
+the `<`, since pandoc would make the `--` after it a dash. The title is written
+through it too.
 
 **Insert annotation** reads the quote lines back (`syncedPassages` in
 `src/core/paper-note.ts`): the passage, ` (p. <label>)` when there is a page,

@@ -280,11 +280,13 @@ export function replaceRegion(body: string, contents: string): string {
 	// markdown blocks and adds no rendered height, and the gap above the
 	// Annotations heading is set by CSS, which is where it is fixed. See the last
 	// rule in `styles.css` for why that needed fixing at all.
-	const region = `${REGION_START}\n\n${contents}\n\n${REGION_END}`;
+	// In the note's own line endings: Obsidian keeps Windows ones as they are.
+	const eol = body.includes('\r\n') ? '\r\n' : '\n';
+	const region = [REGION_START, '', ...contents.split('\n'), '', REGION_END].join(eol);
 
 	const found = regionSpan(body);
 	if (found === 'broken') return body;
-	if (found === null) return `${body.replace(/\s*$/, '')}\n\n${region}\n`;
+	if (found === null) return `${body.replace(/\s*$/, '')}${eol}${eol}${region}${eol}`;
 
 	return body.slice(0, found.from) + region + body.slice(found.to);
 }

@@ -15,6 +15,10 @@ breaking is in [Compatibility](docs/compatibility.md).
 - If your Paper template's marker lines are missing or doubled, Paper Trail
   says so when it makes a paper's note, and which file to fix. The note's
   annotations used to be left out without a word.
+- A quoted `<!--` exports as itself. 2.1.0 wrote it so it showed in Obsidian,
+  but pandoc turned its `--` into a dash.
+- A note with Windows line endings keeps them when its annotations are
+  refreshed. Paper Trail used to mix in its own.
 
 ## 2.1.0
 

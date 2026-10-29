@@ -333,6 +333,18 @@ export function colorName(hex: string | undefined): AnnotationColor | null {
 }
 
 /**
+ * Text from Zotero, made safe to write into a note: a `%%` or `<!--` in it
+ * would open a comment, in Obsidian and in an export, that runs to the end of
+ * the note when nothing closes it. The second `%`, or the second `-`, is
+ * written as the HTML entity, which both read as the character. Not the `<`:
+ * pandoc's typography would make the `--` after it a dash. Unchanged the
+ * second time, so a passage read back out of a note isn't broken up again.
+ */
+export function inert(text: string): string {
+	return text.replace(/%%/g, '%&#37;').replace(/<!--/g, '<!-&#45;');
+}
+
+/**
  * A selected passage as the one line it is.
  *
  * Zotero extracts the selection from the PDF as laid out, so a passage that
@@ -348,17 +360,6 @@ export function colorName(hex: string | undefined): AnnotationColor | null {
  * keeps the hyphen, because a real compound needs it and a split word is still
  * readable with it.
  */
-/**
- * Text from Zotero, made safe to write into a note: a `%%` or `<!--` in it
- * would open a comment, in Obsidian and in an export, that runs to the end of
- * the note when nothing closes it. The second `%`, or the `<`, is written as
- * the HTML entity, which both read as the character. Unchanged the second
- * time, so a passage read back out of a note isn't broken up again.
- */
-export function inert(text: string): string {
-	return text.replace(/%%/g, '%&#37;').replace(/<!--/g, '&lt;!--');
-}
-
 export function passage(text: string): string {
 	return text.replace(/(\p{L})-[ \t]*\r?\n\s*/gu, '$1-').replace(/\s+/g, ' ').trim();
 }

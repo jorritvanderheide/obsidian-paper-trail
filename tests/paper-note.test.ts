@@ -148,7 +148,7 @@ describe('renderAnnotation', () => {
 
 	it('writes a comment marker in a passage or a comment so it opens no comment', () => {
 		expect(renderAnnotation(annotation({ text: 'Up 10%% here.', comment: '<!-- cf. Okafor' }))).toBe(
-			'> Up 10%&#37; here. (p. 842) ^zt-2SQ873XZ\n\n&lt;!-- cf. Okafor',
+			'> Up 10%&#37; here. (p. 842) ^zt-2SQ873XZ\n\n<!-&#45; cf. Okafor',
 		);
 	});
 
@@ -283,6 +283,15 @@ describe('replaceRegion', () => {
 	it('leaves a note alone when a marker is quoted in its prose too', () => {
 		const note = ['I keep my notes above `<!--/paper-trail-->`.', REGION_START, '## Annotations', REGION_END, 'After.'].join('\n');
 		expect(twice(note)).toBe(note);
+	});
+
+	// Obsidian keeps a note's line endings as they are, and so does a sync.
+	it('writes the region with Windows line endings in a note that has them', () => {
+		const note = ['# A paper', 'Mine.', REGION_START, '> old ^zt-OLD', REGION_END, 'After.', ''].join('\r\n');
+		const out = replaceRegion(note, '## Annotations\n\n> new ^zt-NEW');
+		expect(out).toContain('> new ^zt-NEW');
+		expect(out.replace(/\r\n/g, '')).not.toContain('\n');
+		expect(replaceRegion(out, '## Annotations\n\n> new ^zt-NEW')).toBe(out);
 	});
 
 	it('still reads markers with spaces around them, or a Windows line ending', () => {

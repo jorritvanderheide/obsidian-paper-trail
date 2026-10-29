@@ -22,7 +22,7 @@ import {
 	replaceRegion,
 	renderAnnotations,
 } from '../core/paper-note';
-import { annotationUrl, attachmentKeys, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
+import { annotationUrl, attachmentKeys, inert, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
 import type { Reading } from '../core/triage';
 import { attachmentAnnotations, changedSince, itemChildren, itemMetadata, SourceError } from '../source';
 import { adoptionSummary, planAdoption } from '../core/adoption';
@@ -102,7 +102,7 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	await ensureFolder(app, context.settings.papersFolder);
 
 	const body = fill(await templateBody(app, PAPER_TEMPLATE, context.settings.templateFolder), {
-		title: item.data.shortTitle?.trim() || item.data.title || item.key,
+		title: inert(item.data.shortTitle?.trim() || item.data.title || item.key),
 		links: paperLinks(ref, attachment),
 	});
 

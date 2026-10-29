@@ -538,7 +538,7 @@ describe('inert', () => {
 	// Either one opens a comment in Obsidian and in the export, which runs to the
 	// end of the note when nothing closes it.
 	it('breaks up a comment marker, which still reads as itself', () => {
-		expect(inert('a 100%% rise, <!-- not a comment')).toBe('a 100%&#37; rise, &lt;!-- not a comment');
+		expect(inert('a 100%% rise, <!-- not a comment')).toBe('a 100%&#37; rise, <!-&#45; not a comment');
 		expect(inert('%%%')).toBe('%&#37;%');
 		expect(inert('Care is not inherently good.')).toBe('Care is not inherently good.');
 	});
