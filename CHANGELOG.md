@@ -3,7 +3,7 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
-## Unreleased
+## 2.1.3
 
 - A note can no longer lose your writing because something in it looks like a
   marker line. With the `<!--paper-trail-->` or `<!--/paper-trail-->` line
