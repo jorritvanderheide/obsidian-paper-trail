@@ -3,6 +3,19 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+- A note can no longer lose your writing because a marker line is quoted in
+  it. If the `<!--/paper-trail-->` line under the annotations was deleted and
+  your text quoted that marker further down, 2.1.1 took the quote for it and
+  replaced everything in between. A marker quoted in a sentence never counts
+  now, and a note whose real one is missing is left alone again.
+- A marker joined onto the line above or below is put back on a line of its
+  own when the annotations are refreshed. Until then, a claim it was joined
+  onto still counts as written, and a new heading no longer lands above it.
+- The title of a new paper's note is written so a `%%` or `<!--` in it opens no
+  comment. 2.1.1 did this without saying so.
+
 ## 2.1.1
 
 - A note whose `<!--paper-trail-->` marker got joined onto the line above, as

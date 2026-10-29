@@ -79,13 +79,15 @@ writes. Every other tag on a note belongs to whoever put it there.
 ```
 
 Everything between the two markers is replaced on a refresh. Everything outside
-them is the user's. A marker counts wherever it is, so one joined onto the line
-above still marks the region. A note with anything but one opening marker
-followed by one closing marker has a broken region (`regionSpan` in
-`src/core/paper-note.ts`), a marker quoted in its prose included, and nothing in
-it is replaced, because there's no telling which lines are the user's: a closing
-marker deleted by accident leaves their prose after the opening one. The sync
-on open skips it silently; **Refresh paper from Zotero** says why.
+them is the user's. The opening marker counts at the end of a line and the
+closing one at the start of a line (`offsets` in `src/core/paper-note.ts`), so
+one joined onto the line above or below still marks the region, and a sync puts
+it back on a line of its own. A marker quoted in a sentence never counts. A
+note with anything but one opening marker followed by one closing marker has a
+broken region (`regionSpan`), and nothing in it is replaced, because there's
+no telling which lines are the user's: a closing marker deleted by accident
+leaves their prose after the opening one. The sync on open skips it silently;
+**Refresh paper from Zotero** says why.
 
 The region holds the `## Annotations` section, one block per Zotero
 annotation, each ending in a block ID derived from the annotation's key

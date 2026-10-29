@@ -1013,6 +1013,14 @@ describe('writtenUnder', () => {
 		expect(writtenUnder(note('', 'It argues that x.', ''), 'Claim')).toBe(true);
 	});
 
+	// A claim the opening marker got joined onto is still the claim, and the line
+	// with it is no place for the next heading.
+	it('sees a claim the opening marker was joined onto', () => {
+		const joined = ['# A paper', '', '## Claim', '', 'It argues that x.<!--paper-trail-->', '<!--/paper-trail-->'];
+		expect(writtenUnder(joined, 'Claim')).toBe(true);
+		expect(withHeading(joined.join('\n'), 'Assessment', null)).toContain('## Claim\n\nIt argues that x.<!--paper-trail-->');
+	});
+
 	// Which is the whole case it is for: a heading the plugin put in, with the
 	// blank lines it put in under it, and nothing typed between them.
 	it('sees through the blank lines the heading arrived with', () => {

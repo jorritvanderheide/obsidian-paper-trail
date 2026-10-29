@@ -269,20 +269,25 @@ describe('replaceRegion', () => {
 		expect(twice(note)).toBe(note);
 	});
 
-	// Pressing Delete at the end of the line above joins it to the marker, and
-	// some notes have both markers on one line. Both are still one region.
-	it('finds a marker anywhere on its line, and keeps what is before it', () => {
-		const joined = ['# A paper', `My last sentence.${REGION_START}`, '> old ^zt-OLD', REGION_END, 'After.'].join('\n');
-		expect(twice(joined)).toBe(['# A paper', `My last sentence.${REGION_START}`, '', '## Annotations', '', '> new ^zt-NEW', '', REGION_END, 'After.'].join('\n'));
+	// Pressing Delete at the end of the line above joins it to the opening marker,
+	// and at the end of the closing one joins the next line to it. Some notes have
+	// both markers on one line. Each is still one region, and a sync puts the
+	// markers back on lines of their own.
+	it('reads a marker joined to the line above or below, and puts it back on its own line', () => {
+		const joined = ['# A paper', `My last sentence.${REGION_START}`, '> old ^zt-OLD', `${REGION_END}After.`].join('\n');
+		expect(twice(joined)).toBe(['# A paper', 'My last sentence.', REGION_START, '', '## Annotations', '', '> new ^zt-NEW', '', REGION_END, 'After.'].join('\n'));
 		const oneLine = `# A paper\n${REGION_START}${REGION_END}\nAfter.`;
 		expect(twice(oneLine)).toBe(`# A paper\n${REGION_START}\n\n## Annotations\n\n> new ^zt-NEW\n\n${REGION_END}\nAfter.`);
 	});
 
-	// A marker quoted in your own words counts as one, which makes two: the note
-	// is left alone rather than guessed at.
-	it('leaves a note alone when a marker is quoted in its prose too', () => {
-		const note = ['I keep my notes above `<!--/paper-trail-->`.', REGION_START, '## Annotations', REGION_END, 'After.'].join('\n');
-		expect(twice(note)).toBe(note);
+	// A marker quoted in a sentence is the person's text, never a marker. Taking
+	// one for the closing marker, when the real one was deleted, replaced
+	// everything they wrote between the two.
+	it('never takes a marker quoted in prose for one', () => {
+		const lost = ['# A paper', REGION_START, '## Annotations', '> old ^zt-OLD', '', '## My thoughts', 'Long prose I wrote.', 'I keep notes above `<!--/paper-trail-->` here.'].join('\n');
+		expect(twice(lost)).toBe(lost);
+		const quoted = ['I keep notes above `<!--/paper-trail-->`.', REGION_START, '## Annotations', REGION_END, 'After `<!--paper-trail-->` too.'].join('\n');
+		expect(twice(quoted)).toBe(['I keep notes above `<!--/paper-trail-->`.', REGION_START, '', '## Annotations', '', '> new ^zt-NEW', '', REGION_END, 'After `<!--paper-trail-->` too.'].join('\n'));
 	});
 
 	// Obsidian keeps a note's line endings as they are, and so does a sync.

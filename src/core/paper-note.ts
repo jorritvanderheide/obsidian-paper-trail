@@ -21,27 +21,44 @@ import { sortKeys } from './frontmatter';
 export const REGION_START = '<!--paper-trail-->';
 export const REGION_END = '<!--/paper-trail-->';
 
-/** Whether a line opens the managed region. */
+/**
+ * Whether a line opens the managed region: the opening marker alone on it, or
+ * with the closing one right after. A line your text was joined onto isn't,
+ * since a heading put above it would take your text along.
+ */
 export function isRegionStart(line: string): boolean {
-	return line.includes(REGION_START);
+	const text = line.replace(/\s+/g, '');
+	return text === REGION_START || text === `${REGION_START}${REGION_END}`;
 }
 
-/** Where each copy of a marker starts in the note. */
+/**
+ * Where each marker that counts starts in the note. An opening marker counts at
+ * the end of its line, or with the closing one right after; a closing marker at
+ * the start of its line, or right after the opening one. So a line joined onto
+ * either, by Delete at a line's end, still counts, and a marker quoted in a
+ * sentence, as in `` `<!--/paper-trail-->` ``, never does: taking that for the
+ * closing marker, when the real one was deleted, replaced the prose between.
+ */
 function offsets(body: string, marker: string): number[] {
 	const found: number[] = [];
-	for (let at = body.indexOf(marker); at !== -1; at = body.indexOf(marker, at + marker.length)) found.push(at);
+	for (let at = body.indexOf(marker); at !== -1; at = body.indexOf(marker, at + marker.length)) {
+		const lineStart = body.lastIndexOf('\n', at - 1) + 1;
+		const newline = body.indexOf('\n', at + marker.length);
+		const before = body.slice(lineStart, at).trim();
+		const after = body.slice(at + marker.length, newline === -1 ? body.length : newline).trim();
+		const counts = marker === REGION_START ? after === '' || after === REGION_END : before === '' || before === REGION_START;
+		if (counts) found.push(at);
+	}
 	return found;
 }
 
 /**
  * Where the region is: from its opening marker to just past its closing one,
- * wherever on their lines they are, so a marker the line above was joined onto
- * still counts. Null for a note without one, and `'broken'` for anything but
- * one opening marker followed by one closing marker. A broken region is never
- * written to, because there is no telling which text between the markers is
- * ours: a closing marker deleted by accident leaves the person's prose after
- * the opening one. A marker quoted in their prose makes it broken too, which is
- * the safe way round.
+ * counting only the markers `offsets` counts. Null for a note without one, and
+ * `'broken'` for anything but one opening marker followed by one closing
+ * marker. A broken region is never written to, because there is no telling
+ * which text between the markers is ours: a closing marker deleted by accident
+ * leaves the person's prose after the opening one.
  */
 function regionSpan(body: string): { from: number; to: number } | 'broken' | null {
 	const starts = offsets(body, REGION_START);
@@ -288,7 +305,14 @@ export function replaceRegion(body: string, contents: string): string {
 	if (found === 'broken') return body;
 	if (found === null) return `${body.replace(/\s*$/, '')}${eol}${eol}${region}${eol}`;
 
-	return body.slice(0, found.from) + region + body.slice(found.to);
+	// A marker your text was joined onto goes back on a line of its own, so the
+	// region starts and ends on whole lines again, which headings depend on.
+	let before = body.slice(0, found.from);
+	let after = body.slice(found.to);
+	if (/\S/.test(before.slice(before.lastIndexOf('\n') + 1))) before = before.replace(/[ \t]*$/, '') + eol;
+	const rest = after.indexOf('\n') === -1 ? after : after.slice(0, after.indexOf('\n'));
+	if (/\S/.test(rest)) after = eol + after.replace(/^[ \t]*/, '');
+	return before + region + after;
 }
 
 /**
