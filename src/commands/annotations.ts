@@ -8,7 +8,7 @@
 // agrees.
 import { MarkdownView, Notice } from 'obsidian';
 import { pickPaper, pickPassage, type AnnotatedPaper } from '../ui/annotation-picker';
-import { inRegion, isPaper, syncedPassages } from '../core/paper-note';
+import { inRegion, inTemplates, isPaper, syncedPassages } from '../core/paper-note';
 import { quotation } from '../core/zotero';
 import type { Context } from '../context';
 
@@ -46,7 +46,10 @@ export async function insertAnnotation(context: Context): Promise<void> {
 	}
 
 	const papers: AnnotatedPaper[] = [];
-	const files = app.vault.getMarkdownFiles().sort((a, b) => b.stat.mtime - a.stat.mtime);
+	const files = app.vault
+		.getMarkdownFiles()
+		.filter((file) => !inTemplates(file.path, context.settings.templateFolder))
+		.sort((a, b) => b.stat.mtime - a.stat.mtime);
 	for (const file of files) {
 		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 		if (!isPaper(frontmatter, context.settings.keyField)) continue;

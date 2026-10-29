@@ -14,6 +14,7 @@ import {
 	regionBroken,
 	fill,
 	isPaper,
+	inTemplates,
 	managedDiffers,
 	replacedKeys,
 	paperLinks,
@@ -791,5 +792,17 @@ describe('replacedKeys', () => {
 
 	it('never names aliases, which a sync only adds to', () => {
 		expect(replacedKeys({ aliases: ['Care paper'] }, managed(), 'zotero-key')).toEqual([]);
+	});
+});
+
+describe('inTemplates', () => {
+	// A template can carry a paper's properties, for Templater to fill in, and
+	// is not a paper for that.
+	it('is true for a note in the template folder, at any depth, and nowhere else', () => {
+		expect(inTemplates('Templates/Paper Trail/Paper.md', 'Templates/Paper Trail')).toBe(true);
+		expect(inTemplates('Templates/Paper Trail/Old/Paper.md', 'Templates/Paper Trail/')).toBe(true);
+		expect(inTemplates('Templates/Paper Trail.md', 'Templates/Paper Trail')).toBe(false);
+		expect(inTemplates('Literature/marsh2024.md', 'Templates/Paper Trail')).toBe(false);
+		expect(inTemplates('Literature/marsh2024.md', '')).toBe(false);
 	});
 });

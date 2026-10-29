@@ -3,6 +3,7 @@ import { headingCoverage, works } from '../core/stages';
 import { sourceChoices, sourceLabel, type LibraryChoice, type Source } from '../core/sources';
 import { loadSettings, retireStatusTag, workflowOf } from '../core/settings';
 import { readTags, retiredTagCount, type Passes } from '../core/triage';
+import { inTemplates, isPaper } from '../core/paper-note';
 import { collections, groups, refreshCollections, refreshGroups, refreshLibrary } from '../library';
 import { suggest } from './prompt';
 import { lastContact, probeBetterBibtex } from '../source';
@@ -225,8 +226,9 @@ export class SettingsTab extends PluginSettingTab {
 
 		const papers = this.app.vault
 			.getMarkdownFiles()
+			.filter((file) => !inTemplates(file.path, this.plugin.settings.templateFolder))
 			.map((file) => this.app.metadataCache.getFileCache(file))
-			.filter((cache) => typeof cache?.frontmatter?.[keyField] === 'string');
+			.filter((cache) => isPaper(cache?.frontmatter, keyField));
 
 		const { found, total } = headingCoverage(papers, setting);
 		if (total === 0 || found === 0) return '';
@@ -249,9 +251,10 @@ export class SettingsTab extends PluginSettingTab {
 
 		const papers = this.app.vault
 			.getMarkdownFiles()
+			.filter((file) => !inTemplates(file.path, this.plugin.settings.templateFolder))
 			.map((file) => this.app.metadataCache.getFileCache(file)?.frontmatter)
-			.filter((frontmatter) => typeof frontmatter?.[keyField] === 'string')
-			.map((frontmatter) => readTags(frontmatter?.tags));
+			.filter((frontmatter) => isPaper(frontmatter, keyField))
+			.map((frontmatter) => readTags(frontmatter.tags));
 
 		const left = retiredTagCount(papers, retiredStatusTags);
 		if (left === 0) return '';

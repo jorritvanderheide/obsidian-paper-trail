@@ -15,6 +15,10 @@ breaking is in [Compatibility](docs/compatibility.md).
 - **Insert annotation** checks again, once you've picked the passage, that the
   cursor isn't in a paper's annotations, where the quote would be gone at the
   next refresh. It only checked before you picked.
+- A note in your template folder is never taken for a paper, even with a
+  paper's properties in it. Only the queue left templates out. Now **Link
+  existing notes to Zotero**, **Insert annotation**, **Export excluded papers**
+  and the counts in the settings do too.
 
 ## 2.0.2
 

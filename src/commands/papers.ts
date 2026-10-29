@@ -12,6 +12,7 @@ import { PAPER_TEMPLATE } from '../core/templates';
 import {
 	applyPaperFrontmatter,
 	fill,
+	inTemplates,
 	isPaper,
 	notAPaper,
 	managedDiffers,
@@ -305,7 +306,10 @@ export async function adoptNotes(context: Context): Promise<void> {
 		}
 	}
 
-	const notes = app.vault.getMarkdownFiles().map((file) => ({
+	const notes = app.vault
+		.getMarkdownFiles()
+		.filter((file) => !inTemplates(file.path, context.settings.templateFolder))
+		.map((file) => ({
 		path: file.path,
 		basename: file.basename,
 		frontmatter: app.metadataCache.getFileCache(file)?.frontmatter,

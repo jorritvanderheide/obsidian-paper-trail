@@ -6,6 +6,7 @@
 // each paper; this is only a view of it.
 import { normalizePath, type TFile } from 'obsidian';
 import { decidedOf, excluded, isReport, renderReport, type Decided } from '../core/record';
+import { inTemplates } from '../core/paper-note';
 import { today } from '../today';
 import { settle } from '../ui/editing';
 import { reveal } from '../ui/reveal';
@@ -20,6 +21,7 @@ function decided(context: Context): Decided[] {
 
 	return app.vault
 		.getMarkdownFiles()
+		.filter((file) => !inTemplates(file.path, context.settings.templateFolder))
 		.map((file) => decidedOf(app.metadataCache.getFileCache(file)?.frontmatter, file, context.settings.keyField))
 		.filter((paper): paper is Decided => paper !== null);
 }

@@ -8,6 +8,7 @@
 // folder, so keying off the frontmatter rather than the path keeps the rules
 // independent of the vault's layout.
 import { TFile, type App } from 'obsidian';
+import { inTemplates } from './core/paper-note';
 import {
 	isDue,
 	markDue,
@@ -48,7 +49,7 @@ export function noteOf(context: Context, file: TFile): NoteState {
 function scan(context: Context): NoteState[] {
 	return context.app.vault
 		.getMarkdownFiles()
-		.filter((file) => !file.path.startsWith(`${context.settings.templateFolder}/`))
+		.filter((file) => !inTemplates(file.path, context.settings.templateFolder))
 		.map((file) => noteOf(context, file));
 }
 

@@ -94,6 +94,17 @@ export function isPaper(
 	return typeof frontmatter?.[keyField] === 'string';
 }
 
+/**
+ * Whether a note is in the template folder, at any depth. A template is never a
+ * paper, whatever its properties say: one can carry a paper's properties for
+ * Templater to fill in. Every list of papers leaves these out, and only these,
+ * since `isPaper` is the test and this is the one exception to it.
+ */
+export function inTemplates(path: string, templateFolder: string): boolean {
+	const folder = templateFolder.replace(/\/+$/, '');
+	return folder !== '' && path.startsWith(`${folder}/`);
+}
+
 /** The select link, which shows the item in Zotero's library. */
 export function selectUrl(ref: ItemRef): string {
 	const library = ref.groupID === null ? 'library' : `groups/${ref.groupID}`;
