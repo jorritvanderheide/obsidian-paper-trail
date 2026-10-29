@@ -24,7 +24,7 @@ import {
 } from './core/stages';
 import { pendingOf } from './core/pending';
 import { place, sourceProblem } from './core/sources';
-import { parseItemRef, storedKey, type ItemRef } from './core/zotero';
+import { storedKey } from './core/zotero';
 import { workflowOf } from './core/settings';
 import { contents, groups } from './library';
 import type { Context } from './context';
@@ -77,15 +77,6 @@ export function paperNote(context: Context, file: TFile): NoteState {
 	const others = note.after === null ? [] : scan(context);
 	const due = isDue(note, today(), (key) => others.find((other) => other.key === key));
 	return due ? { ...note, due } : note;
-}
-
-/** The name of a paper's note, to link to it, or null when the vault has none. */
-export function paperNoteName(context: Context, ref: ItemRef): string | null {
-	const note = scan(context).find((candidate) => {
-		const named = parseItemRef(candidate.key);
-		return named?.key === ref.key && named.groupID === ref.groupID;
-	});
-	return note ? (fileOf(context.app, note)?.basename ?? null) : null;
 }
 
 export function fileOf(app: App, note: NoteState): TFile | null {
