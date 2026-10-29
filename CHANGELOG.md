@@ -3,7 +3,7 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
-## Unreleased
+## 2.1.2
 
 - A note can no longer lose your writing because a marker line is quoted in
   it. If the `<!--/paper-trail-->` line under the annotations was deleted and
