@@ -31,11 +31,12 @@ flowchart LR
 | --- | --- |
 | `src/core/` | Every decision. Pure: no Obsidian imports except type-only ones, no filesystem. This is what the tests cover. |
 | `src/commands/` | Wiring that writes: decisions onto notes, notes from Zotero items, a quoted annotation into the editor, the report. |
-| `src/ui/` | Wiring that draws: the queue view, the block, the modals, the pill, the editor extension that draws the prompts. |
+| `src/ui/` | Wiring that draws: the queue view, the block, the modals, the status in a paper's title bar, the editor extension that draws the prompts. |
 | `src/http.ts` | The one place a request is made. See [Zotero](zotero.md) for why it does not use `requestUrl`. |
 | `src/source.ts` | Every request to Zotero, and whether the last one was answered. |
 | `src/library.ts` | What Zotero said, kept for the session and brought up to date by asking what changed. |
 | `src/outstanding.ts` | Joins the library to the vault. Composes rules from `core/stages.ts` and adds none of its own. |
+| `src/today.ts` | Today's date as the vault writes it, in local time. Its own file because it reads the clock, which `core/` may not. |
 | `src/context.ts` | `Context`: app, settings and `saveSettings`, which is all a command gets. |
 | `src/main.ts` | Registers the view, the commands, the menus and the events. |
 

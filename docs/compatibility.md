@@ -100,14 +100,16 @@ are in [Zotero](zotero.md).
   Renaming it is breaking.
 - There are no `obsidian://` URIs to keep.
 
-## Due Credit
+## Due Credit and In the Open
 
 The one citation form Paper Trail writes, in **Insert annotation**, is an
-agreement with Due Credit, described in [Citations](citations.md).
+agreement with Due Credit and In the Open, which read it through the same core,
+described in [Citations](citations.md).
 
-- **A new form is read there first.** Due Credit is released before Paper
-  Trail writes it ([Changing the form](citations.md#changing-the-form)).
-- **`citekey`** is the property Due Credit cites a paper note by, by default.
+- **A new form is read there first.** Due Credit and In the Open are released
+  on a core that reads it before Paper Trail writes it
+  ([Changing the form](citations.md#changing-the-form)).
+- **`citekey`** is the property both cite a paper note by, by default.
   Renaming it breaks the citations of every paper.
 
 ## Obsidian

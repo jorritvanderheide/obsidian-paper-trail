@@ -56,8 +56,8 @@ A few things to check:
 - **Is it under Papers from?** Only papers in the libraries and collections
   listed there show up. With **Include subcollections** off, a paper that is
   only in a subcollection doesn't.
-- **Is it in Triage?** If you turned on **Triage first** for where it came
-  from, it waits there instead of in Reading.
+- **Is it in Triage?** If the switch next to where it came from is on, under
+  **Papers from**, it waits there instead of in Reading.
 - **Is it in a group library?** Add the group, or a collection in it, under
   **Papers from**. Groups aren't read until you do.
 

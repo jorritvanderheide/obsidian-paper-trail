@@ -47,7 +47,9 @@ section.
    [retorque.re/zotero-better-bibtex](https://retorque.re/zotero-better-bibtex/).
    With it, notes are named after the citation key, which is what a citation
    links to. Without it, notes are named after author, title and year, and
-   everything else works the same.
+   everything works the same except citing: a quote from **Insert annotation**
+   only becomes a citation in Due Credit or In the Open with Better BibTeX's
+   keys.
 3. **Install Paper Trail.** In Obsidian, go to Settings → Community plugins →
    Browse, search for "Paper Trail", and install and enable it. You can also
    find it on [its page in the plugin directory](https://community.obsidian.md/plugins/paper-trail).
@@ -239,8 +241,8 @@ paper is still fresh in your mind.
 
 ### 6.2 Switching stages off
 
-**Triage** is optional, and you switch it on per source under **Papers from**,
-with **Triage first**. Leave it off where you skim abstracts in your browser
+**Triage** is optional, and you switch it on per source, with the switch next
+to each one under **Papers from**. Leave it off where you skim abstracts in your browser
 and only save what you mean to read. Then saving a paper was already the
 decision, and it goes straight to Reading. Turn it on where papers arrive that
 you haven't made up your mind about, like a lab's shared reading list in a
@@ -307,7 +309,7 @@ Press Escape to close the search.
 Right-click a row, or a paper's note in the file explorer, and you get the same
 menu: first what the row's buttons do, such as **Reading finished** and **Open
 in Zotero**, then the reading statuses you can move the paper to. **Set reading
-status** offers the same statuses from the command palette and from the pill at
+status** offers the same statuses from the command palette and from the status at
 the top of every paper, and tells you where each choice will put it. On a paper
 you've already read, the choices say what they do: assess it too, skip the
 assessment, reopen a claim or assessment you ticked off too early, read it
@@ -364,9 +366,9 @@ never written to the file.
 A paper that doesn't need anything from you opens in reading view instead of
 the editor. It switches the moment you tick off its last pass, defer it or drop
 it, and goes back to the editor when you put it back on the list. Its title bar
-has a refresh button, the paper's next step, and its reading status as a pill
-that opens the status chooser. On a deferred or dropped paper, hover over the
-pill to see the reason you gave.
+has a refresh button, the paper's next step, and its reading status, which
+opens the status chooser when you click it. On a deferred or dropped paper,
+hover over the status to see the reason you gave.
 
 ### 7.2 Annotations
 
@@ -610,7 +612,7 @@ BibTeX is installed. Click the arrow to check again.
 | Setting | Default | |
 | --- | --- | --- |
 | **Papers from** | My library | Where the queue gets its papers. That can be your library, a group library, or collections in them, if your library holds more than the papers for this thesis. Add them, delete them, or drag them into order. If a paper is in more than one, it counts for the first. Papers that already have a note stay in the queue, even outside these. |
-| **Triage first** | Off, on for a group | On each source under **Papers from**: papers from there that you haven't decided about go to Triage before Reading. |
+| The switch next to each source | Off, on for a group | Under **Papers from**: on, papers from there that you haven't decided about go to Triage first. Off, they go straight to Reading. |
 | **Include subcollections** | On | Also bring in the papers from the collections inside each collection under **Papers from**. |
 | **Include underlines** | On | Show underlines in a paper's annotations. Turn it off if you underline terms and highlight passages. An underline you've commented on still shows up. |
 
@@ -627,7 +629,7 @@ BibTeX is installed. Click the arrow to check again.
 | Setting | Default | |
 | --- | --- | --- |
 | **Item key property** | `zotero-key` | The property that holds the Zotero item key. If you already have literature notes, set it to the property they use and Paper Trail recognises them as they are. If you change it later, notes with the old property aren't recognised anymore. |
-| **Show reading status on papers** | On | Show the status pill in the title bar, and at the top of a paper in reading view. |
+| **Show reading status on papers** | On | Show a paper's status in the title bar while you edit, and at the top of the note in reading view. Click it to change the status. Turn it off if you keep the properties panel open, where you'd see the same word twice. |
 | **Quieter notifications** | Off | Only show failures and warnings. |
 | **Written passes** | Claim and assessment | What comes after reading: both passes, only the claim, or none, which files a paper as soon as you've read it. |
 | **Claim heading**, **Assessment heading** | `Claim`, `Assessment` | The headings the two written passes go under. Only shown for the passes you use. |
@@ -712,7 +714,8 @@ doesn't send anything anywhere.
   never overwritten.
 - **Report:** `Excluded papers.md` in the root of your vault, only when you run
   **Export excluded papers**, and only over a file it made itself.
-- **Your notes:** A queue block or a citation, only where you insert one.
+- **Your notes:** A queue block or a quoted annotation, only where you insert
+  one.
 - **Settings:** Its own `data.json` in the plugin folder.
 
 ### 13.5 How releases are built
