@@ -125,8 +125,8 @@ If you want to work on the plugin, or build something on top of its notes:
 - [**Architecture**](docs/architecture.md) - How the code is layered, where
   decisions are allowed to live, and how Zotero and the vault come together in
   the queue.
-- [**Data model**](docs/data-model.md) - Every property, the reading
-  vocabulary, and the managed region.
+- [**Data model**](docs/data-model.md) - Every property, the reading statuses,
+  and the annotations section Paper Trail keeps up to date.
 - [**Zotero**](docs/zotero.md) - Which parts of the local API are used, and the
   quirks that give you an empty list without an error.
 - [**Citations**](docs/citations.md) - The link forms Paper Trail writes, and
@@ -463,8 +463,10 @@ you'll want to know when you write about them.
 
 A citation is a link to the paper by its citation key: `[[okafor2019sampling]]`.
 With Better BibTeX, notes are named after their key, so the link opens the
-paper's note, shows it on hover, and counts in its backlinks. Typing `[[` finds
-papers by key rather than by title.
+paper's note, shows it on hover, and counts in its backlinks. A key with a
+character a note's name can't have, like the colon in `smith:2017`, gives the
+note a dash instead, `smith-2017`, and the key stays in its `citekey` property.
+Typing `[[` finds papers by key rather than by title.
 
 Paper Trail leaves inserting citations to [Due Credit](#121-due-credit). Its
 **Insert citation** lets you pick a paper from your bibliography (the `.bib`
@@ -636,6 +638,12 @@ BibTeX is installed. Click the arrow to check again.
 | **Claim heading**, **Assessment heading** | `Claim`, `Assessment` | The headings the two written passes go under. Only shown for the passes you use. |
 | **Claim prompt**, **Assessment prompt** | A question | The faint text under each empty heading. Leave it empty to turn it off. |
 
+A setting that has to agree with your vault or Zotero says so right under it:
+a source under **Papers from** that Zotero doesn't have anymore is marked "(not
+in Zotero)", the Claim and Assessment headings say how many papers already use
+them before you rename one, and **Status tag** says how many papers still have
+the old tag after you change it.
+
 <br/>
 
 ## 12 Works well with
@@ -717,6 +725,8 @@ doesn't send anything anywhere.
   **Export excluded papers**, and only over a file it made itself.
 - **Your notes:** A queue block or a quoted annotation, only where you insert
   one.
+- **Folders:** The papers folder and the template folder, when they don't
+  exist yet and a note or the template goes in them.
 - **Settings:** Its own `data.json` in the plugin folder.
 
 ### 13.5 How releases are built

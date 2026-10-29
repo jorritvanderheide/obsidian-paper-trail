@@ -4,8 +4,8 @@
 // Inserting a citation of any paper is Due Credit's, which picks from the
 // bibliography. This is the one citation Paper Trail still writes, because
 // the passages are the paper notes', as the last sync wrote them. It writes
-// `[[key|key, p. 12]]`, a form Due Credit reads, as its `docs/citations.md`
-// agrees.
+// `[[name|name, p. 12]]`, by the paper note's name, a form Due Credit reads,
+// as its `docs/citations.md` agrees.
 import { MarkdownView, Notice } from 'obsidian';
 import { pickPaper, pickPassage, type AnnotatedPaper } from '../ui/annotation-picker';
 import { inRegion, inTemplates, isPaper, syncedPassages } from '../core/paper-note';
