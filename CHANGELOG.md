@@ -3,7 +3,7 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
-## Unreleased
+## 2.1.4
 
 - A passage from Zotero that ends in a backslash, like `C:\temp\`, keeps it
   in an export. Paper Trail writes it as `\\`, which Obsidian shows as one
