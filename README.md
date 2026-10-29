@@ -3,9 +3,10 @@
 **Work through your Zotero library as a reading queue, and keep a record of what you decided.**
 
 Works well with [Due Credit](https://community.obsidian.md/plugins/due-credit),
-which exports your citations to Word, PDF or LaTeX, and
-[Tag Along](https://community.obsidian.md/plugins/tag-along), which lets you
-browse your papers by reading status. See [Works well with](#12-works-well-with).
+which exports a note to Word, PDF or LaTeX with its links turned into real
+citations, and [Tag Along](https://community.obsidian.md/plugins/tag-along),
+which lets you browse your papers by reading status. See
+[Works well with](#12-works-well-with).
 
 <br/>
 
