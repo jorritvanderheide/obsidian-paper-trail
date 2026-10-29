@@ -178,8 +178,17 @@ to the annotation in Zotero, which does come through.
 Paper Trail only replaces what's between one `<!--paper-trail-->` line and one
 `<!--/paper-trail-->` line below it. If one of them was deleted, or there are
 two of either, it can't tell your writing from its annotations, so it leaves
-the note alone until you fix it. Open the note in source mode, keep one of
-each around the annotations, and run **Refresh paper from Zotero** again.
+the note alone until you fix it. A marker you quoted in your own text counts
+too. Open the note in source mode, keep one of each around the annotations,
+and run **Refresh paper from Zotero** again.
+
+### "The annotations in … weren't added, because the lines that mark where they go are missing or doubled in your template, …"
+
+Every new paper note starts from your Paper template, in the template folder.
+Its marker lines are broken, so the new note's are too, and its annotations
+can't go in. Open the template in source mode and keep one `<!--paper-trail-->`
+line with one `<!--/paper-trail-->` line below it. Do the same in the new note,
+and run **Refresh paper from Zotero** on it.
 
 ## Citations
 

@@ -118,6 +118,15 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	// nothing.
 	const file = await app.vault.create(path, `---\n---\n${replaceRegion(body, renderAnnotations(annotations))}`);
 	await writePaperFrontmatter(context, file, item, ref, arriving);
+	// Broken markers in the template make every new note one whose annotations
+	// never come in, since a sync leaves broken markers alone. Said here, where
+	// the template is the reason, and not on every note's open.
+	if (regionBroken(body)) {
+		const template = normalizePath(`${context.settings.templateFolder}/${PAPER_TEMPLATE.file}`);
+		new Notice(
+			`The annotations in ${file.basename} weren't added, because the lines that mark where they go are missing or doubled in your template, ${template}. Keep one <!--paper-trail--> line and one <!--/paper-trail--> line below it there, do the same in this note, and refresh it.`,
+		);
+	}
 	return file;
 }
 

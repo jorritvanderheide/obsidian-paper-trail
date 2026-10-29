@@ -12,6 +12,9 @@ breaking is in [Compatibility](docs/compatibility.md).
 - A comment in Zotero that reads like your Claim or Assessment heading, such as
   `## Claim`, is no longer taken for it. What you wrote under it was inside the
   annotations, and gone at the next refresh.
+- If your Paper template's marker lines are missing or doubled, Paper Trail
+  says so when it makes a paper's note, and which file to fix. The note's
+  annotations used to be left out without a word.
 
 ## 2.1.0
 
