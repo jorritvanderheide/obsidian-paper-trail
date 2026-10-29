@@ -29,7 +29,7 @@ import {
 } from '../core/stages';
 import { DEFAULT_ROWS, fit } from '../core/fit';
 import { act, finish, next, openNote } from '../commands/workflow';
-import { iconOf } from '../core/triage';
+import { iconOf, label, type State } from '../core/triage';
 import { queue, sourcesProblem } from '../outstanding';
 import { WhileWriting } from './editing';
 import { say } from './notify';
@@ -39,6 +39,9 @@ import { onLibraryChange, refreshLibrary } from '../library';
 import { workflowOf } from '../core/settings';
 import { onSettingsChanged, type Context } from '../context';
 import { today } from '../today';
+
+/** A deferral, for the Deferred section to be named and drawn as the state is. */
+const DEFERRED: State = { reading: 'deferred', progress: null };
 
 export const QUEUE_VIEW = 'paper-trail-queue';
 
@@ -815,10 +818,10 @@ function foot(root: HTMLElement, context: Context, waiting: Settled[], done: Set
 	// one paper, and the one you ruled out years ago is in here if anywhere, so
 	// both open while it is on and go back to how you left them after.
 	resting(box, context, waiting, {
-		label: 'Deferred',
+		label: label(DEFERRED),
 		// The same mark the chooser puts on a deferral and the pill shows on the
 		// note, so a parked paper looks like itself wherever you meet it.
-		icon: 'clock',
+		icon: iconOf(DEFERRED),
 		hint: 'Papers you deferred, each with the condition you gave. Right-click one to pick it back up.',
 		open: openWaiting,
 		toggle: searching
