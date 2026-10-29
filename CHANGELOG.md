@@ -3,7 +3,7 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
-## Unreleased
+## 2.1.1
 
 - A note whose `<!--paper-trail-->` marker got joined onto the line above, as
   pressing Delete at the end of that line does, keeps its annotations up to
