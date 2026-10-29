@@ -3,7 +3,7 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
-## Unreleased
+## 2.0.2
 
 - A paper's note no longer loses your writing when the `<!--/paper-trail-->`
   line under its annotations was deleted. Opening the note twice used to
