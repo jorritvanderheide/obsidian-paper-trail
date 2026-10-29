@@ -12,6 +12,9 @@ breaking is in [Compatibility](docs/compatibility.md).
 - A `%%` or `<!--` in a passage or a comment from Zotero no longer hides
   everything after it in the note, in Obsidian and in an export. It's written
   so it shows as itself.
+- **Insert annotation** checks again, once you've picked the passage, that the
+  cursor isn't in a paper's annotations, where the quote would be gone at the
+  next refresh. It only checked before you picked.
 
 ## 2.0.2
 

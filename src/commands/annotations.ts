@@ -12,6 +12,18 @@ import { inRegion, isPaper, syncedPassages } from '../core/paper-note';
 import { quotation } from '../core/zotero';
 import type { Context } from '../context';
 
+const IN_ANNOTATIONS = "The cursor is in the annotations section, which is rewritten every time the note is refreshed from Zotero. Put the cursor above it, and try again.";
+
+/**
+ * Whether the cursor is in a paper note's annotations, where a quote would be
+ * gone at the next sync. Asked again once the pickers close, since the cursor,
+ * or the note, may have changed while they were open.
+ */
+function inAnnotations(context: Context, view: MarkdownView): boolean {
+	const frontmatter = view.file === null ? undefined : context.app.metadataCache.getFileCache(view.file)?.frontmatter;
+	return isPaper(frontmatter, context.settings.keyField) && inRegion(view.editor.getValue(), view.editor.getCursor().line);
+}
+
 /**
  * Quote a passage you annotated, with the citation to its page.
  *
@@ -28,10 +40,8 @@ export async function insertAnnotation(context: Context): Promise<void> {
 		new Notice('Open a note and put the cursor where the quote should go.');
 		return;
 	}
-	// Inside the region, the quote would be gone at the next sync.
-	const inPaper = view.file !== null && isPaper(app.metadataCache.getFileCache(view.file)?.frontmatter, context.settings.keyField);
-	if (inPaper && inRegion(view.editor.getValue(), view.editor.getCursor().line)) {
-		new Notice("The cursor is in the annotations section, which is rewritten every time the note is refreshed from Zotero. Put the cursor above it, and try again.");
+	if (inAnnotations(context, view)) {
+		new Notice(IN_ANNOTATIONS);
 		return;
 	}
 
@@ -58,11 +68,16 @@ export async function insertAnnotation(context: Context): Promise<void> {
 
 	// Fetched after the picker closes, for the same reason as a citation: the
 	// cursor may have moved while it was open.
-	const editor = app.workspace.getActiveViewOfType(MarkdownView)?.editor;
-	if (!editor) {
+	const target = app.workspace.getActiveViewOfType(MarkdownView);
+	if (!target) {
 		new Notice("There's no open note to put it in.");
 		return;
 	}
+	if (inAnnotations(context, target)) {
+		new Notice(IN_ANNOTATIONS);
+		return;
+	}
+	const editor = target.editor;
 	// Either side of the selection rather than of the cursor: a selection is
 	// replaced, so what stays on the line is what is before and after it.
 	const from = editor.getCursor('from');
