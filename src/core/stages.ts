@@ -6,7 +6,7 @@
 // that pretends otherwise just produces false states.
 
 import type { CachedMetadata } from 'obsidian';
-import { isPaper, isRegionStart } from './paper-note';
+import { isPaper, isRegionStart, regionRange } from './paper-note';
 import { deferralOf, label, landing, stateOf, type Outcome, type Progress, type State, type Workflow } from './triage';
 import type { Pending } from './pending';
 
@@ -505,6 +505,16 @@ function isHeading(line: string, heading: string): boolean {
 }
 
 /**
+ * The first line that is the heading, outside the annotations: a comment in
+ * Zotero can read "## Claim", and what you wrote under it would go at the next
+ * sync. -1 when there's none.
+ */
+function headingIndex(lines: readonly string[], heading: string): number {
+	const region = regionRange(lines);
+	return lines.findIndex((line, at) => isHeading(line, heading) && (region === null || at < region.start || at > region.end));
+}
+
+/**
  * Where a heading the note has not got should be inserted.
  *
  * Above the managed region, because everything from the marker down is the
@@ -518,7 +528,7 @@ function isHeading(line: string, heading: string): boolean {
 export function headingSlot(lines: readonly string[], precedes: string | null): number {
 	const bounds = [
 		lines.findIndex(isRegionStart),
-		precedes === null ? -1 : lines.findIndex((line) => isHeading(line, precedes)),
+		precedes === null ? -1 : headingIndex(lines, precedes),
 	].filter((at) => at !== -1);
 
 	return bounds.length === 0 ? lines.length : Math.min(...bounds);
@@ -647,7 +657,7 @@ export function questionLine(lines: readonly string[], heading: string): number 
  * heading is answers "nowhere" and writes a second one.
  */
 export function headingLineIn(lines: readonly string[], heading: string): number | null {
-	const at = lines.findIndex((line) => isHeading(line, heading));
+	const at = headingIndex(lines, heading);
 	return at === -1 ? null : at;
 }
 

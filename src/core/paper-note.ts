@@ -62,6 +62,16 @@ function regionLines(body: string): { start: number; end: number } | 'broken' | 
 	return { start: lineOf(span.from), end: lineOf(span.to) };
 }
 
+/**
+ * The lines the region covers, its markers included, or null for a note with no
+ * region or a broken one. A heading in there is Zotero's, from a comment, and
+ * never the note's own.
+ */
+export function regionRange(lines: readonly string[]): { start: number; end: number } | null {
+	const region = regionLines(lines.join('\n'));
+	return region === null || region === 'broken' ? null : region;
+}
+
 /** Whether a note's markers are broken, so its annotations are left alone. */
 export function regionBroken(body: string): boolean {
 	return regionSpan(body) === 'broken';

@@ -12,6 +12,7 @@ import {
 	annotationAt,
 	replaceRegion,
 	regionBroken,
+	regionRange,
 	fill,
 	isPaper,
 	inTemplates,
@@ -815,5 +816,13 @@ describe('inTemplates', () => {
 		expect(inTemplates('Templates/Paper Trail.md', 'Templates/Paper Trail')).toBe(false);
 		expect(inTemplates('Literature/marsh2024.md', 'Templates/Paper Trail')).toBe(false);
 		expect(inTemplates('Literature/marsh2024.md', '')).toBe(false);
+	});
+});
+
+describe('regionRange', () => {
+	it('is the lines from marker to marker, and null with no region or a broken one', () => {
+		expect(regionRange(['# Paper', REGION_START, '## Annotations', REGION_END, 'after'])).toEqual({ start: 1, end: 3 });
+		expect(regionRange(['# Paper', 'no region'])).toBeNull();
+		expect(regionRange(['# Paper', REGION_START, 'mine'])).toBeNull();
 	});
 });

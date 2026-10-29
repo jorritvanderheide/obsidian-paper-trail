@@ -946,6 +946,16 @@ describe('headingLineIn', () => {
 	it('is not fooled by the word appearing in prose', () => {
 		expect(headingLineIn(['The claim is that', 'Claim'], 'Claim')).toBeNull();
 	});
+
+	// A comment in Zotero is written into the annotations, and one can read
+	// "## Claim": taken for the note's own heading, what you wrote under it would
+	// go at the next sync.
+	it('never takes a heading inside the annotations for the note\'s own', () => {
+		const lines = ['# A paper', '<!--paper-trail-->', '## Annotations', '> a quote ^zt-A', '', '## Claim', '<!--/paper-trail-->'];
+		expect(headingLineIn(lines, 'Claim')).toBeNull();
+		expect(withHeading(lines.join('\n'), 'Claim', null)).toContain('## Claim\n\n\n\n<!--paper-trail-->');
+		expect(headingLineIn([...lines, '## Claim'], 'Claim')).toBe(7);
+	});
 });
 
 /**

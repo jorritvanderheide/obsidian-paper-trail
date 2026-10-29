@@ -9,6 +9,9 @@ breaking is in [Compatibility](docs/compatibility.md).
   pressing Delete at the end of that line does, keeps its annotations up to
   date. Since 2.0.2 they stopped updating. A note with both markers on one
   line no longer gets a second copy of its annotations.
+- A comment in Zotero that reads like your Claim or Assessment heading, such as
+  `## Claim`, is no longer taken for it. What you wrote under it was inside the
+  annotations, and gone at the next refresh.
 
 ## 2.1.0
 
