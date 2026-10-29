@@ -268,9 +268,20 @@ describe('replaceRegion', () => {
 		expect(twice(note)).toBe(note);
 	});
 
-	it('takes a marker only as a line of its own, not one quoted in prose', () => {
+	// Pressing Delete at the end of the line above joins it to the marker, and
+	// some notes have both markers on one line. Both are still one region.
+	it('finds a marker anywhere on its line, and keeps what is before it', () => {
+		const joined = ['# A paper', `My last sentence.${REGION_START}`, '> old ^zt-OLD', REGION_END, 'After.'].join('\n');
+		expect(twice(joined)).toBe(['# A paper', `My last sentence.${REGION_START}`, '', '## Annotations', '', '> new ^zt-NEW', '', REGION_END, 'After.'].join('\n'));
+		const oneLine = `# A paper\n${REGION_START}${REGION_END}\nAfter.`;
+		expect(twice(oneLine)).toBe(`# A paper\n${REGION_START}\n\n## Annotations\n\n> new ^zt-NEW\n\n${REGION_END}\nAfter.`);
+	});
+
+	// A marker quoted in your own words counts as one, which makes two: the note
+	// is left alone rather than guessed at.
+	it('leaves a note alone when a marker is quoted in its prose too', () => {
 		const note = ['I keep my notes above `<!--/paper-trail-->`.', REGION_START, '## Annotations', REGION_END, 'After.'].join('\n');
-		expect(twice(note)).toBe(['I keep my notes above `<!--/paper-trail-->`.', REGION_START, '', '## Annotations', '', '> new ^zt-NEW', '', REGION_END, 'After.'].join('\n'));
+		expect(twice(note)).toBe(note);
 	});
 
 	it('still reads markers with spaces around them, or a Windows line ending', () => {

@@ -3,6 +3,13 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+- A note whose `<!--paper-trail-->` marker got joined onto the line above, as
+  pressing Delete at the end of that line does, keeps its annotations up to
+  date. Since 2.0.2 they stopped updating. A note with both markers on one
+  line no longer gets a second copy of its annotations.
+
 ## 2.1.0
 
 - A paper whose citation key has a character a note's name can't have, like
