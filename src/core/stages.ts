@@ -6,7 +6,7 @@
 // that pretends otherwise just produces false states.
 
 import type { CachedMetadata } from 'obsidian';
-import { isPaper, isRegionStart, regionRange } from './paper-note';
+import { isPaper, isRegionStart, regionRange, regionStart } from './paper-note';
 import { deferralOf, label, landing, stateOf, type Outcome, type Progress, type State, type Workflow } from './triage';
 import type { Pending } from './pending';
 
@@ -500,7 +500,8 @@ export function byStage(notes: NoteState[], workflow: Workflow): Map<Task, NoteS
 
 /** Whether a line is a markdown heading with this exact text. */
 function isHeading(line: string, heading: string): boolean {
-	const match = /^#{1,6}\s+(.*)$/.exec(line);
+	// Without a Windows line ending, which `$` would stop short of.
+	const match = /^#{1,6}\s+(.*)$/.exec(line.replace(/\r$/, ''));
 	return match !== null && match[1]?.trim().toLowerCase() === heading.trim().toLowerCase();
 }
 
@@ -526,8 +527,9 @@ function headingIndex(lines: readonly string[], heading: string): number {
  * the region out of. Appending is the one answer that cannot be wrong there.
  */
 export function headingSlot(lines: readonly string[], precedes: string | null): number {
+	// Above the first opening marker that counts, which is never in a code block.
 	const bounds = [
-		lines.findIndex(isRegionStart),
+		regionStart(lines),
 		precedes === null ? -1 : headingIndex(lines, precedes),
 	].filter((at) => at !== -1);
 

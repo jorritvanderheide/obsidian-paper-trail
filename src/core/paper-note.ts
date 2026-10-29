@@ -22,61 +22,71 @@ export const REGION_START = '<!--paper-trail-->';
 export const REGION_END = '<!--/paper-trail-->';
 
 /**
- * Whether a line opens the managed region: the opening marker alone on it, or
- * with the closing one right after. A line your text was joined onto isn't,
- * since a heading put above it would take your text along.
+ * Whether a line is a marker as Paper Trail writes it: alone on the line, with
+ * at most three spaces before it, since four make it code, and only spaces
+ * after. A marker anywhere else is the person's text: quoted in a sentence, in
+ * a list item, a quote, a callout, an indented code line, or joined to other
+ * text. Counting one of those, when a real marker was deleted, paired it with
+ * the other and replaced the person's text between them.
  */
+function isMarker(line: string, marker: string): boolean {
+	return /^ {0,3}(\S.*?)\s*$/.exec(line)?.[1] === marker;
+}
+
+/** Whether a line opens the managed region. */
 export function isRegionStart(line: string): boolean {
-	const text = line.replace(/\s+/g, '');
-	return text === REGION_START || text === `${REGION_START}${REGION_END}`;
+	return isMarker(line, REGION_START);
 }
 
 /**
- * Where each marker that counts starts in the note. An opening marker counts at
- * the end of its line, or with the closing one right after; a closing marker at
- * the start of its line, or right after the opening one. So a line joined onto
- * either, by Delete at a line's end, still counts, and a marker quoted in a
- * sentence, as in `` `<!--/paper-trail-->` ``, never does: taking that for the
- * closing marker, when the real one was deleted, replaced the prose between.
+ * The lines a marker counts on: alone on the line (`isMarker`), and outside the
+ * note's properties and any fenced code block, where a marker is somebody's
+ * example of one.
  */
-function offsets(body: string, marker: string): number[] {
+function markerLines(lines: readonly string[], marker: string): number[] {
 	const found: number[] = [];
-	for (let at = body.indexOf(marker); at !== -1; at = body.indexOf(marker, at + marker.length)) {
-		const lineStart = body.lastIndexOf('\n', at - 1) + 1;
-		const newline = body.indexOf('\n', at + marker.length);
-		const before = body.slice(lineStart, at).trim();
-		const after = body.slice(at + marker.length, newline === -1 ? body.length : newline).trim();
-		const counts = marker === REGION_START ? after === '' || after === REGION_END : before === '' || before === REGION_START;
-		if (counts) found.push(at);
-	}
+	let properties = lines[0]?.trimEnd() === '---';
+	let fence: string | null = null;
+	lines.forEach((line, at) => {
+		if (properties) {
+			if (at > 0 && /^(---|\.\.\.)\s*$/.test(line)) properties = false;
+			return;
+		}
+		const opening = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+		if (fence !== null) {
+			if (opening && opening[0] === fence[0] && opening.length >= fence.length && line.trim() === opening) fence = null;
+			return;
+		}
+		if (opening) {
+			fence = opening;
+			return;
+		}
+		if (isMarker(line, marker)) found.push(at);
+	});
 	return found;
 }
 
 /**
- * Where the region is: from its opening marker to just past its closing one,
- * counting only the markers `offsets` counts. Null for a note without one, and
- * `'broken'` for anything but one opening marker followed by one closing
- * marker. A broken region is never written to, because there is no telling
- * which text between the markers is ours: a closing marker deleted by accident
- * leaves the person's prose after the opening one.
+ * Where the region is, by the lines of its two markers: null for a note
+ * without one, and `'broken'` for anything but one opening marker followed by
+ * one closing marker. A broken region is never written to, because there is
+ * no telling which lines between the markers are ours: a closing marker
+ * deleted by accident leaves the person's prose after the opening one.
  */
-function regionSpan(body: string): { from: number; to: number } | 'broken' | null {
-	const starts = offsets(body, REGION_START);
-	const ends = offsets(body, REGION_END);
-	if (starts.length === 0 && ends.length === 0) return null;
+function regionLines(lines: readonly string[]): { start: number; end: number } | 'broken' | null {
+	const starts = markerLines(lines, REGION_START);
+	const ends = markerLines(lines, REGION_END);
+	// No region only when no marker is written anywhere: one that doesn't count, as
+	// when the lines around both were joined onto them, still holds annotations,
+	// and a new region added below would leave those behind.
+	if (starts.length === 0 && ends.length === 0) {
+		return lines.some((line) => line.includes(REGION_START) || line.includes(REGION_END)) ? 'broken' : null;
+	}
 
-	const [from] = starts;
+	const [start] = starts;
 	const [end] = ends;
-	if (starts.length > 1 || ends.length > 1 || from === undefined || end === undefined || end < from) return 'broken';
-	return { from, to: end + REGION_END.length };
-}
-
-/** The region by the lines its markers are on, for what reads a note line by line. */
-function regionLines(body: string): { start: number; end: number } | 'broken' | null {
-	const span = regionSpan(body);
-	if (span === null || span === 'broken') return span;
-	const lineOf = (offset: number) => body.slice(0, offset).split('\n').length - 1;
-	return { start: lineOf(span.from), end: lineOf(span.to) };
+	if (starts.length > 1 || ends.length > 1 || start === undefined || end === undefined || end < start) return 'broken';
+	return { start, end };
 }
 
 /**
@@ -85,13 +95,22 @@ function regionLines(body: string): { start: number; end: number } | 'broken' | 
  * never the note's own.
  */
 export function regionRange(lines: readonly string[]): { start: number; end: number } | null {
-	const region = regionLines(lines.join('\n'));
+	const region = regionLines(lines);
 	return region === null || region === 'broken' ? null : region;
+}
+
+/**
+ * The line of the first opening marker that counts, or -1: where a heading goes
+ * above, even in a broken note, since above it is never inside the region or a
+ * code block.
+ */
+export function regionStart(lines: readonly string[]): number {
+	return markerLines(lines, REGION_START)[0] ?? -1;
 }
 
 /** Whether a note's markers are broken, so its annotations are left alone. */
 export function regionBroken(body: string): boolean {
-	return regionSpan(body) === 'broken';
+	return regionLines(body.split('\n')) === 'broken';
 }
 
 /**
@@ -239,11 +258,11 @@ export interface SyncedPassage {
  * skipped, and so is anything outside the markers, which is the user's.
  */
 export function syncedPassages(body: string): SyncedPassage[] {
-	const region = regionLines(body);
+	const lines = body.split('\n');
+	const region = regionLines(lines);
 	if (region === null || region === 'broken') return [];
 
-	return body
-		.split('\n')
+	return lines
 		.slice(region.start, region.end)
 		.flatMap((line) => {
 			const match = /^> (.+?)(?: \(p\. ([^)]+)\))? \^zt-([A-Za-z0-9]+)$/.exec(line.trimEnd());
@@ -259,7 +278,7 @@ export function syncedPassages(body: string): SyncedPassage[] {
  * rest. Nothing is inside a broken region, because no sync writes there.
  */
 export function inRegion(body: string, line: number): boolean {
-	const region = regionLines(body);
+	const region = regionLines(body.split('\n'));
 	return region !== null && region !== 'broken' && region.start <= line && line <= region.end;
 }
 
@@ -287,7 +306,7 @@ export function annotationAt(body: string, line: number): string | null {
  * region gets one appended rather than being rearranged: the user may have
  * removed it, and rebuilding the file around their prose would be exactly the
  * overreach this model exists to prevent. A body whose markers are broken is
- * returned as it is (`regionSpan`): appending there used to give the next sync
+ * returned as it is (`regionLines`): appending there used to give the next sync
  * the old opening marker and the new closing one, and the prose between them.
  */
 export function replaceRegion(body: string, contents: string): string {
@@ -301,18 +320,16 @@ export function replaceRegion(body: string, contents: string): string {
 	const eol = body.includes('\r\n') ? '\r\n' : '\n';
 	const region = [REGION_START, '', ...contents.split('\n'), '', REGION_END].join(eol);
 
-	const found = regionSpan(body);
+	const lines = body.split('\n');
+	const found = regionLines(lines);
 	if (found === 'broken') return body;
 	if (found === null) return `${body.replace(/\s*$/, '')}${eol}${eol}${region}${eol}`;
 
-	// A marker your text was joined onto goes back on a line of its own, so the
-	// region starts and ends on whole lines again, which headings depend on.
-	let before = body.slice(0, found.from);
-	let after = body.slice(found.to);
-	if (/\S/.test(before.slice(before.lastIndexOf('\n') + 1))) before = before.replace(/[ \t]*$/, '') + eol;
-	const rest = after.indexOf('\n') === -1 ? after : after.slice(0, after.indexOf('\n'));
-	if (/\S/.test(rest)) after = eol + after.replace(/^[ \t]*/, '');
-	return before + region + after;
+	// Whole lines, each marker's line ending kept: the lines split at \n, so a
+	// Windows line keeps its \r, and the region's last line takes the one the
+	// closing marker had.
+	const last = lines[found.end]?.endsWith('\r') ? '\r' : '';
+	return [...lines.slice(0, found.start), region + last, ...lines.slice(found.end + 1)].join('\n');
 }
 
 /**

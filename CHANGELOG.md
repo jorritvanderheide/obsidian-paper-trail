@@ -3,6 +3,20 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+- A note can no longer lose your writing because something in it looks like a
+  marker line. With the `<!--paper-trail-->` or `<!--/paper-trail-->` line
+  deleted, 2.1.1 and 2.1.2 could take a marker in a list item, a quote, a
+  callout, a code block or the properties for the missing one, and replace
+  your text up to it. A marker now counts only on a line of its own, outside
+  code blocks and properties, and a note missing one is left alone.
+- A marker joined onto the line above or below no longer counts, so that note
+  is left alone too, and **Refresh paper from Zotero** says how to fix it.
+  2.1.2 put it back on its own line, which turned out not to be safe.
+- In a note with Windows line endings, a written claim counts as written, and
+  the Claim heading isn't added a second time.
+
 ## 2.1.2
 
 - A note can no longer lose your writing because a marker line is quoted in

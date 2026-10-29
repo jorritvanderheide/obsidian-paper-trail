@@ -269,15 +269,26 @@ describe('replaceRegion', () => {
 		expect(twice(note)).toBe(note);
 	});
 
-	// Pressing Delete at the end of the line above joins it to the opening marker,
-	// and at the end of the closing one joins the next line to it. Some notes have
-	// both markers on one line. Each is still one region, and a sync puts the
-	// markers back on lines of their own.
-	it('reads a marker joined to the line above or below, and puts it back on its own line', () => {
-		const joined = ['# A paper', `My last sentence.${REGION_START}`, '> old ^zt-OLD', `${REGION_END}After.`].join('\n');
-		expect(twice(joined)).toBe(['# A paper', 'My last sentence.', REGION_START, '', '## Annotations', '', '> new ^zt-NEW', '', REGION_END, 'After.'].join('\n'));
-		const oneLine = `# A paper\n${REGION_START}${REGION_END}\nAfter.`;
-		expect(twice(oneLine)).toBe(`# A paper\n${REGION_START}\n\n## Annotations\n\n> new ^zt-NEW\n\n${REGION_END}\nAfter.`);
+	// A marker counts only alone on its line, outside code and properties.
+	// Anything marker-shaped elsewhere is the person's text, and once paired with
+	// the one marker left after the other was deleted, it cost them what was
+	// between. Each of these notes is missing a real marker, and is left alone.
+	it.each([
+		['joined to the line above', ['# A paper', `My last sentence.${REGION_START}`, '> old ^zt-OLD', `${REGION_END}After.`]],
+		['closing marker on an indented code line', ['# A paper', REGION_START, '## Annotations', '', '## Claim', 'My claim, as here:', '', `    ${REGION_END} and then my notes`]],
+		['closing marker in a fenced code block', ['# T', REGION_START, '> old', '## Claim', 'U1 my claim', '```html', REGION_END, '```', 'U2']],
+		['opening marker in a list item', ['# A paper', '', `- ${REGION_START}`, '', '## Claim', 'My claim.', '', '> old ^zt-OLD', REGION_END]],
+		['opening marker in a callout', ['# A paper', '', `> ${REGION_START}`, '', '## Claim', 'My claim.', '', REGION_END]],
+		['opening marker in the properties', ['---', `a: ${REGION_START}`, '---', '## Claim', 'My claim.', REGION_END]],
+		['opening marker ending a sentence', ['# A paper', `Zotero puts this above: ${REGION_START}`, '## Claim', 'My claim.', REGION_END]],
+	])('leaves a note alone with a marker %s', (_case, lines) => {
+		const note = lines.join('\n');
+		expect(twice(note)).toBe(note);
+	});
+
+	it('syncs a note with a marker shown in a code block, and leaves the code as it is', () => {
+		const note = ['# A paper', '```', REGION_START, REGION_END, '```', 'Mine.', REGION_START, '> old ^zt-OLD', REGION_END, 'After.'].join('\n');
+		expect(twice(note)).toBe(['# A paper', '```', REGION_START, REGION_END, '```', 'Mine.', REGION_START, '', '## Annotations', '', '> new ^zt-NEW', '', REGION_END, 'After.'].join('\n'));
 	});
 
 	// A marker quoted in a sentence is the person's text, never a marker. Taking
