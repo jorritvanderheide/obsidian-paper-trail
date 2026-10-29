@@ -3,6 +3,13 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+- A paper whose citation key has a character a note's name can't have, like
+  the colon in `smith:2017`, gets a note. Paper Trail used to fail to make it.
+  The note is named `smith-2017`, and its `citekey` property keeps the key as
+  it is, so citations to it still find the paper.
+
 ## 2.0.2
 
 - A paper's note no longer loses your writing when the `<!--/paper-trail-->`

@@ -92,6 +92,11 @@ describe('paperFrontmatter', () => {
 		expect(paperFrontmatter(item, ref, 'some-old-name').authors).toBe('Ida Van Der Lind, Bram De Veld');
 	});
 
+	it('keeps a key the note could not be named for, colon and all, which is what a citation finds the note by', () => {
+		const colon = { ...item, data: { ...item.data, citationKey: 'smith:2017' } };
+		expect(paperFrontmatter(colon, ref, 'smith-2017').citekey).toBe('smith:2017');
+	});
+
 	it('is null rather than empty when Better BibTeX is absent', () => {
 		const fm = paperFrontmatter({ ...item, data: { ...item.data, citationKey: undefined } }, ref, 'some-old-name');
 		expect(fm.citekey).toBeNull();

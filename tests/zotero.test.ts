@@ -168,6 +168,15 @@ describe('noteName', () => {
 		expect(noteName(paper())).toBe('vanderlindMendingQuietArchive2026');
 	});
 
+	// Obsidian refuses a note named with \ / : anywhere, and * " < > | ? on
+	// Windows, and a link can't reach a name with # ^ [ ] | in it. Better
+	// BibTeX allows them in a key. The citekey property keeps the key as it is.
+	it('swaps what a note name can not have in a key for a dash', () => {
+		expect(noteName(paper({ citationKey: 'smith:2017' }))).toBe('smith-2017');
+		expect(noteName(paper({ citationKey: 'a/b\\c*d"e<f>g|h?i#j^k[l]m' }))).toBe('a-b-c-d-e-f-g-h-i-j-k-l-m');
+		expect(noteName(paper({ citationKey: 'marsh_2024.b' }))).toBe('marsh_2024.b');
+	});
+
 	it('falls back to something stable without Better BibTeX', () => {
 		expect(noteName(paper({ citationKey: undefined }))).toBe('vanderlind-mending-quiet-archive-practices-2026');
 	});

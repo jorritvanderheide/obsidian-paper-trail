@@ -239,10 +239,16 @@ export function venueOf(item: ApiItem): string | null {
  * because that single string ties Zotero, the note, `[@cite]` and pandoc
  * together. Without Better BibTeX, something stable and readable: nothing else
  * in the plugin depends on the shape, only on it not changing between runs.
+ *
+ * A key can have what a note's name can't: Obsidian refuses `\ / :` on every
+ * platform and `* " < > | ?` on Windows, and a link can't reach a name with
+ * `# ^ [ ]` in it. Each becomes a dash, so a vault synced to Windows works too,
+ * and the note's `citekey` keeps the key as it is, which is what a citation
+ * to the note is resolved by.
  */
 export function noteName(item: ApiItem): string {
 	const key = item.data.citationKey?.trim();
-	if (key) return key;
+	if (key) return key.replace(/[\\/:*"<>|?#^[\]]/g, '-');
 
 	const first = authors(item).map(familyName).find((name) => name.length > 0) ?? 'unknown';
 	const year = itemYear(item);
