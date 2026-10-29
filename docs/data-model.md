@@ -79,7 +79,12 @@ writes. Every other tag on a note belongs to whoever put it there.
 ```
 
 Everything between the two markers is replaced on a refresh. Everything outside
-them is the user's. It holds the `## Annotations` section, one block per Zotero
+them is the user's. A marker is a line of its own, give or take spaces. A note
+with anything but one opening marker followed by one closing marker has a
+broken region (`regionLines` in `src/core/paper-note.ts`), and nothing in it is
+replaced, because there's no telling which lines are the user's: a closing
+marker deleted by accident leaves their prose after the opening one. The sync
+on open skips it silently; **Refresh paper from Zotero** says why. It holds the `## Annotations` section, one block per Zotero
 annotation, each ending in a block ID derived from the annotation's key
 (`^zt-<key>`) so a link to it survives refreshes.
 

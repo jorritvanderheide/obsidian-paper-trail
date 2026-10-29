@@ -173,6 +173,14 @@ You can, but your edits are replaced at the next refresh. Everything between
 your thoughts under the Claim or Assessment heading instead, or add a comment
 to the annotation in Zotero, which does come through.
 
+### "The annotations in … weren't updated, because the lines that mark where they go are missing or doubled."
+
+Paper Trail only replaces what's between one `<!--paper-trail-->` line and one
+`<!--/paper-trail-->` line below it. If one of them was deleted, or there are
+two of either, it can't tell your writing from its annotations, so it leaves
+the note alone until you fix it. Open the note in source mode, keep one of
+each around the annotations, and run **Refresh paper from Zotero** again.
+
 ## Citations
 
 ### Where did Insert citation go?

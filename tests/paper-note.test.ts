@@ -11,6 +11,7 @@ import {
 	inRegion,
 	annotationAt,
 	replaceRegion,
+	regionBroken,
 	fill,
 	isPaper,
 	managedDiffers,
@@ -226,7 +227,60 @@ describe('replaceRegion', () => {
 
 	it('leaves a body alone when the markers are the wrong way round', () => {
 		const broken = `${REGION_END}\ntext\n${REGION_START}`;
-		expect(replaceRegion(broken, 'x')).toContain('text');
+		expect(replaceRegion(broken, 'x')).toBe(broken);
+	});
+
+	// A sync runs every time the note is opened, so a broken note is synced
+	// again and again. Each case is synced twice: the first sync used to append
+	// a fresh region, and the second took the old opening marker and the new
+	// closing one for a pair and replaced the prose between them.
+	const twice = (note: string) => replaceRegion(replaceRegion(note, '## Annotations\n\n> new ^zt-NEW'), '## Annotations\n\n> new ^zt-NEW');
+
+	it('leaves a note alone when its closing marker is gone, however often it is synced', () => {
+		const note = ['# A paper', REGION_START, '## Annotations', '> old ^zt-OLD', '', 'My own prose, written after.'].join('\n');
+		expect(twice(note)).toBe(note);
+	});
+
+	it('leaves a note alone when its opening marker is gone, rather than adding a region on every sync', () => {
+		const note = ['# A paper', '## Annotations', '> old ^zt-OLD', REGION_END, '', 'My own prose.'].join('\n');
+		expect(twice(note)).toBe(note);
+	});
+
+	it('leaves a note alone when it has two regions', () => {
+		const note = [REGION_START, 'a', REGION_END, 'My own prose.', REGION_START, 'b', REGION_END].join('\n');
+		expect(twice(note)).toBe(note);
+	});
+
+	it('leaves a note alone when a marker is doubled', () => {
+		const note = [REGION_START, 'a', 'My own prose.', REGION_START, 'b', REGION_END].join('\n');
+		expect(twice(note)).toBe(note);
+	});
+
+	it('takes a marker only as a line of its own, not one quoted in prose', () => {
+		const note = ['I keep my notes above `<!--/paper-trail-->`.', REGION_START, '## Annotations', REGION_END, 'After.'].join('\n');
+		expect(twice(note)).toBe(['I keep my notes above `<!--/paper-trail-->`.', REGION_START, '', '## Annotations', '', '> new ^zt-NEW', '', REGION_END, 'After.'].join('\n'));
+	});
+
+	it('still reads markers with spaces around them, or a Windows line ending', () => {
+		const note = ['Mine.', `  ${REGION_START}\r`, '> old ^zt-OLD', `${REGION_END}  `, 'Also mine.'].join('\n');
+		const out = replaceRegion(note, '## Annotations');
+		expect(out).not.toContain('old');
+		expect(out).toContain('Mine.');
+		expect(out).toContain('Also mine.');
+	});
+});
+
+describe('regionBroken', () => {
+	it('is false for a note with one region, or none', () => {
+		expect(regionBroken(`a\n${REGION_START}\nb\n${REGION_END}\nc`)).toBe(false);
+		expect(regionBroken('a note with no region')).toBe(false);
+	});
+
+	it('is true for a lone marker, a doubled one, or markers the wrong way round', () => {
+		expect(regionBroken(`a\n${REGION_START}\nb`)).toBe(true);
+		expect(regionBroken(`a\n${REGION_END}`)).toBe(true);
+		expect(regionBroken(`${REGION_START}\n${REGION_START}\n${REGION_END}`)).toBe(true);
+		expect(regionBroken(`${REGION_END}\n${REGION_START}`)).toBe(true);
 	});
 });
 
@@ -602,6 +656,11 @@ describe('inRegion', () => {
 
 	it('is true from marker to marker and nowhere else', () => {
 		expect([0, 1, 2, 3, 4, 5].map((line) => inRegion(body, line))).toEqual([false, false, true, true, true, false]);
+	});
+
+	it('is false everywhere when the markers are broken, since no sync writes there', () => {
+		const broken = ['# Paper', REGION_START, '## Annotations', 'mine'].join('\n');
+		expect([0, 1, 2, 3].map((line) => inRegion(broken, line))).toEqual([false, false, false, false]);
 	});
 });
 

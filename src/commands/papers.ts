@@ -17,6 +17,7 @@ import {
 	managedDiffers,
 	paperFrontmatter,
 	paperLinks,
+	regionBroken,
 	replaceRegion,
 	renderAnnotations,
 } from '../core/paper-note';
@@ -208,6 +209,14 @@ export async function refreshPaper(context: Context, target?: TFile): Promise<vo
 
 	try {
 		await syncPaper(context, file);
+		// The sync leaves a note with broken markers alone, and silently, since it
+		// runs on every open. Asked for, it says why.
+		if (regionBroken(await context.app.vault.cachedRead(file))) {
+			new Notice(
+				`The annotations in ${file.basename} weren't updated, because the lines that mark where they go are missing or doubled. Keep one <!--paper-trail--> line above them and one <!--/paper-trail--> line below, then refresh again.`,
+			);
+			return;
+		}
 		say(context, `${file.basename} is up to date with Zotero.`);
 	} catch (error) {
 		notify(error);

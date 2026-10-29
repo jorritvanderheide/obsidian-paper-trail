@@ -3,6 +3,16 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+- A paper's note no longer loses your writing when the `<!--/paper-trail-->`
+  line under its annotations was deleted. Opening the note twice used to
+  replace everything from the annotations to the end of the note, including
+  what you'd written below them. Now a note whose marker lines are missing or
+  doubled is left alone, and **Refresh paper from Zotero** says how to fix it.
+- A note with only the `<!--/paper-trail-->` line no longer gets another copy
+  of its annotations every time you open it.
+
 ## 2.0.1
 
 - Plainer, friendlier wording in the README, the FAQ, the settings and the

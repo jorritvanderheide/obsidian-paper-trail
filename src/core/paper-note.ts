@@ -21,9 +21,40 @@ import { sortKeys } from './frontmatter';
 export const REGION_START = '<!--paper-trail-->';
 export const REGION_END = '<!--/paper-trail-->';
 
+/**
+ * Whether a line is a marker: the marker alone on its line, give or take
+ * spaces and a Windows line ending. A marker quoted in a sentence is prose.
+ */
+function isMarker(line: string, marker: string): boolean {
+	return line.trim() === marker;
+}
+
 /** Whether a line opens the managed region. */
 export function isRegionStart(line: string): boolean {
-	return line.includes(REGION_START);
+	return isMarker(line, REGION_START);
+}
+
+/**
+ * Where the region is, by the lines of its two markers: null for a note
+ * without one, and `'broken'` for anything but one opening marker followed by
+ * one closing marker. A broken region is never written to, because there is
+ * no telling which of the lines between the markers are ours: a closing marker
+ * deleted by accident leaves the person's prose after the opening one.
+ */
+function regionLines(lines: readonly string[]): { start: number; end: number } | 'broken' | null {
+	const starts = lines.flatMap((line, at) => (isMarker(line, REGION_START) ? [at] : []));
+	const ends = lines.flatMap((line, at) => (isMarker(line, REGION_END) ? [at] : []));
+	if (starts.length === 0 && ends.length === 0) return null;
+
+	const [start] = starts;
+	const [end] = ends;
+	if (starts.length > 1 || ends.length > 1 || start === undefined || end === undefined || end < start) return 'broken';
+	return { start, end };
+}
+
+/** Whether a note's markers are broken, so its annotations are left alone. */
+export function regionBroken(body: string): boolean {
+	return regionLines(body.split('\n')) === 'broken';
 }
 
 /**
@@ -160,13 +191,12 @@ export interface SyncedPassage {
  * skipped, and so is anything outside the markers, which is the user's.
  */
 export function syncedPassages(body: string): SyncedPassage[] {
-	const from = body.indexOf(REGION_START);
-	const to = body.indexOf(REGION_END);
-	if (from === -1 || to === -1 || to < from) return [];
+	const lines = body.split('\n');
+	const region = regionLines(lines);
+	if (region === null || region === 'broken') return [];
 
-	return body
-		.slice(from, to)
-		.split('\n')
+	return lines
+		.slice(region.start, region.end)
 		.flatMap((line) => {
 			const match = /^> (.+?)(?: \(p\. ([^)]+)\))? \^zt-([A-Za-z0-9]+)$/.exec(line.trimEnd());
 			return match ? [{ key: match[3] ?? '', text: match[1] ?? '', page: match[2] ?? null }] : [];
@@ -177,14 +207,12 @@ export function syncedPassages(body: string): SyncedPassage[] {
  * Where the cursor is, by line, against the region: inside it, text typed is
  * overwritten by the next sync.
  *
- * The marker lines count as inside. What follows the opening marker on its
- * line, or comes before the closing one, is replaced along with the rest.
+ * The marker lines count as inside, since they are replaced along with the
+ * rest. Nothing is inside a broken region, because no sync writes there.
  */
 export function inRegion(body: string, line: number): boolean {
-	const lines = body.split('\n');
-	const start = lines.findIndex((text) => text.includes(REGION_START));
-	const end = lines.findIndex((text) => text.includes(REGION_END));
-	return start !== -1 && end !== -1 && start <= line && line <= end;
+	const region = regionLines(body.split('\n'));
+	return region !== null && region !== 'broken' && region.start <= line && line <= region.end;
 }
 
 /**
@@ -207,10 +235,12 @@ export function annotationAt(body: string, line: number): string | null {
 }
 
 /**
- * Replace the managed region, leaving every other byte alone. A body with no
+ * Replace the managed region, leaving every other line alone. A body with no
  * region gets one appended rather than being rearranged: the user may have
  * removed it, and rebuilding the file around their prose would be exactly the
- * overreach this model exists to prevent.
+ * overreach this model exists to prevent. A body whose markers are broken is
+ * returned as it is (`regionLines`): appending there used to give the next sync
+ * the old opening marker and the new closing one, and the prose between them.
  */
 export function replaceRegion(body: string, contents: string): string {
 	// A blank line inside each marker, for source view, where the markers are
@@ -221,13 +251,12 @@ export function replaceRegion(body: string, contents: string): string {
 	// rule in `styles.css` for why that needed fixing at all.
 	const region = `${REGION_START}\n\n${contents}\n\n${REGION_END}`;
 
-	const from = body.indexOf(REGION_START);
-	const to = body.indexOf(REGION_END);
-	if (from === -1 || to === -1 || to < from) {
-		return `${body.replace(/\s*$/, '')}\n\n${region}\n`;
-	}
+	const lines = body.split('\n');
+	const found = regionLines(lines);
+	if (found === 'broken') return body;
+	if (found === null) return `${body.replace(/\s*$/, '')}\n\n${region}\n`;
 
-	return body.slice(0, from) + region + body.slice(to + REGION_END.length);
+	return [...lines.slice(0, found.start), region, ...lines.slice(found.end + 1)].join('\n');
 }
 
 /**
