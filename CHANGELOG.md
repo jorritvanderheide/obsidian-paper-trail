@@ -3,6 +3,12 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
+## Unreleased
+
+- If Zotero quits or crashes while it's answering, Paper Trail says it isn't
+  answering and asks again later. Before, the queue stopped following Zotero
+  until you restarted Obsidian.
+
 ## 2.1.4
 
 - A passage from Zotero that ends in a backslash, like `C:\temp\`, keeps it

@@ -51,6 +51,14 @@ export function getText(path: string, timeout = TIMEOUT): Promise<Response> {
 			let body = '';
 			response.setEncoding('utf8');
 			response.on('data', (chunk: string) => (body += chunk));
+			// A reply Zotero breaks off, because it quit or crashed while
+			// answering, ends in `close` without `end`. Without this the promise
+			// never settles, and the library read waiting on it holds back every
+			// later one until Obsidian restarts.
+			response.on('error', reject);
+			response.on('close', () => {
+				if (!response.complete) reject(new Error('Zotero stopped answering'));
+			});
 			response.on('end', () =>
 				resolve({
 					status: response.statusCode ?? 0,
