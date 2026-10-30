@@ -3,7 +3,7 @@
 What changed in each release of Paper Trail, newest first. What counts as
 breaking is in [Compatibility](docs/compatibility.md).
 
-## Unreleased
+## 2.1.5
 
 - If Zotero quits or crashes while it's answering, Paper Trail says it isn't
   answering and asks again later. Before, the queue stopped following Zotero
