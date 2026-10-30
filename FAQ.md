@@ -184,6 +184,13 @@ doesn't. Open the note in source mode, keep one `<!--paper-trail-->` line and
 one `<!--/paper-trail-->` line around the annotations, each on a line of its
 own, and run **Refresh paper from Zotero** again.
 
+Both lines can also be there and still not count. That happens when a comment
+from Zotero starts a code block with ```` ``` ```` and never closes it, because
+the closing marker then sits inside the code block. Paper Trail closes such a
+code block itself now, but a note synced by an older version keeps the open
+one. Add a line with only ```` ``` ```` under that comment, and run **Refresh
+paper from Zotero** again.
+
 ### "The annotations in … weren't added, because the lines that mark where they go are missing or doubled in your template, …"
 
 Every new paper note starts from your Paper template, in the template folder.

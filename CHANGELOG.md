@@ -19,6 +19,10 @@ breaking is in [Compatibility](docs/compatibility.md).
 - A paper from a group library can be decided on twice in quick succession.
   Before, the second decision could say "There's already a note at …, and it
   isn't this paper's." about the paper's own note.
+- A comment in Zotero that starts a code block with ```` ``` ```` and never
+  closes it no longer stops that paper's annotations from updating. Paper
+  Trail closes the code block under the comment. A note that already
+  stopped needs the closing line added once by hand, which the FAQ explains.
 
 ## 2.1.4
 
