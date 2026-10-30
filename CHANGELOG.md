@@ -12,6 +12,10 @@ breaking is in [Compatibility](docs/compatibility.md).
   above a note fails, a notice says why, the way it does for commands. Before,
   it failed without a word, for example a decision on a paper with no note
   while Zotero was closed.
+- **Next**, and the unread papers you can wait for when you defer one,
+  include papers that have no note yet, also when the sidebar is closed.
+  Before, they only showed up after the sidebar had been open, so **Next**
+  could say "Nothing left to do." with papers waiting in Zotero.
 
 ## 2.1.4
 

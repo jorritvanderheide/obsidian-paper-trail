@@ -23,6 +23,7 @@ import { selectUrl } from '../core/paper-note';
 import { itemChildren, lastContact } from '../source';
 import { decideOn, openTriage, targetOf, writeTriage } from './reading';
 import { fileOf, paperNote, queue } from '../outstanding';
+import { refreshLibrary } from '../library';
 import { iconOf, landing, PASS_PROGRESS, passTwo, resumed } from '../core/triage';
 import { workflowOf } from '../core/settings';
 import { suggest } from '../ui/prompt';
@@ -370,6 +371,10 @@ export async function finish(context: Context, task: Task, row: Row): Promise<vo
  * should not require deciding which pile first.
  */
 export async function next(context: Context): Promise<void> {
+	// Papers with no note come from the library, which only the sidebar and the
+	// block kept current. With both closed, Next skipped them and could say
+	// nothing was left while Triage was full.
+	await refreshLibrary(context.settings.sources);
 	const buckets = queue(context).rows;
 	const outstanding = [...buckets.values()].reduce((sum, list) => sum + list.length, 0);
 

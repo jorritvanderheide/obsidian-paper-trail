@@ -39,6 +39,7 @@ import { pendingRef, type Pending } from '../core/pending';
 import { prompt, suggest } from '../ui/prompt';
 import { askDeferral, type Waitable } from '../ui/defer-modal';
 import { fileOf, nextTriage, paperNote, queue } from '../outstanding';
+import { refreshLibrary } from '../library';
 import { taskFor, unread, withHeading, type Row } from '../core/stages';
 import type { Context } from '../context';
 import { today } from '../today';
@@ -277,7 +278,10 @@ export async function decideOn(
 	let after: Waitable | null = null;
 	if (question && reading === 'deferred') {
 		// The one decision that is a promise, so it asks for the way back as well
-		// as the reason: a date, or a paper still unread to wait for.
+		// as the reason: a date, or a paper still unread to wait for. The unread
+		// papers with no note come from the library, so it is brought up to date
+		// first, for when no sidebar is open to have done it.
+		await refreshLibrary(context.settings.sources);
 		const deferral = await askDeferral(
 			context.app,
 			question.question,
