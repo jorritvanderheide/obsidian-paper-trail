@@ -18,6 +18,7 @@ import {
 	parseItemRef,
 	refOf,
 	storedKey,
+	storesItem,
 	readerUrl,
 	annotationUrl,
 	type ApiItem,
@@ -32,6 +33,22 @@ describe('storedKey', () => {
 		for (const ref of [{ key: 'ABCD2345', groupID: null }, { key: 'ABCD2345', groupID: 12 }]) {
 			expect(parseItemRef(storedKey(ref))).toEqual(ref);
 		}
+	});
+});
+
+describe('storesItem', () => {
+	it('matches a note on its own paper, in your library or a group', () => {
+		expect(storesItem('ABCD2345', { key: 'ABCD2345', groupID: null })).toBe(true);
+		expect(storesItem('ABCD2345g5', { key: 'ABCD2345', groupID: 5 })).toBe(true);
+		expect(storesItem(' ABCD2345g5 ', { key: 'ABCD2345', groupID: 5 })).toBe(true);
+	});
+
+	it('does not match the same key in another library, or something that is no key', () => {
+		expect(storesItem('ABCD2345', { key: 'ABCD2345', groupID: 5 })).toBe(false);
+		expect(storesItem('ABCD2345g5', { key: 'ABCD2345', groupID: null })).toBe(false);
+		expect(storesItem('ABCD2345g5', { key: 'ABCD2345', groupID: 6 })).toBe(false);
+		expect(storesItem(undefined, { key: 'ABCD2345', groupID: null })).toBe(false);
+		expect(storesItem(['ABCD2345'], { key: 'ABCD2345', groupID: null })).toBe(false);
 	});
 });
 

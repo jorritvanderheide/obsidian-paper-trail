@@ -26,6 +26,18 @@ export function storedKey(ref: ItemRef): string {
 }
 
 /**
+ * Whether what a note stores under the item key property names this item.
+ *
+ * Read back through `parseItemRef` and compared whole, group and all. Comparing
+ * the stored text with the bare key never matched a paper in a group, whose
+ * note stores `ABCD2345g5`.
+ */
+export function storesItem(value: unknown, ref: ItemRef): boolean {
+	const stored = parseItemRef(value);
+	return stored !== null && storedKey(stored) === storedKey(ref);
+}
+
+/**
  * Where an item is, from what Zotero says about it. An item with no library
  * named is one of your own, which is what every request here asked for before
  * groups could be read.

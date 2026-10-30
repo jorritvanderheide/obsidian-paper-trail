@@ -22,7 +22,7 @@ import {
 	replaceRegion,
 	renderAnnotations,
 } from '../core/paper-note';
-import { annotationUrl, attachmentKeys, inert, noteName, parseItemRef, type ApiItem, type ItemRef } from '../core/zotero';
+import { annotationUrl, attachmentKeys, inert, noteName, parseItemRef, storesItem, type ApiItem, type ItemRef } from '../core/zotero';
 import type { Reading } from '../core/triage';
 import { attachmentAnnotations, changedSince, itemChildren, itemMetadata, SourceError } from '../source';
 import { adoptionSummary, planAdoption } from '../core/adoption';
@@ -79,7 +79,7 @@ export async function createPaperNote(context: Context, item: ApiItem, ref: Item
 	const existing = app.vault.getFileByPath(path);
 	if (existing instanceof TFile) {
 		const frontmatter = app.metadataCache.getFileCache(existing)?.frontmatter;
-		if (frontmatter?.[context.settings.keyField] === ref.key) return existing;
+		if (storesItem(frontmatter?.[context.settings.keyField], ref)) return existing;
 
 		// Something else is already called this. Most likely an empty note made
 		// by following a citation to a paper that had none yet, since a citation

@@ -16,6 +16,9 @@ breaking is in [Compatibility](docs/compatibility.md).
   include papers that have no note yet, also when the sidebar is closed.
   Before, they only showed up after the sidebar had been open, so **Next**
   could say "Nothing left to do." with papers waiting in Zotero.
+- A paper from a group library can be decided on twice in quick succession.
+  Before, the second decision could say "There's already a note at …, and it
+  isn't this paper's." about the paper's own note.
 
 ## 2.1.4
 
