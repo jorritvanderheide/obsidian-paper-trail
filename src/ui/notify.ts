@@ -33,6 +33,18 @@ export function notify(error: unknown, tag?: string): void {
 }
 
 /**
+ * Run something a button, a menu or the title bar started, and show its failure
+ * the way a command's is shown.
+ *
+ * A click handler cannot wait for the work, and a rejection nobody catches
+ * reaches only the console, so a button that failed looked exactly like one
+ * that decided to do nothing. Commands get the same from `main.ts`.
+ */
+export function attempt(action: Promise<unknown>, tag: string): void {
+	action.catch((error: unknown) => notify(error, tag));
+}
+
+/**
  * Anything that is neither a failure nor a warning: where a paper went, that a
  * pass is finished, what a refresh found, that nothing is left to do.
  *

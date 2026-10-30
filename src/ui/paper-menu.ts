@@ -17,6 +17,7 @@ import { offersFor, takeOffer, targetOf } from '../commands/reading';
 import { paperNote } from '../outstanding';
 import { workflowOf } from '../core/settings';
 import type { Context } from '../context';
+import { attempt } from './notify';
 
 /**
  * Put a paper's items in a menu. False when there is no paper to act on,
@@ -49,9 +50,9 @@ export function paperMenu(menu: Menu, context: Context, row: Row): boolean {
 	if (task) {
 		const { action, icon, done, doneIcon } = TASKS[task];
 		if (done && doneIcon) {
-			menu.addItem((item) => item.setTitle(done).setIcon(doneIcon).onClick(() => void finish(context, task, row)));
+			menu.addItem((item) => item.setTitle(done).setIcon(doneIcon).onClick(() => attempt(finish(context, task, row), task)));
 		}
-		menu.addItem((item) => item.setTitle(action).setIcon(icon).onClick(() => void act(context, task, row)));
+		menu.addItem((item) => item.setTitle(action).setIcon(icon).onClick(() => attempt(act(context, task, row), task)));
 	}
 
 	for (const offer of offersFor(context, target).offers) {
@@ -59,7 +60,7 @@ export function paperMenu(menu: Menu, context: Context, row: Row): boolean {
 			item
 				.setTitle(offer.choice.label)
 				.setIcon(offer.choice.icon)
-				.onClick(() => void takeOffer(context, target, rowTitle(row), offer.choice)),
+				.onClick(() => attempt(takeOffer(context, target, rowTitle(row), offer.choice), 'reading')),
 		);
 	}
 

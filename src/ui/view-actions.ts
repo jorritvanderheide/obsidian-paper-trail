@@ -18,6 +18,7 @@ import { refreshPaper } from '../commands/papers';
 import { workflowOf } from '../core/settings';
 import type { Workflow } from '../core/triage';
 import type { Context } from '../context';
+import { attempt } from './notify';
 
 const REFRESH = 'paper-trail-refresh';
 const ACT = 'paper-trail-act';
@@ -64,7 +65,7 @@ function decorateOne(context: Context, view: MarkdownView): void {
 		REFRESH,
 		'refresh-cw',
 		'Refresh from Zotero',
-		() => void refreshPaper(context, view.file ?? undefined),
+		() => attempt(refreshPaper(context, view.file ?? undefined), 'refresh-paper'),
 	);
 	refresh.toggle(note !== null && note.isPaper);
 
@@ -113,7 +114,7 @@ function decorateOne(context: Context, view: MarkdownView): void {
 	// Leftmost, because it is a label rather than a verb: the buttons are
 	// things to press and this is a thing to read, and reading comes first.
 	const pill = ensure(view, STATUS, 'circle-dashed', 'Reading status', () =>
-		void setReading(context, view.file ?? undefined),
+		attempt(setReading(context, view.file ?? undefined), 'set-reading'),
 	);
 	// Reading view has the document carrying it, which is the one that shows up
 	// in a hover preview. Two pills for one state would be one too many.
@@ -176,7 +177,7 @@ function withCurrent(
 ): void {
 	const note = stateOf(context, view);
 	const task = note ? taskOf(note, workflowOf(context.settings)) : null;
-	if (note && task) void what(context, task, { kind: 'note', note });
+	if (note && task) attempt(what(context, task, { kind: 'note', note }), task);
 }
 
 /**

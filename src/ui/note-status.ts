@@ -22,6 +22,7 @@ import { statusWords, type NoteState } from '../core/stages';
 import { noteOf } from '../outstanding';
 import { setReading } from '../commands/reading';
 import type { Context } from '../context';
+import { attempt } from './notify';
 
 /**
  * Put the state's mark and word in an element, and what it means in its
@@ -103,7 +104,7 @@ class NoteStatus extends MarkdownRenderChild {
 
 		pill.addEventListener('click', () => {
 			const found = readingAt(this.context, this.path);
-			if (found) void setReading(this.context, found.file);
+			if (found) attempt(setReading(this.context, found.file), 'set-reading');
 		});
 		this.pill = pill;
 

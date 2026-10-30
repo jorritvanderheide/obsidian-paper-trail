@@ -32,7 +32,7 @@ import { act, finish, next, openNote } from '../commands/workflow';
 import { iconOf, label, type State } from '../core/triage';
 import { queue, sourcesProblem } from '../outstanding';
 import { WhileWriting } from './editing';
-import { say } from './notify';
+import { attempt, say } from './notify';
 import { paperMenu } from './paper-menu';
 import { lastContact } from '../source';
 import { onLibraryChange, refreshLibrary } from '../library';
@@ -196,7 +196,7 @@ function toolbar(
 	// which pile to work first. Counted before any search, because that is what
 	// `next` will offer from.
 	const outstanding = [...all.values()].reduce((sum, list) => sum + list.length, 0);
-	iconButton(buttons, 'arrow-right', `Next · ${outstanding} to do`, () => void next(context), 'nav-action-button');
+	iconButton(buttons, 'arrow-right', `Next · ${outstanding} to do`, () => attempt(next(context), 'next'), 'nav-action-button');
 
 	// Zotero is asked whenever you come back to Obsidian, which covers almost
 	// everything: you went to Zotero to add the paper. It does not cover Zotero
@@ -720,7 +720,7 @@ function sectionRows(
 			() => {
 				if (entry.kind === 'note' && task !== 'reading' && showing(context.app, entry.note)) return;
 				if (entry.kind === 'note' && task === 'triage') void openNote(context.app, entry.note);
-				else void act(context, task, entry);
+				else attempt(act(context, task, entry), task);
 			},
 			returned ? iconOf(entry.note.state) : undefined,
 		);
@@ -744,14 +744,14 @@ function sectionRows(
 		// The task's own end first, where it is reachable: a row you are
 		// coming back to is more often finished than started again.
 		if (done && doneIcon) {
-			iconButton(actions, doneIcon, done, () => void finish(context, task, entry));
+			iconButton(actions, doneIcon, done, () => attempt(finish(context, task, entry), task));
 		}
 		// The same thing the row click does, and kept for that reason rather than in
 		// spite of it: it is what says in advance where the click goes, and the
 		// sections differ, so a row that gave no sign would have to be tried to be
 		// known. It also still acts on the row you are already in, where the click
 		// does nothing: from further down a note, it is the way back to the heading.
-		iconButton(actions, icon, action, () => void act(context, task, entry));
+		iconButton(actions, icon, action, () => attempt(act(context, task, entry), task));
 	}
 
 	// The count is honest even when the list is not, because a backlog you

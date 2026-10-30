@@ -8,6 +8,10 @@ breaking is in [Compatibility](docs/compatibility.md).
 - If Zotero quits or crashes while it's answering, Paper Trail says it isn't
   answering and asks again later. Before, the queue stopped following Zotero
   until you restarted Obsidian.
+- When something you start from the sidebar, a paper's menu or the buttons
+  above a note fails, a notice says why, the way it does for commands. Before,
+  it failed without a word, for example a decision on a paper with no note
+  while Zotero was closed.
 
 ## 2.1.4
 
