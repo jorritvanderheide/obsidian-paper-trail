@@ -56,6 +56,12 @@ Anything that could lose a user's text wants a test before it wants a feature.
 5. **Publish the draft.** Obsidian's community directory installs from GitHub
    releases, and a tag alone is not one.
 
+`scripts/release.sh <x.y.z> "<what the release is>"` does all five, from an
+empty working-copy change on top of the commits to release. It stops before
+anything is pushed when a check fails, or when the subject is 72 characters
+or more, the message or the notes have a bare `@`, or `main` on Codeberg has
+moved. `--dry-run` goes as far as the push, then puts everything back.
+
 Before releasing a change, read [Compatibility](compatibility.md). It says
 what a release may change in settings, notes, commands and citations, and what
 a breaking change needs.
