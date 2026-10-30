@@ -22,15 +22,16 @@ export const REGION_START = '<!--paper-trail-->';
 export const REGION_END = '<!--/paper-trail-->';
 
 /**
- * Whether a line is a marker as Paper Trail writes it: alone on the line, with
- * at most three spaces before it, since four make it code, and only spaces
- * after. A marker anywhere else is the person's text: quoted in a sentence, in
- * a list item, a quote, a callout, an indented code line, or joined to other
- * text. Counting one of those, when a real marker was deleted, paired it with
- * the other and replaced the person's text between them.
+ * Whether a line is a marker as Paper Trail writes it: alone on the line, at
+ * its very start, with only spaces after. A marker anywhere else is the
+ * person's text: quoted in a sentence, in a list item, a quote, a callout, an
+ * indented code line, or joined to other text. Counting one of those, when a
+ * real marker was deleted, paired it with the other and replaced the person's
+ * text between them. Even one to three spaces in, where Markdown still reads
+ * it as a comment of its own, it can belong to the list item above.
  */
 function isMarker(line: string, marker: string): boolean {
-	return /^ {0,3}(\S.*?)\s*$/.exec(line)?.[1] === marker;
+	return /^(\S.*?)\s*$/.exec(line)?.[1] === marker;
 }
 
 /** Whether a line opens the managed region. */

@@ -178,11 +178,12 @@ to the annotation in Zotero, which does come through.
 Paper Trail only replaces what's between one `<!--paper-trail-->` line and one
 `<!--/paper-trail-->` line below it. If one of them was deleted, or there are
 two of either, it can't tell your writing from its annotations, so it leaves
-the note alone until you fix it. A marker only counts on a line of its own: one
-in a sentence, a list, a quote or a code block, or joined to other text,
-doesn't. Open the note in source mode, keep one `<!--paper-trail-->` line and
-one `<!--/paper-trail-->` line around the annotations, each on a line of its
-own, and run **Refresh paper from Zotero** again.
+the note alone until you fix it. A marker only counts on a line of its own,
+right at the start of the line. One in a sentence, a list, a quote or a code
+block, joined to other text, or with spaces in front of it doesn't count. Open
+the note in source mode, keep one `<!--paper-trail-->` line and one
+`<!--/paper-trail-->` line around the annotations, each on a line of its own
+with nothing in front, and run **Refresh paper from Zotero** again.
 
 Both lines can also be there and still not count. That happens when a comment
 from Zotero starts a code block with ```` ``` ```` and never closes it, because

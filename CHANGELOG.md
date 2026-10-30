@@ -23,6 +23,10 @@ breaking is in [Compatibility](docs/compatibility.md).
   closes it no longer stops that paper's annotations from updating. Paper
   Trail closes the code block under the comment. A note that already
   stopped needs the closing line added once by hand, which the FAQ explains.
+- A marker line with spaces in front of it no longer counts, because under a
+  list item it belongs to the list. Paper Trail always writes its markers
+  at the start of the line. A note with an indented marker is left alone,
+  and **Refresh paper from Zotero** says how to fix it.
 
 ## 2.1.4
 

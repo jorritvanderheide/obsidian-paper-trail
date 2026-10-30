@@ -328,12 +328,18 @@ describe('replaceRegion', () => {
 		expect(replaceRegion(out, '## Annotations\n\n> new ^zt-NEW')).toBe(out);
 	});
 
-	it('still reads markers with spaces around them, or a Windows line ending', () => {
-		const note = ['Mine.', `  ${REGION_START}\r`, '> old ^zt-OLD', `${REGION_END}  `, 'Also mine.'].join('\n');
+	it('still reads markers with spaces after them, or a Windows line ending', () => {
+		const note = ['Mine.', `${REGION_START}\r`, '> old ^zt-OLD', `${REGION_END}  `, 'Also mine.'].join('\n');
 		const out = replaceRegion(note, '## Annotations');
 		expect(out).not.toContain('old');
 		expect(out).toContain('Mine.');
 		expect(out).toContain('Also mine.');
+	});
+
+	it('leaves a note alone when a marker has spaces before it, which can put it in a list item', () => {
+		const note = ['- a point of mine', '', `  ${REGION_START}`, '  More of my point.', REGION_END, 'Also mine.'].join('\n');
+		expect(regionBroken(note)).toBe(true);
+		expect(replaceRegion(note, '## Annotations')).toBe(note);
 	});
 });
 
