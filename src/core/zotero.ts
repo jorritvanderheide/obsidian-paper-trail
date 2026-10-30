@@ -349,11 +349,23 @@ export function colorName(hex: string | undefined): AnnotationColor | null {
  * would open a comment, in Obsidian and in an export, that runs to the end of
  * the note when nothing closes it. The second `%`, or the second `-`, is
  * written as the HTML entity, which both read as the character. Not the `<`:
- * pandoc's typography would make the `--` after it a dash. Unchanged the
- * second time, so a passage read back out of a note isn't broken up again.
+ * pandoc's typography would make the `--` after it a dash.
+ *
+ * A run of three or more backticks or tildes could open a code block that
+ * runs past the closing marker, which then no longer counts, so the region is
+ * never synced again. Closing it from outside isn't safe: in a list item, a
+ * closing line ends the item instead and can open another code block. So each
+ * of those is written as its entity too, and nothing from Zotero opens a code
+ * block at all.
+ *
+ * Unchanged the second time, so a passage read back out of a note isn't
+ * broken up again.
  */
 export function inert(text: string): string {
-	return text.replace(/%%/g, '%&#37;').replace(/<!--/g, '<!-&#45;');
+	return text
+		.replace(/%%/g, '%&#37;')
+		.replace(/<!--/g, '<!-&#45;')
+		.replace(/`{3,}|~{3,}/g, (run) => run.replace(/./g, (mark) => (mark === '`' ? '&#96;' : '&#126;')));
 }
 
 /**

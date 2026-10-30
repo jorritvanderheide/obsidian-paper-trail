@@ -41,11 +41,13 @@ export function isRegionStart(line: string): boolean {
 
 /**
  * The fence still open after a line, given the one open before it: ```` ``` ````
- * or `~~~` (or longer) at most three spaces in, closed only by a line holding
- * nothing but a run of the same character at least as long.
+ * or `~~~` (or longer) at most three spaces in. A run of backticks with another
+ * backtick after it is inline code, ```` ```foo``` ````, and opens nothing. A fence
+ * is closed only by a line holding nothing but a run of the same character at
+ * least as long.
  */
 function fenceAfter(fence: string | null, line: string): string | null {
-	const opening = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+	const opening = /^ {0,3}(`{3,}(?!.*`)|~{3,})/.exec(line)?.[1];
 	if (fence === null) return opening ?? null;
 	const closes = opening !== undefined && opening[0] === fence[0] && opening.length >= fence.length && line.trim() === opening;
 	return closes ? null : fence;
@@ -239,12 +241,7 @@ export function renderAnnotation(annotation: Annotation): string {
 	}
 	if (annotation.comment) {
 		if (lines.length > 0) lines.push('');
-		// A code block the comment opens and never closes would run past the
-		// closing marker, which then no longer counts, and the region would
-		// never be synced again. So it is closed where the comment ends.
-		const comment = inert(annotation.comment);
-		const open = comment.split('\n').reduce(fenceAfter, null);
-		lines.push(open === null ? comment : `${comment}\n${open}`);
+		lines.push(inert(annotation.comment));
 	}
 	return lines.join('\n');
 }

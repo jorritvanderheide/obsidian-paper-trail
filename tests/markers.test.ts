@@ -21,7 +21,8 @@
 // and Paper Trail doesn't count only leaves the note alone with a message.
 import { Parser } from 'commonmark';
 import { describe, expect, it } from 'vitest';
-import { REGION_END, REGION_START, regionRange, regionStart } from '../src/core/paper-note';
+import { REGION_END, REGION_START, regionRange, regionStart, renderAnnotations, replaceRegion } from '../src/core/paper-note';
+import type { Annotation } from '../src/core/zotero';
 
 /** The lines CommonMark reads as one marker and nothing else, top level, 0-based. */
 function standalone(lines: readonly string[], marker: string): Set<number> {
@@ -137,5 +138,58 @@ describe('the marker rule, against CommonMark', () => {
 		expect(wrong).toEqual([]);
 		// Enough notes had a region for the check to mean something.
 		expect(regions).toBeGreaterThan(500);
+	});
+});
+
+/** Lines a comment in Zotero might hold, code blocks above all. */
+const commentLines = [
+	'A thought.',
+	'',
+	'```',
+	'```js',
+	'````',
+	'```foo``` is the key call',
+	'   ```',
+	'  ```',
+	'    ```',
+	'~~~',
+	'~~~~ with `backticks`',
+	'1. step',
+	'- step',
+	'   code()',
+	'> ```',
+	'> quoted',
+	'``inline``',
+];
+
+/** Comments from those lines, two to six at a time. */
+function comment(next: () => number): string {
+	const pick = <T>(list: readonly T[]): T => list[Math.floor(next() * list.length)] as T;
+	return Array.from({ length: 2 + Math.floor(next() * 5) }, () => pick(commentLines)).join('\n');
+}
+
+function annotation(key: string, text: string, comment: string): Annotation {
+	return { key, text, comment, page: null, sortIndex: key, color: null };
+}
+
+describe('comments from Zotero, against CommonMark', () => {
+	it('never hide the closing marker or the text under the annotations', () => {
+		const next = random(20261031);
+		const wrong: string[] = [];
+		for (let run = 0; run < 5000 && wrong.length < 5; run++) {
+			const list = Array.from({ length: 1 + Math.floor(next() * 3) }, (_, at) =>
+				annotation(`KEY${at}`, next() < 0.5 ? 'A passage.' : '', comment(next)),
+			);
+			const lines = `${replaceRegion('# A paper\n\nMine above.\n', renderAnnotations(list))}\nMine below.`.split('\n');
+			const region = regionRange(lines);
+			const below = parse(lines).lastChild;
+			const fine =
+				region !== null &&
+				standalone(lines, REGION_END).has(region.end) &&
+				below?.type === 'paragraph' &&
+				below.firstChild?.literal === 'Mine below.';
+			if (!fine) wrong.push(JSON.stringify(list.map((one) => one.comment)));
+		}
+		expect(wrong).toEqual([]);
 	});
 });

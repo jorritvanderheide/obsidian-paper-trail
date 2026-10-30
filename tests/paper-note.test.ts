@@ -152,10 +152,12 @@ describe('renderAnnotation', () => {
 		);
 	});
 
-	it('closes a code block a comment leaves open, so the closing marker still counts', () => {
+	it('opens no code block from a comment, so the closing marker still counts', () => {
 		const open = annotation({ comment: 'try this:\n```js\nrun()' });
-		expect(renderAnnotation(open)).toBe('> Care is not inherently good. (p. 842) ^zt-2SQ873XZ\n\ntry this:\n```js\nrun()\n```');
-		expect(renderAnnotation(annotation({ text: '', comment: '~~~~\nx' }))).toBe('~~~~\nx\n~~~~');
+		expect(renderAnnotation(open)).toBe(
+			'> Care is not inherently good. (p. 842) ^zt-2SQ873XZ\n\ntry this:\n&#96;&#96;&#96;js\nrun()',
+		);
+		expect(renderAnnotation(annotation({ text: '', comment: '~~~~\nx' }))).toBe('&#126;&#126;&#126;&#126;\nx');
 
 		// Synced into a note and synced again, with the comment changed in Zotero
 		// in between: both times the region is found and written.
@@ -165,9 +167,9 @@ describe('renderAnnotation', () => {
 		expect(replaceRegion(note, fixed)).toBe(replaceRegion('# A paper\n\nMine.\n', fixed));
 	});
 
-	it('leaves a comment whose code blocks are closed as it is', () => {
-		const closed = '```\na\n```\nand ```inline```';
-		expect(renderAnnotation(annotation({ text: '', comment: closed }))).toBe(closed);
+	it('leaves inline code of one or two backticks as it is', () => {
+		const inline = 'call `run()`, or `` a`b ``';
+		expect(renderAnnotation(annotation({ text: '', comment: inline }))).toBe(inline);
 	});
 
 	it('renders a comment with no selected text', () => {

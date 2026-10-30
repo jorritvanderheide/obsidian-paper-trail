@@ -560,8 +560,14 @@ describe('inert', () => {
 		expect(inert('Care is not inherently good.')).toBe('Care is not inherently good.');
 	});
 
+	it('writes a run of three or more backticks or tildes so it opens no code block', () => {
+		expect(inert('```js')).toBe('&#96;&#96;&#96;js');
+		expect(inert('~~~~')).toBe('&#126;&#126;&#126;&#126;');
+		expect(inert('``two`` and ~~struck~~')).toBe('``two`` and ~~struck~~');
+	});
+
 	it('changes nothing the second time, so a passage read back out of a note is not broken up twice', () => {
-		const once = inert('%% and <!-- and %%%%');
+		const once = inert('%% and <!-- and %%%% and `````');
 		expect(inert(once)).toBe(once);
 	});
 });

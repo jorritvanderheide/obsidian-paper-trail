@@ -20,13 +20,16 @@ breaking is in [Compatibility](docs/compatibility.md).
   Before, the second decision could say "There's already a note at …, and it
   isn't this paper's." about the paper's own note.
 - A comment in Zotero that starts a code block with ```` ``` ```` and never
-  closes it no longer stops that paper's annotations from updating. Paper
-  Trail closes the code block under the comment. A note that already
-  stopped needs the closing line added once by hand, which the FAQ explains.
+  closes it no longer stops that paper's annotations from updating. Three or
+  more backticks or tildes from Zotero are now written so they show as
+  themselves and start no code block. So a code block in a Zotero comment
+  shows as plain text. A note that already stopped needs a closing line
+  added once by hand, which the FAQ explains.
 - A marker line with spaces in front of it no longer counts, because under a
   list item it belongs to the list. Paper Trail always writes its markers
   at the start of the line. A note with an indented marker is left alone,
-  and **Refresh paper from Zotero** says how to fix it.
+  with the message about missing or doubled lines, and the FAQ explains how
+  to fix it.
 
 ## 2.1.4
 
